@@ -1,0 +1,54 @@
+#pragma once
+#include <geometry.h>
+#include <shader.h>
+
+#include "texture.h"
+
+#ifndef OBJECT_H
+#define OBJECT_H
+
+/**
+ * @struct object
+ * @brief Represents a drawable object in OpenGL.
+ *
+ * Contains vertex arrays, vertex buffers, element buffers, and an associated shader.
+ */
+typedef struct sprite {
+    vert_array* va;   /**< Pointer to the vertex array object */
+    vert_buf* vb;     /**< Pointer to the vertex buffer */
+    elem_buf* eb;     /**< Pointer to the element/index buffer */
+    shader_t* shader; /**< Pointer to the shader used for rendering */
+} sprite_t;
+
+
+/**
+ * @brief Create a rectangle object for 2D rendering.
+ * @param x X position of the rectangle
+ * @param y Y position of the rectangle
+ * @param width Width of the rectangle
+ * @param height Height of the rectangle
+ * @param frame_width Width of the frame/window containing the rectangle
+ * @param frame_height Height of the frame/window containing the rectangle
+ * @param type
+ * @return Pointer to the allocated rectangle object
+ */
+sprite_t* new_sprite(u32 x, u32 y, u32 width, u32 height, u32 frame_width, u32 frame_height, const shader_type type);
+
+/**
+ * @brief Delete an object and free its resources.
+ * @param obj Pointer to the object to delete
+ */
+void del_sprite(sprite_t* obj);
+
+/**
+ * @brief Bind the object for rendering.
+ * @param obj Pointer to the object to bind
+ */
+void bind_sprite(const sprite_t* obj);
+
+/**
+ * @brief Unbind any currently bound object.
+ */
+void unbind_sprite(void);
+
+#endif // OBJECT_H

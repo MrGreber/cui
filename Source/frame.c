@@ -1,0 +1,126 @@
+#include <frame.h>
+#include <mem.h>
+#include <log.h>
+#include <camera.h>
+#include <canvas.h>
+
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <glad.h>
+#include <glfw3.h>
+#include <glfw3native.h>
+#include <stdio.h>
+
+static bool __init_glfw(void) {
+    static bool flag = false;
+    if (!flag) {
+        if (!glfwInit()) {
+            logFatal("init_glfw - Failed to initialize GLFW");
+            return false;
+        }
+
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+        glfwWindowHint(GLFW_RED_BITS, 8);
+        glfwWindowHint(GLFW_GREEN_BITS, 8);
+        glfwWindowHint(GLFW_BLUE_BITS, 8);
+        glfwWindowHint(GLFW_ALPHA_BITS, 8);
+        glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
+        flag = true;
+    }
+    return true;
+}
+static bool __init_glad(void) {
+    static bool flag = false;
+    if (!flag) {
+        if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+            logError("__init_glad - Failed to initialize GLAD function.");
+            return false;
+        }
+        flag = true;
+    }
+    return true;
+}
+
+extern void __resize_callback(GLFWwindow* window, const i32 width, const i32 height);
+extern bool __check_press(const frame_t* frame, const u32 key);
+extern void __keyboard_input(const frame_t* frame);
+extern void __keyboard_callback(GLFWwindow* window, i32 key, i32 sc, i32 action, i32 mods);
+extern void __mouse_movement_callback(GLFWwindow* window, const f64 mouse_x, const f64 mouse_y);
+extern void __mouse_button_callback(GLFWwindow* window, const i32 button, const i32 action, const i32 mods);
+extern void __scroll_callback(GLFWwindow* window, const f64 x, const f64 scroll_y);
+
+frame_t* new_frame(const color_t bg, const u32 width, const u32 height, const char* title) {
+    buf_t buffer = {
+        .size = sizeof(frame_t),
+        .tag = MEMTAG_FRAME,
+    };
+    if (!new_buf(&buffer, true)) return NULL;
+
+    frame_t* frame = buffer.ptr;
+
+    if (!__init_glfw()) goto cleanup;
+    frame->glfw_ctx = glfwCreateWindow(width, height, title, 0, 0);
+    if (!frame->glfw_ctx) {
+        logError("new_frame - Failed to create frame window.");
+        goto cleanup;
+    }
+    frame->header.components = new_comp_node(frame, FRAME_COMPONENT);
+    if (!frame->header.components) {
+        logError("new_frame - Failed to create component system.");
+        goto cleanup;
+    }
+
+    glfwMakeContextCurrent(frame->glfw_ctx);
+    glfwSetFramebufferSizeCallback(frame->glfw_ctx, __resize_callback);
+
+    if (!__init_glad()) goto cleanup;
+
+    frame->header.box.width = width;
+    frame->header.box.height = height;
+    frame->header.bg = bg;
+
+    glfwSetKeyCallback(frame->glfw_ctx, __keyboard_callback);
+    glfwSetCursorPosCallback(frame->glfw_ctx, __mouse_movement_callback);
+    glfwSetMouseButtonCallback(frame->glfw_ctx, __mouse_button_callback);
+    glfwSetScrollCallback(frame->glfw_ctx, __scroll_callback);
+    frame->header.keyboard = __keyboard_input;
+
+    glfwSetWindowUserPointer(frame->glfw_ctx, frame);
+    return frame;
+cleanup:
+    if (frame->header.components) del_comp_node(frame->header.components);
+    del_buf(&(buf_t){.size = sizeof(frame_t), .tag = MEMTAG_FRAME, .ptr = frame});
+    glfwTerminate();
+    return NULL;
+}
+void del_frame(frame_t* frame) {
+    if (!frame) return;
+    if (frame->header.components) del_comp_node(frame->header.components);
+    del_buf(&(buf_t){.size = sizeof(frame_t), .tag = MEMTAG_FRAME, .ptr = frame});
+    glfwTerminate();
+}
+void update_frame(const frame_t* frame) {
+    if (!frame) return;
+
+    static u32 frame_count = 0;
+    static char title[32] = "Canvas-FPS: ";
+
+    const f32 time = glfwGetTime();
+    const f32 fps = ((f32)frame_count) / time;
+    sprintf_s(title + 12, 20, "%.2f", fps);
+    glfwSetWindowTitle(frame->glfw_ctx, title);
+
+    const color_t bg = frame->header.bg;
+    glViewport(0, 0, frame->header.box.width, frame->header.box.height);
+    // clears the canvas buffer
+    glClearColor(
+        byte_to_float(bg.r),
+        byte_to_float(bg.g),
+        byte_to_float(bg.b),
+        byte_to_float(bg.a)
+    );
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    frame_count++;
+}
