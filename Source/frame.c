@@ -17,7 +17,6 @@ static bool __init_glfw(void) {
             logFatal("init_glfw - Failed to initialize GLFW");
             return false;
         }
-
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -31,12 +30,15 @@ static bool __init_glfw(void) {
     return true;
 }
 static bool __init_glad(void) {
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+        logError("__init_glad - Failed to initialize GLAD function.");
+        return false;
+    }
+
     static bool flag = false;
     if (!flag) {
-        if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-            logError("__init_glad - Failed to initialize GLAD function.");
-            return false;
-        }
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         flag = true;
     }
     return true;

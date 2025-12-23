@@ -44,7 +44,7 @@ button_t* new_button(void* parent, const color_t bg, const u32 x, const u32 y, c
     if (!btn->tex) goto cleanup;
     flush_texture(btn->tex, width, height, bg);
 
-    btn->obj = new_sprite(x, y, width, height, frame->header.box.width, frame->header.box.height, BUTTON_SHADER);
+    btn->obj = new_sprite("__button__");
     if (!btn->obj) goto cleanup;
 
     btn->header.mouse = __default_mouse_movement_callback;

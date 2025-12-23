@@ -3,7 +3,7 @@
 #include <frame.h>
 #include <stdio.h>
 
-comp_node_t* new_comp_node(void* data, const component_tag tag) {
+comp_node_t* new_comp_node(void* data, const comp_tag tag) {
     buf_t buffer = {
         .size = sizeof(comp_node_t),
         .tag = MEMTAG_COMPONENT_NODE
@@ -47,7 +47,7 @@ static bool __resize_tree(comp_node_t* root) {
     root->capacity = new_cap;
     return true;
 }
-bool push_comp_node(comp_node_t* root, void* val, const component_tag tag) {
+bool push_comp_node(comp_node_t* root, void* val, const comp_tag tag) {
     if (!root) return false;
 
     comp_node_t* node = new_comp_node(val, tag);
@@ -57,7 +57,7 @@ bool push_comp_node(comp_node_t* root, void* val, const component_tag tag) {
     root->nodes[root->count++] = node;
 
     node->root = root->root ? root->root : root;
-    component_header* header = get_header(val);
+    comp_header* header = get_header(val);
     header->components = node;
 
     return true;
@@ -69,7 +69,8 @@ cleanup:
 const char* __components_strings__[] = {
     "frame",
     "canvas",
-    "button"
+    "button",
+    "panel"
 };
 
 void print_comp_node(comp_node_t* root) {
@@ -100,7 +101,7 @@ void dispatch_event(const comp_node_t* node, event_t* event) {
             // set the current component to be the focus component and calls mouse component callback
             bool flag = false;
             for (u64 i = 0; i < node->count; i++) {
-                const component_header* header = get_header(node->nodes[i]->component.data);
+                const comp_header* header = get_header(node->nodes[i]->component.data);
 
                 // Todo make this work with rotation
                 if (bounded(param->x, param->y, header->box.x, header->box.y, header->box.width, header->box.height)) {
@@ -112,7 +113,7 @@ void dispatch_event(const comp_node_t* node, event_t* event) {
             }
 
             if (!flag) {
-                const component_header* header = get_header(node->component.data);
+                const comp_header* header = get_header(node->component.data);
                 if (triggered) {
                     frame->focused.data = node->component.data;
                     frame->focused.tag = node->component.tag;
@@ -126,10 +127,10 @@ void dispatch_event(const comp_node_t* node, event_t* event) {
         }
         case __SCROLL_EVENT__: {
             scroll_cb_param* param = &event->param.scroll;
-            const component_t* focused = &frame->focused;
+            const comp_t* focused = &frame->focused;
 
             if (!focused->data) return;
-            const component_header* header = get_header(focused->data);
+            const comp_header* header = get_header(focused->data);
 
             param->instance = focused->data;
             if (header->scroll) ((callback)header->scroll)(param);
@@ -137,10 +138,10 @@ void dispatch_event(const comp_node_t* node, event_t* event) {
         }
         case __KEYBOARD_EVENT__: {
             keyboard_cb_param* param = &event->param.keyboard;
-            const component_t* focused = &frame->focused;
+            const comp_t* focused = &frame->focused;
 
             if (!focused->data || focused->tag == FRAME_COMPONENT) return;
-            const component_header* header = get_header(focused->data);
+            const comp_header* header = get_header(focused->data);
 
             param->instance = focused->data;
             if (header->keyboard) ((callback)header->keyboard)(param);
@@ -148,7 +149,7 @@ void dispatch_event(const comp_node_t* node, event_t* event) {
         }
         case __RESIZE_EVENT__: {
             resize_cb_param* param = &event->param.resize;
-            const component_header* header = get_header(node->component.data);
+            const comp_header* header = get_header(node->component.data);
             for (u64 i = 0; i < node->count; i++) dispatch_event(node->nodes[i], event);
 
             if (header && header->resize) {

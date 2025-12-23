@@ -63,16 +63,9 @@ cleanup:
     return false;
 }
 
-const static char* __vertex_shaders_path[] = {
-    "C:\\Users\\roygr\\CLionProjects\\stream-draw\\Shader\\__canvas__.vert",
-    "C:\\Users\\roygr\\CLionProjects\\stream-draw\\Shader\\__button__.vert"
-};
-const static char* __fragment_shaders_path[] = {
-    "C:\\Users\\roygr\\CLionProjects\\stream-draw\\Shader\\__canvas__.frag",
-    "C:\\Users\\roygr\\CLionProjects\\stream-draw\\Shader\\__button__.frag"
-};
 
-shader_t* new_shader(const shader_type type) {
+#define SHADER_DIR "C:\\Users\\roygr\\CLionProjects\\stream-draw\\Shader\\"
+shader_t* new_shader(const char* name) {
     buf_t buffer = {
         .size = sizeof(shader_t),
         .tag = MEMTAG_SHADER,
@@ -81,9 +74,15 @@ shader_t* new_shader(const shader_type type) {
 
     shader_t* shad = buffer.ptr;
 
+    char vertex_path[256] = { 0 };
+    char fragment_path[256] = { 0 };
+    sprintf_s(vertex_path, 256, SHADER_DIR"%s.vert", name);
+    sprintf_s(fragment_path, 256, SHADER_DIR"%s.frag", name);
+
+
     if (!__link_shader_program(
-        __vertex_shaders_path[type],
-        __fragment_shaders_path[type],
+        vertex_path,
+        fragment_path,
         &shad->id
     )) {
         logFatal("new_shader - Failed to complie shader.");
@@ -91,8 +90,6 @@ shader_t* new_shader(const shader_type type) {
         return NULL;
     }
     glUseProgram(shad->id);
-
-    shad->type = type;
     return shad;
 }
 void del_shader(shader_t* shad) {

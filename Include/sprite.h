@@ -32,7 +32,7 @@ typedef struct sprite {
  * @param type
  * @return Pointer to the allocated rectangle object
  */
-sprite_t* new_sprite(u32 x, u32 y, u32 width, u32 height, u32 frame_width, u32 frame_height, const shader_type type);
+sprite_t* new_sprite(const char* name);
 
 /**
  * @brief Delete an object and free its resources.

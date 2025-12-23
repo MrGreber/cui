@@ -7,11 +7,17 @@
 #include <glad.h>
 
 const static u32 indices[] = {
-    0,1,2,
-    2,3,0
+    2,1,0,
+    2,3,1
+};
+const static f32 vertices[] = {
+    0.0f, 0.0f, 0.0f, 0.0f,
+    1.0f, 0.0f, 1.0f, 0.0f,
+    0.0f, 1.0f, 0.0f, 1.0f,
+    1.0f, 1.0f, 1.0f, 1.0f
 };
 
-sprite_t* new_sprite(const u32 x, const u32 y, const u32 width, const u32 height, const u32 frame_width, const u32 frame_height, const shader_type type) {
+sprite_t* new_sprite(const char* name) {
     buf_t buffer = {
         .size = sizeof(sprite_t),
         .tag = MEMTAG_SPRITE,
@@ -19,21 +25,6 @@ sprite_t* new_sprite(const u32 x, const u32 y, const u32 width, const u32 height
     if (!new_buf(&buffer, false)) return NULL;
 
     sprite_t* obj = buffer.ptr;
-
-    const f32 inv_frame_width = 1.0f / frame_width;
-    const f32 inv_frame_height = 1.0f / frame_height;
-
-    const f32 ndc_x0 = 2.0f * (f32)x * inv_frame_width - 1.0f;
-    const f32 ndc_x1 = 2.0f * (f32)(x + width) * inv_frame_width - 1.0f;
-    const f32 ndc_y_bottom = 1.0f - 2.0f * (f32)(y + height) * inv_frame_height;
-    const f32 ndc_y_top    = 1.0f - 2.0f * (f32)y * inv_frame_height;
-
-    const f32 vertices[] = {
-        ndc_x0, ndc_y_bottom, 0.0f, 0.0f,
-        ndc_x1, ndc_y_bottom, 1.0f, 0.0f,
-        ndc_x1, ndc_y_top,    1.0f, 1.0f,
-        ndc_x0, ndc_y_top,    0.0f, 1.0f
-    };
 
     obj->va = new_vertex_array(2);
     obj->vb = new_vertex_buffer(vertices, sizeof(vertices));
@@ -47,7 +38,7 @@ sprite_t* new_sprite(const u32 x, const u32 y, const u32 width, const u32 height
     push_f32(obj->va, 2);
     push_buf(obj->va, obj->vb);
 
-    obj->shader = new_shader(type);
+    obj->shader = new_shader(name);
     if (!obj->shader) goto cleanup;
     return obj;
 cleanup:

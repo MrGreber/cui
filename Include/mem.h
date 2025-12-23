@@ -26,6 +26,7 @@ typedef enum memory_tag {
     MEMTAG_BUTTON,
     MEMTAG_COMPONENT_NODE,
     MEMTAG_POINTER,
+    MEMTAG_PANEL,
     __MEMTAG_COUNT__                /**< Total number of memory tags */
 } mem_tag;
 

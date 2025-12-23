@@ -55,7 +55,7 @@ typedef struct event {
 typedef struct component_node {
     struct component_node* root;
 
-    component_t component;
+    comp_t component;
 
     u64 capacity;
     u64 count;
@@ -64,9 +64,9 @@ typedef struct component_node {
 
 
 
-comp_node_t* new_comp_node(void* data, const component_tag tag);
+comp_node_t* new_comp_node(void* data, const comp_tag tag);
 void del_comp_node(comp_node_t* root);
-bool push_comp_node(comp_node_t* root, void* val, const component_tag tag);
+bool push_comp_node(comp_node_t* root, void* val, const comp_tag tag);
 void print_comp_node(comp_node_t* root);
 
 void dispatch_event(const comp_node_t* node, event_t* event);

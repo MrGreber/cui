@@ -22,7 +22,8 @@ static char* mem_table_labels[__MEMTAG_COUNT__ - 1] = {
     "texture",
     "button",
     "component-node",
-    "pointer"
+    "pointer",
+    "panel"
 };
 
 

@@ -1,3 +1,86 @@
-//
-// Created by MrGreber on 12/21/2025.
-//
+#include <panel.h>
+#include <mem.h>
+#include <event_system.h>
+#include <frame.h>
+#include <math-utils.h>
+
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <glad.h>
+#include <glfw3.h>
+#include <glfw3native.h>
+#include <stdio.h>
+
+
+
+static void __default_mouse_movement_callback(const mouse_cb_param* param) {
+    panel_t* panel = param->instance;
+    frame_t* frame = ((comp_node_t*)panel->header.components)->root->component.data;
+    //printf("frame=%p\n", frame);
+}
+static void __default_resize_callback(const resize_cb_param* param) {
+    panel_t* panel = param->instance;
+
+
+}
+
+panel_t* new_panel(void* parent, const color_t bg, const bounding_box* box) {
+    buf_t buffer = {
+        .size = sizeof(panel_t),
+        .tag = MEMTAG_PANEL
+    };
+    if (!new_buf(&buffer, true)) return NULL;
+
+    panel_t* panel = buffer.ptr;
+    panel->header.box.x = box->x;
+    panel->header.box.y = box->y;
+    panel->header.box.width = box->width;
+    panel->header.box.height = box->height;
+    panel->header.bg = bg;
+    panel->parent = parent;
+
+    panel->tex = new_texture(box->width, box->height);
+    if (!panel->tex) goto cleanup;
+    flush_texture(panel->tex, panel->header.box.width, panel->header.box.height, panel->header.bg);
+
+    panel->sprite = new_sprite("__panel__");
+    if (!panel->sprite) goto cleanup;
+
+    panel->header.mouse = __default_mouse_movement_callback;
+    panel->header.resize =  __default_resize_callback;
+    return panel;
+cleanup:
+    if (panel->sprite) del_sprite(panel->sprite);
+    if (panel->tex) del_texture(panel->tex);
+    del_buf(&(buf_t){.size = sizeof(panel_t), .tag = MEMTAG_PANEL, .ptr = panel});
+    return NULL;
+}
+void del_panel(panel_t* panel) {
+    if (!panel) return;
+    if (panel->sprite) del_sprite(panel->sprite);
+    if (panel->tex) del_texture(panel->tex);
+    del_buf(&(buf_t){.size = sizeof(panel_t), .tag = MEMTAG_PANEL, .ptr = panel});
+}
+void bind_panel(const panel_t* panel) {
+    if (!panel) return;
+    bind_sprite(panel->sprite);
+    bind_texture(panel->tex);
+}
+
+void update_panel(panel_t* panel, const mat4* projection, const f32 angle) {
+    if (!panel) return;
+
+    const mat4 rotation = m4_rotateZ(rad(angle));
+    const mat4 scale = m4_scale((f32)panel->header.box.width, (f32)panel->header.box.height, 1.0f);
+    const mat4 position = m4_transl((f32)panel->header.box.x, (f32)panel->header.box.y, 0.0f);
+    const mat4 size = m4_transl((f32)panel->header.box.width * 0.5f, (f32)panel->header.box.height * 0.5f, 0.0f);
+    const mat4 inv_size = m4_transl(-(f32)panel->header.box.width * 0.5f, -(f32)panel->header.box.height * 0.5f, 0.0f);
+
+    mat4 model = m4_mul(&position, &size);
+    model = m4_mul(&model, &rotation);
+    model = m4_mul(&model, &inv_size);
+    model = m4_mul(&model, &scale);
+
+    set_mat4_uniform(panel->sprite->shader, "projection", true, projection->e);
+    set_mat4_uniform(panel->sprite->shader, "model", true, model.e);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+}

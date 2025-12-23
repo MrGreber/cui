@@ -1,4 +1,5 @@
 #pragma once
+#include <math.h>
 #include <stdio.h>
 
 #ifndef MATH_UTILS_H
@@ -40,18 +41,27 @@ typedef union mat4 {
     f32 e[16];
 } mat4;
 
+__forceinline bool m4_cmp(const mat4* A, const mat4* B, const f32 tolerance) {
+    for (u8 i = 0; i < 16; i++) if (fabsf(A->e[i] - B->e[i]) > tolerance) return false;
+    return true;
+}
+
+__forceinline bool m4_is_zero(const mat4* M) {
+    for (u8 i = 0; i < 16; i++) if (M->e[i] != 0.0f) return false;
+    return true;
+}
 
 __forceinline mat4 m4_transl(const f32 x, const f32 y, const f32 z) {
     mat4 out = { 0 };
 
 #ifndef SIMD
-    out.v[0].x = 1.0f;
-    out.v[1].y = 1.0f;
-    out.v[2].z = 1.0f;
-    out.v[3].x = x;
-    out.v[3].y = y;
-    out.v[3].z = z;
-    out.v[3].w = 1.0f;
+    out.e[0] = 1.0f;
+    out.e[3] = x;
+    out.e[5] = 1.0f;
+    out.e[7] = y;
+    out.e[10] = 1.0f;
+    out.e[11] = z;
+    out.e[15] = 1.0f;
 #endif
 
     return out;
@@ -104,10 +114,10 @@ __forceinline mat4 m4_scale(const f32 x, const f32 y, const f32 z) {
     mat4 out = { 0 };
 
 #ifndef SIMD
-    out.v[0].x = x;
-    out.v[1].y = y;
-    out.v[2].z = z;
-    out.v[3].w = 1.0f;
+    out.e[0] = x;
+    out.e[5] = y;
+    out.e[10] = z;
+    out.e[15] = 1.0f;
 #endif
 
     return out;
@@ -270,7 +280,11 @@ __forceinline vec4 mv4_mul(const mat4* M, const vec4* v) {
 __forceinline void print_m4(const mat4* matrix) {
     const f32* m = matrix->e;
 
-    printf("%.2f %.2f %.2f %.2f\n""%.2f %.2f %.2f %.2f\n""%.2f %.2f %.2f %.2f\n""%.2f %.2f %.2f %.2f\n",
+    printf(""
+        "|%7.2f %7.2f %7.2f %7.2f|\n"
+        "|%7.2f %7.2f %7.2f %7.2f|\n"
+        "|%7.2f %7.2f %7.2f %7.2f|\n"
+        "|%7.2f %7.2f %7.2f %7.2f|\n",
         m[0], m[1], m[2], m[3],
         m[4], m[5], m[6], m[7],
         m[8], m[9], m[10], m[11],
@@ -280,12 +294,15 @@ __forceinline void print_m4(const mat4* matrix) {
 
 __forceinline void print_v2(const vec2* vector) {
     const f32* v = vector->e;
-    printf("<%.2f, %.2f>\n", v[0], v[1]);
+    printf("<%7.2f, %7.2f>\n", v[0], v[1]);
 }
-
+__forceinline void print_v3(const vec3* vector) {
+    const f32* v = vector->e;
+    printf("<%7.2f, %7.2f, %7.2f>\n", v[0], v[1], v[2]);
+}
 __forceinline void print_v4(const vec4* vector) {
     const f32* v = vector->e;
-    printf("<%.2f, %.2f, %.2f, %.2f>\n", v[0], v[1], v[2], v[3]);
+    printf("<%7.2f, %7.2f, %7.2f, %7.2f>\n", v[0], v[1], v[2], v[3]);
 }
 
 static __forceinline f32 inv_sqrt(const f32 n) {

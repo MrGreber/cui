@@ -8,7 +8,7 @@
 #define BUTTON_H
 
 typedef struct button {
-    component_header header;
+    comp_header header;
 
     void* parent;
 

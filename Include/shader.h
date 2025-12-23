@@ -15,11 +15,6 @@ typedef struct uniform {
     u32 location;    /**< Location of the uniform in the shader program */
 } uniform_t;
 
-typedef enum shader_type {
-    CANVAS_SHADER,
-    BUTTON_SHADER
-} shader_type;
-
 /**
  * @struct shader
  * @brief Represents an OpenGL shader program.
@@ -28,14 +23,13 @@ typedef enum shader_type {
  */
 typedef struct shader {
     u32 id; /**< OpenGL shader program ID */
-    shader_type type;
 } shader_t;
 
 /**
  * @brief Create a new shader program.
  * @return Pointer to the allocated shader_t, or NULL on failure
  */
-shader_t* new_shader(shader_type type);
+shader_t* new_shader(const char* name);
 
 /**
  * @brief Delete a shader program and free its resources.

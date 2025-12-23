@@ -1,6 +1,8 @@
 #pragma once
 #include <defines.h>
-#include <math.h>
+#include <math-utils.h>
+
+#include <stddef.h>
 
 #ifndef UTILS_H
 #define UTILS_H
@@ -37,14 +39,45 @@ typedef union color {
 typedef enum component_tag {
     FRAME_COMPONENT,
     CANVAS_COMPONENT,
-    BUTTON_COMPONENT
-} component_tag;
+    BUTTON_COMPONENT,
+    PANEL_COMPONENT
+} comp_tag;
 
 typedef struct bounding_box {
     u32 x, y;
     u32 width, height;
 } bounding_box;
 
+typedef enum font_type {
+    PHEEN, // default pixelated hebrew-english font
+    ARIAL
+} font_type_t;
+
+typedef struct component_style {
+    struct {
+        color_t color;
+    } background;
+    struct {
+        color_t color;
+        u32 thickness;
+        u32 radius;
+    } border;
+    struct {
+        u32 left, right, top, bottom;
+    } padding;
+    struct {
+        u8 size;
+        u8 line_spacing;
+        u8 line_height;
+        color_t color;
+        font_type_t type;
+    } font;
+} comp_style;
+
+typedef struct component_style_set {
+    comp_style normal;
+    comp_style hover;
+} comp_style_set;
 
 typedef struct component_header {
     u8 focus;
@@ -56,14 +89,15 @@ typedef struct component_header {
     callback scroll;
     callback resize;
     void* components;
-} component_header;
+} comp_header;
 
 typedef struct component {
     void* data;
-    component_tag tag;
-} component_t;
+    comp_tag tag;
+} comp_t;
 
-#define get_header(COMP) ((component_header*)(COMP))
+#define get_header(COMP) ((comp_header*)(COMP))
+#define get_style(COMP, T) ((comp_style_set*)((COMP) + offsetof(T, styles)))
 #define bounded(mx, my, x, y, w, h) (((mx) >= (x) && (mx) < ((x) + (w))) && ((my) >= (y) && (my) < ((y) + (h))))
 
 /**

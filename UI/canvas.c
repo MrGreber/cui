@@ -190,7 +190,7 @@ canvas_t* new_canvas(void* parent, const color_t bg, const u32 x, const u32 y, c
     if (!can->tex) goto cleanup;
     flush_texture(can->tex, can->header.box.width, can->header.box.height, can->header.bg);
 
-    can->obj = new_sprite(x, y, width, height, frame->header.box.width, frame->header.box.height, CANVAS_SHADER);
+    can->obj = new_sprite("__canvas__");
     if (!can->obj) goto cleanup;
 
     can->camera = new_camera();
@@ -241,7 +241,7 @@ void flush_canvas(const canvas_t* can) {
 bool resize_canvas(canvas_t* can, const u32 x, const u32 y, const u32 width, const u32 height, const u32 frame_width, const u32 frame_height) {
     if (!can) return false;
 
-    sprite_t* new_obj = new_sprite(x, y, width, height, frame_width, frame_height, CANVAS_SHADER);
+    sprite_t* new_obj = new_sprite("__canvas__");
     if (!new_obj) return false;
 
     sprite_t* old_obj = can->obj;
