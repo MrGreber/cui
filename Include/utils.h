@@ -53,7 +53,15 @@ typedef enum font_type {
     ARIAL
 } font_type_t;
 
-typedef struct component_style {
+typedef struct font {
+    u8 size;
+    u8 line_spacing;
+    u8 line_height;
+    color_t color;
+    font_type_t type;
+} font_t;
+
+typedef struct style {
     struct {
         color_t color;
     } background;
@@ -65,39 +73,33 @@ typedef struct component_style {
     struct {
         u32 left, right, top, bottom;
     } padding;
-    struct {
-        u8 size;
-        u8 line_spacing;
-        u8 line_height;
-        color_t color;
-        font_type_t type;
-    } font;
-} comp_style;
 
-typedef struct component_style_set {
-    comp_style normal;
-    comp_style hover;
-} comp_style_set;
+    u8 init;
+} style_t;
+
+typedef struct style_group {
+    style_t normal;
+    style_t hover;
+} style_group_t;
 
 typedef struct component_header {
     u8 focus;
     bounding_box box;
-    color_t bg;
 
     callback keyboard;
     callback mouse;
     callback scroll;
     callback resize;
     void* components;
-} comp_header;
+} comp_header_t;
 
 typedef struct component {
     void* data;
     comp_tag tag;
 } comp_t;
 
-#define get_header(COMP) ((comp_header*)(COMP))
-#define get_style(COMP, T) ((comp_style_set*)((COMP) + offsetof(T, styles)))
+#define get_header(COMP) ((comp_header_t*)(COMP))
+#define get_style(COMP, T) ((style_group_t*)((COMP) + offsetof(T, styles)))
 #define bounded(mx, my, x, y, w, h) (((mx) >= (x) && (mx) < ((x) + (w))) && ((my) >= (y) && (my) < ((y) + (h))))
 
 /**
@@ -164,5 +166,7 @@ do { \
  * @brief Read a file into memory.
  */
 bool read_file(const char* path, char** out, u64* size);
+
+#define foreach(X, ITER) for(byte* X = ITER; *X != 0; X += sizeof(*ITER))
 
 #endif //UTILS_H

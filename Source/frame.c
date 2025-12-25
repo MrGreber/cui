@@ -2,7 +2,7 @@
 #include <mem.h>
 #include <log.h>
 #include <camera.h>
-#include <canvas.h>
+#include <../Recycle/canvas.h>
 
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <glad.h>
@@ -80,7 +80,8 @@ frame_t* new_frame(const color_t bg, const u32 width, const u32 height, const ch
 
     frame->header.box.width = width;
     frame->header.box.height = height;
-    frame->header.bg = bg;
+    frame->bg = bg;
+    frame->title = (char*)title;
 
     glfwSetKeyCallback(frame->glfw_ctx, __keyboard_callback);
     glfwSetCursorPosCallback(frame->glfw_ctx, __mouse_movement_callback);
@@ -106,14 +107,16 @@ void update_frame(const frame_t* frame) {
     if (!frame) return;
 
     static u32 frame_count = 0;
-    static char title[32] = "Canvas-FPS: ";
+    static char caption[64] = { 0 };
 
     const f32 time = glfwGetTime();
     const f32 fps = ((f32)frame_count) / time;
-    sprintf_s(title + 12, 20, "%.2f", fps);
-    glfwSetWindowTitle(frame->glfw_ctx, title);
+    frame_count++;
 
-    const color_t bg = frame->header.bg;
+    sprintf_s(caption, sizeof(caption), "%s-FPS: %.2f", frame->title, fps);
+    glfwSetWindowTitle(frame->glfw_ctx, caption);
+
+    const color_t bg = frame->bg;
     glViewport(0, 0, frame->header.box.width, frame->header.box.height);
     // clears the canvas buffer
     glClearColor(
@@ -124,5 +127,4 @@ void update_frame(const frame_t* frame) {
     );
     glClear(GL_COLOR_BUFFER_BIT);
 
-    frame_count++;
 }

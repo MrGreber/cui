@@ -1,8 +1,8 @@
 #include <frame.h>
 #include <mem.h>
 #include <camera.h>
-#include <canvas.h>
-#include <button.h>
+#include <../Recycle/canvas.h>
+#include <../Recycle/button.h>
 
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <glad.h>
@@ -43,7 +43,12 @@ void __keyboard_input(const frame_t* frame) {
     dispatch_event(root, &event);
 }
 void __keyboard_callback(GLFWwindow* window, const i32 key, const i32 sc, const i32 action, const i32 mods) {
+    static bool wireframe_mode = false;
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) glfwSetWindowShouldClose(window, true);
+    if (key == GLFW_KEY_F1 && action == GLFW_PRESS) {
+        wireframe_mode = !wireframe_mode;
+        glPolygonMode(GL_FRONT_AND_BACK, wireframe_mode ? GL_LINE : GL_FILL);
+    }
 }
 void __mouse_movement_callback(GLFWwindow* window, const f64 mouse_x, const f64 mouse_y) {
     event_t event = {

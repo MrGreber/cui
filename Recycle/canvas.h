@@ -32,8 +32,8 @@ typedef struct brush {
  * @brief Holds OpenGL drawing context, pixel buffer, and canvas properties.
  */
 typedef struct canvas {
-    comp_header header;
-
+    comp_header_t header;
+    color_t bg;
     void* parent;       /**< Optional parent object (can be NULL) */
 
     brush_t brush;      /**< Current brush settings for drawing */

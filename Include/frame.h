@@ -13,8 +13,10 @@
  * Holds the window/context pointer, input callbacks, dimensions, and background color.
  */
 typedef struct frame {
-    comp_header header;
+    comp_header_t header;
+    char* title;
 
+    color_t bg;
     void* glfw_ctx;        /**< GLFW window/context pointer */
 
     comp_t focused;

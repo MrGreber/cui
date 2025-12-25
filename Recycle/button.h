@@ -8,8 +8,9 @@
 #define BUTTON_H
 
 typedef struct button {
-    comp_header header;
+    comp_header_t header;
 
+    color_t bg;
     void* parent;
 
     sprite_t* obj;

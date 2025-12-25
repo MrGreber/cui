@@ -181,14 +181,14 @@ canvas_t* new_canvas(void* parent, const color_t bg, const u32 x, const u32 y, c
     can->header.box.height = height;
     can->header.box.x = x;
     can->header.box.y = y;
-    can->header.bg = bg;
+    can->bg = bg;
     can->parent = parent;
 
     const frame_t* frame = (frame_t*)parent;
 
     can->tex = new_texture(width, height);
     if (!can->tex) goto cleanup;
-    flush_texture(can->tex, can->header.box.width, can->header.box.height, can->header.bg);
+    flush_texture(can->tex, can->header.box.width, can->header.box.height, can->bg);
 
     can->obj = new_sprite("__canvas__");
     if (!can->obj) goto cleanup;
@@ -236,7 +236,7 @@ void update_canvas(const canvas_t* can) {
     glDisable(GL_SCISSOR_TEST);
 }
 void flush_canvas(const canvas_t* can) {
-    flush_texture(can->tex, can->header.box.width, can->header.box.height, can->header.bg);
+    flush_texture(can->tex, can->header.box.width, can->header.box.height, can->bg);
 }
 bool resize_canvas(canvas_t* can, const u32 x, const u32 y, const u32 width, const u32 height, const u32 frame_width, const u32 frame_height) {
     if (!can) return false;

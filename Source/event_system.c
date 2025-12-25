@@ -57,7 +57,7 @@ bool push_comp_node(comp_node_t* root, void* val, const comp_tag tag) {
     root->nodes[root->count++] = node;
 
     node->root = root->root ? root->root : root;
-    comp_header* header = get_header(val);
+    comp_header_t* header = get_header(val);
     header->components = node;
 
     return true;
@@ -101,7 +101,7 @@ void dispatch_event(const comp_node_t* node, event_t* event) {
             // set the current component to be the focus component and calls mouse component callback
             bool flag = false;
             for (u64 i = 0; i < node->count; i++) {
-                const comp_header* header = get_header(node->nodes[i]->component.data);
+                const comp_header_t* header = get_header(node->nodes[i]->component.data);
 
                 // Todo make this work with rotation
                 if (bounded(param->x, param->y, header->box.x, header->box.y, header->box.width, header->box.height)) {
@@ -113,7 +113,7 @@ void dispatch_event(const comp_node_t* node, event_t* event) {
             }
 
             if (!flag) {
-                const comp_header* header = get_header(node->component.data);
+                const comp_header_t* header = get_header(node->component.data);
                 if (triggered) {
                     frame->focused.data = node->component.data;
                     frame->focused.tag = node->component.tag;
@@ -130,7 +130,7 @@ void dispatch_event(const comp_node_t* node, event_t* event) {
             const comp_t* focused = &frame->focused;
 
             if (!focused->data) return;
-            const comp_header* header = get_header(focused->data);
+            const comp_header_t* header = get_header(focused->data);
 
             param->instance = focused->data;
             if (header->scroll) ((callback)header->scroll)(param);
@@ -141,7 +141,7 @@ void dispatch_event(const comp_node_t* node, event_t* event) {
             const comp_t* focused = &frame->focused;
 
             if (!focused->data || focused->tag == FRAME_COMPONENT) return;
-            const comp_header* header = get_header(focused->data);
+            const comp_header_t* header = get_header(focused->data);
 
             param->instance = focused->data;
             if (header->keyboard) ((callback)header->keyboard)(param);
@@ -149,7 +149,7 @@ void dispatch_event(const comp_node_t* node, event_t* event) {
         }
         case __RESIZE_EVENT__: {
             resize_cb_param* param = &event->param.resize;
-            const comp_header* header = get_header(node->component.data);
+            const comp_header_t* header = get_header(node->component.data);
             for (u64 i = 0; i < node->count; i++) dispatch_event(node->nodes[i], event);
 
             if (header && header->resize) {

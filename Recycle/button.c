@@ -35,7 +35,7 @@ button_t* new_button(void* parent, const color_t bg, const u32 x, const u32 y, c
     btn->header.box.height = height;
     btn->header.box.x = x;
     btn->header.box.y = y;
-    btn->header.bg = bg;
+    btn->bg = bg;
     btn->parent = parent;
 
     const frame_t* frame = (frame_t*)parent;
