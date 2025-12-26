@@ -16,11 +16,15 @@ void __resize_callback(GLFWwindow* window, const i32 width, const i32 height) {
 
     frame_t* frame = glfwGetWindowUserPointer(window);
     if (frame->header.box.width == width && frame->header.box.height == height) return;
+
+    i32 delta_width = width - frame->header.box.width;
+    i32 delta_height = height - frame->header.box.height;
+
     frame->header.box.width = (u32)width;
     frame->header.box.height = (u32)height;
 
     event_t event = {
-        .param.resize = {.height = height, .width = width},
+        .param.resize = {.height = delta_height, .width = delta_width},
         .tag = __RESIZE_EVENT__
     };
     const comp_node_t* root = frame->header.components;

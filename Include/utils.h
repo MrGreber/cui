@@ -169,4 +169,6 @@ bool read_file(const char* path, char** out, u64* size);
 
 #define foreach(X, ITER) for(byte* X = ITER; *X != 0; X += sizeof(*ITER))
 
+void aligned_memset(u32* buffer, const u32 val, const u64 size);
+
 #endif //UTILS_H

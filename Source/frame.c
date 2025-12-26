@@ -109,9 +109,10 @@ void update_frame(const frame_t* frame) {
     static u32 frame_count = 0;
     static char caption[64] = { 0 };
 
-    const f32 time = glfwGetTime();
+    const f32 time = 2.0f * glfwGetTime();
     const f32 fps = ((f32)frame_count) / time;
     frame_count++;
+    // printf("frames=%d, time=%.2f\n", frame_count, time);
 
     sprintf_s(caption, sizeof(caption), "%s-FPS: %.2f", frame->title, fps);
     glfwSetWindowTitle(frame->glfw_ctx, caption);

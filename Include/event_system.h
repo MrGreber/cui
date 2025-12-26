@@ -37,8 +37,8 @@ typedef struct scroll_callback_parameter {
 
 typedef struct resize_callback_parameter {
     void* instance;
-    u32 width;
-    u32 height;
+    i32 width;
+    i32 height;
 } resize_cb_param;
 
 typedef struct event {

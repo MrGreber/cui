@@ -66,10 +66,10 @@ void bind_texture(const texture_t* tex) {
 void unbind_texture() {
     glBindTexture(GL_TEXTURE_2D, 0);
 }
-
+// ToDo: change this to load a texture and not to flush a texture to a color, overall change this to a more useful function.
 void flush_texture(const texture_t* tex, const u32 width, const u32 height, const color_t bg) {
     glBindFramebuffer(GL_FRAMEBUFFER, tex->fb_id);
-    glViewport(0, 0, width, height);
+    //glViewport(0, 0, width, height);
     glClearColor(
         bg.r / 255.0f,
         bg.g / 255.0f,
