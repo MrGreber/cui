@@ -17,19 +17,14 @@ typedef struct sprite {
     vert_array* va;   /**< Pointer to the vertex array object */
     vert_buf* vb;     /**< Pointer to the vertex buffer */
     elem_buf* eb;     /**< Pointer to the element/index buffer */
+    texture_t* tex;
     shader_t* shader; /**< Pointer to the shader used for rendering */
 } sprite_t;
 
 
 /**
  * @brief Create a rectangle object for 2D rendering.
- * @param x X position of the rectangle
- * @param y Y position of the rectangle
- * @param width Width of the rectangle
- * @param height Height of the rectangle
- * @param frame_width Width of the frame/window containing the rectangle
- * @param frame_height Height of the frame/window containing the rectangle
- * @param type
+ * @param name
  * @return Pointer to the allocated rectangle object
  */
 sprite_t* new_sprite(const char* name);

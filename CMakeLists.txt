@@ -38,6 +38,7 @@ target_link_libraries(stream_draw PRIVATE
         glad
         OpenGL::GL
         "${CMAKE_CURRENT_SOURCE_DIR}/External/Library/glfw3.lib"
+        "${CMAKE_CURRENT_SOURCE_DIR}/External/Library/stb_image.lib"
         opengl32
         gdi32
         user32

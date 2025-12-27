@@ -9,6 +9,8 @@
 #include <glfw3.h>
 #include <glfw3native.h>
 
+#include "stb_image.h"
+
 
 static void __default_mouse_movement_callback(const mouse_cb_param* param) {
     panel_t* panel = param->instance;
@@ -22,32 +24,40 @@ static void __default_resize_callback(const resize_cb_param* param) {
 
 }
 
-panel_t* new_panel(void* parent, style_group_t* group, const bounding_box* box) {
+panel_t* new_panel(void* parent, style_group_t* group, const bounding_box* box, const char* path) {
     buf_t buffer = {
         .size = sizeof(panel_t),
         .tag = MEMTAG_PANEL
     };
     if (!new_buf(&buffer, true)) return NULL;
 
+    i32 width, height;
+    u16 format;
+    const color_t* data = load_texture(path, &width, &height, &format);
+    if (data == NULL) goto cleanup;
+
     panel_t* panel = buffer.ptr;
     panel->header.box.x = box->x;
     panel->header.box.y = box->y;
-    panel->header.box.width = box->width;
-    panel->header.box.height = box->height;
+    panel->header.box.width = width;
+    panel->header.box.height = height;
     panel->parent = parent;
     if (group->normal.init) memcpy_s(&panel->styles.normal, sizeof(style_t), &group->normal, sizeof(style_t));
     if (group->hover.init) memcpy_s(&panel->styles.hover, sizeof(style_t), &group->hover, sizeof(style_t));
 
-    panel->tex = new_texture(box->width, box->height);
+    panel->tex = new_texture(data, width, height, format);
+    stbi_image_free((byte*)data);
+
     if (!panel->tex) goto cleanup;
-    flush_texture(panel->tex, panel->header.box.width, panel->header.box.height, panel->styles.normal.background.color);
+    //flush_texture(panel->tex, panel->styles.normal.background.color);
 
     style_t* normal_style = NULL,* hover_style = NULL;
     if (group->normal.init) normal_style = &group->normal;
     if (group->hover.init) hover_style = &group->hover;
 
+    const u32 max = max(height, width);
     buffer = (buf_t){
-        .size = sizeof(color_t) * normal_style->border.thickness * box->height,
+        .size = sizeof(color_t) * normal_style->border.thickness * max,
         .tag = MEMTAG_COLOR,
         .ptr = NULL
     };
@@ -56,12 +66,12 @@ panel_t* new_panel(void* parent, style_group_t* group, const bounding_box* box) 
     aligned_memset(
         (u32*)hori_border,
         normal_style->border.color.hex,
-        normal_style->border.thickness * max(box->height, box->width)
+        normal_style->border.thickness * max
     );
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, box->width, normal_style->border.thickness, GL_RGBA, GL_UNSIGNED_BYTE, hori_border);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, box->height - normal_style->border.thickness, box->width, normal_style->border.thickness, GL_RGBA, GL_UNSIGNED_BYTE, hori_border);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, normal_style->border.thickness, box->height, GL_RGBA, GL_UNSIGNED_BYTE, hori_border);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, box->width - normal_style->border.thickness, 0, normal_style->border.thickness, box->height, GL_RGBA, GL_UNSIGNED_BYTE, hori_border);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, normal_style->border.thickness, GL_RGBA, GL_UNSIGNED_BYTE, hori_border);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, height - normal_style->border.thickness, width, normal_style->border.thickness, GL_RGBA, GL_UNSIGNED_BYTE, hori_border);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, normal_style->border.thickness, height, GL_RGBA, GL_UNSIGNED_BYTE, hori_border);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, width - normal_style->border.thickness, 0, normal_style->border.thickness, height, GL_RGBA, GL_UNSIGNED_BYTE, hori_border);
     del_buf(&buffer);
 
     panel->sprite = new_sprite("__panel__");

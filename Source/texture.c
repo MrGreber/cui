@@ -4,8 +4,10 @@
 #include <log.h>
 
 #include <glad.h>
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
 
-texture_t* new_texture(const u32 width, const u32 height) {
+texture_t* new_texture(const color_t* data, const u32 width, const u32 height, const u16 format) {
     buf_t buffer = {
         .size = sizeof(texture_t),
         .tag = MEMTAG_TEXTURE,
@@ -13,7 +15,6 @@ texture_t* new_texture(const u32 width, const u32 height) {
     if (!new_buf(&buffer, false)) return NULL;
 
     texture_t* tex = buffer.ptr;
-
     glcall(glGenTextures(1, &tex->id), cleanup, "new_texture - Failed to generate texture.");
     glcall(glBindTexture(GL_TEXTURE_2D, tex->id), cleanup, "new_texture - Failed to bind texture");
     glcall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE), cleanup, "new_texture - Failed to set texture parameter WRAP_S.");
@@ -24,12 +25,12 @@ texture_t* new_texture(const u32 width, const u32 height) {
     glcall(glTexImage2D(
         GL_TEXTURE_2D,
         0,
-        GL_RGBA8,
+        format,
         width, height,
         0,
-        GL_RGBA,
+        format,
         GL_UNSIGNED_BYTE,
-        NULL
+        data
     ), cleanup, "new_texture - Failed to allocate texture.");
 
     glcall(glGenFramebuffers(1, &tex->fb_id), cleanup, "new_texture - Failed to generate frame buffer.");
@@ -42,7 +43,7 @@ texture_t* new_texture(const u32 width, const u32 height) {
         0
     ), cleanup, "new_texture - Failed to set frame buffer texture");
     glcall(glDrawBuffers(1, (u32[1]){ GL_COLOR_ATTACHMENT0 }), cleanup, "new_texture - Failed to set color attachment.");
-
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
     return tex;
 cleanup:
     glDeleteFramebuffers(1, &tex->fb_id);
@@ -67,9 +68,9 @@ void unbind_texture() {
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 // ToDo: change this to load a texture and not to flush a texture to a color, overall change this to a more useful function.
-void flush_texture(const texture_t* tex, const u32 width, const u32 height, const color_t bg) {
+void flush_texture(const texture_t* tex, const color_t bg) {
     glBindFramebuffer(GL_FRAMEBUFFER, tex->fb_id);
-    //glViewport(0, 0, width, height);
+    // glViewport(0, 0, width, height);
     glClearColor(
         bg.r / 255.0f,
         bg.g / 255.0f,
@@ -95,4 +96,18 @@ void draw_texture_line(const color_t color, i32 x0, i32 y0, const i32 x1, const 
         if (e2 >= dy) { err += dy; x0 += sx; }
         if (e2 <= dx) { err += dx; y0 += sy; }
     }
+}
+
+color_t* load_texture(const char* path, i32* width, i32* height, u16* format) {
+    const static u16 formats[4] = {GL_RED, 0, GL_RGB, GL_RGBA};
+
+    i32 channels = 0;
+    byte* data = stbi_load(path, width, height, &channels, 0);
+    if (data == NULL) {
+        logError("load_texture - Failed to load texture:\n\t%s", stbi_failure_reason());
+        return NULL;
+    }
+    *format = formats[channels - 1];
+
+    return (color_t*)data;
 }
