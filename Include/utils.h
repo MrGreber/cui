@@ -62,8 +62,9 @@ typedef struct font {
 } font_t;
 
 typedef struct style {
-    struct {
+    union {
         color_t color;
+        const char* image;
     } background;
     struct {
         color_t color;

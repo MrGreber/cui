@@ -6,8 +6,10 @@
 #include <glad.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+#define STB_IMAGE_RESIZE_IMPLEMENTATION
+#include <stb_image_resize2.h>
 
-texture_t* new_texture(const color_t* data, const u32 width, const u32 height, const u16 format) {
+texture_t* new_texture(const color_t* data, const u32 width, const u32 height) {
     buf_t buffer = {
         .size = sizeof(texture_t),
         .tag = MEMTAG_TEXTURE,
@@ -25,10 +27,10 @@ texture_t* new_texture(const color_t* data, const u32 width, const u32 height, c
     glcall(glTexImage2D(
         GL_TEXTURE_2D,
         0,
-        format,
+        GL_RGBA,
         width, height,
         0,
-        format,
+        GL_RGBA,
         GL_UNSIGNED_BYTE,
         data
     ), cleanup, "new_texture - Failed to allocate texture.");
@@ -98,16 +100,26 @@ void draw_texture_line(const color_t color, i32 x0, i32 y0, const i32 x1, const 
     }
 }
 
-color_t* load_texture(const char* path, i32* width, i32* height, u16* format) {
-    const static u16 formats[4] = {GL_RED, 0, GL_RGB, GL_RGBA};
-
-    i32 channels = 0;
-    byte* data = stbi_load(path, width, height, &channels, 0);
+color_t* load_texture(const char* path, u32 width, u32 height) {
+    i32 channels = 0, _width, _height;
+    byte* data = stbi_load(path, &_width, &_height, &channels, 4);
     if (data == NULL) {
         logError("load_texture - Failed to load texture:\n\t%s", stbi_failure_reason());
         return NULL;
     }
-    *format = formats[channels - 1];
+
+    buf_t buffer = {
+        .size = width * height * sizeof(color_t),
+        .tag = MEMTAG_COLOR
+    };
+    if (!new_buf(&buffer, false)) return NULL;
+    stbir_resize_uint8_srgb(
+        data, _width, _height, 0,
+        buffer.ptr, width, height, 0,
+        STBIR_RGBA
+    );
+    stbi_image_free(data);
+    data = buffer.ptr;
 
     return (color_t*)data;
 }

@@ -4,18 +4,13 @@
 #include <frame.h>
 #include <math-utils.h>
 
-#define GLFW_EXPOSE_NATIVE_WIN32
+#include <corecrt_memcpy_s.h>
 #include <glad.h>
-#include <glfw3.h>
-#include <glfw3native.h>
-
-#include "stb_image.h"
-
 
 static void __default_mouse_movement_callback(const mouse_cb_param* param) {
     panel_t* panel = param->instance;
     frame_t* frame = ((comp_node_t*)panel->header.components)->root->component.data;
-    //printf("frame=%p\n", frame);
+    // printf("frame=%p\n", frame);
 }
 static void __default_resize_callback(const resize_cb_param* param) {
     panel_t* panel = param->instance;
@@ -24,59 +19,36 @@ static void __default_resize_callback(const resize_cb_param* param) {
 
 }
 
-panel_t* new_panel(void* parent, style_group_t* group, const bounding_box* box, const char* path) {
+panel_t* new_panel(void* parent, style_group_t* group, const bounding_box* box) {
     buf_t buffer = {
         .size = sizeof(panel_t),
         .tag = MEMTAG_PANEL
     };
     if (!new_buf(&buffer, true)) return NULL;
 
-    i32 width, height;
-    u16 format;
-    const color_t* data = load_texture(path, &width, &height, &format);
-    if (data == NULL) goto cleanup;
-
     panel_t* panel = buffer.ptr;
     panel->header.box.x = box->x;
     panel->header.box.y = box->y;
-    panel->header.box.width = width;
-    panel->header.box.height = height;
+    panel->header.box.width = box->width;
+    panel->header.box.height = box->height;
     panel->parent = parent;
     if (group->normal.init) memcpy_s(&panel->styles.normal, sizeof(style_t), &group->normal, sizeof(style_t));
     if (group->hover.init) memcpy_s(&panel->styles.hover, sizeof(style_t), &group->hover, sizeof(style_t));
 
-    panel->tex = new_texture(data, width, height, format);
-    stbi_image_free((byte*)data);
+    const color_t* data = load_texture(panel->styles.normal.background.image, box->width, box->height);
+    if (data == NULL) goto cleanup;
 
+    panel->tex = new_texture(data, box->width, box->height);
+    del_buf(&(buf_t){.ptr = (void*)data, .size = box->width * box->height * sizeof(color_t), .tag = MEMTAG_COLOR});
     if (!panel->tex) goto cleanup;
     //flush_texture(panel->tex, panel->styles.normal.background.color);
 
-    style_t* normal_style = NULL,* hover_style = NULL;
-    if (group->normal.init) normal_style = &group->normal;
-    if (group->hover.init) hover_style = &group->hover;
-
-    const u32 max = max(height, width);
-    buffer = (buf_t){
-        .size = sizeof(color_t) * normal_style->border.thickness * max,
-        .tag = MEMTAG_COLOR,
-        .ptr = NULL
-    };
-    if (!new_buf(&buffer, false)) goto cleanup;
-    color_t* hori_border = buffer.ptr;
-    aligned_memset(
-        (u32*)hori_border,
-        normal_style->border.color.hex,
-        normal_style->border.thickness * max
-    );
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, normal_style->border.thickness, GL_RGBA, GL_UNSIGNED_BYTE, hori_border);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, height - normal_style->border.thickness, width, normal_style->border.thickness, GL_RGBA, GL_UNSIGNED_BYTE, hori_border);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, normal_style->border.thickness, height, GL_RGBA, GL_UNSIGNED_BYTE, hori_border);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, width - normal_style->border.thickness, 0, normal_style->border.thickness, height, GL_RGBA, GL_UNSIGNED_BYTE, hori_border);
-    del_buf(&buffer);
+    // style_t* normal_style = NULL,* hover_style = NULL;
+    // if (group->normal.init) normal_style = &group->normal;
+    // if (group->hover.init) hover_style = &group->hover;
 
     panel->sprite = new_sprite("__panel__");
     if (!panel->sprite) goto cleanup;
-
 
     panel->header.mouse = __default_mouse_movement_callback;
     panel->header.resize =  __default_resize_callback;
@@ -115,5 +87,15 @@ void update_panel(panel_t* panel, const mat4* projection, const f32 angle) {
 
     set_mat4_uniform(panel->sprite->shader, "projection", true, projection->e);
     set_mat4_uniform(panel->sprite->shader, "model", true, model.e);
+
+    const style_t* style = &panel->styles.normal;
+    const color_t border_color = style->border.color;
+    const vec4 color = {(f32)border_color.r / 255.0f, (f32)border_color.g / 255.0f, (f32)border_color.b / 255.0f, (f32)border_color.a / 255.0f};
+    const vec2 dim = {(f32)panel->header.box.width, (f32)panel->header.box.height};
+    set_float_uniform(panel->sprite->shader, "border.radius", style->border.radius);
+    set_float_uniform(panel->sprite->shader, "border.thickness", style->border.thickness);
+    set_vec4_uniform(panel->sprite->shader, "border.color", color.e);
+    set_vec2_uniform(panel->sprite->shader, "size", dim.e);
+
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }

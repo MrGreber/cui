@@ -129,8 +129,18 @@ bool set_vec2_uniform_array(const shader_t* shad, const char* var, const u32 cou
     const i32 location = __get_uniform_location(shad->id, var);
     if (location == -1) return false;
 
-    glcall(glUniform2fv(location, count, elements), cleanup, "set_float_uniform - Failed to set float uniform.");
+    glcall(glUniform2fv(location, count, elements), cleanup, "set_vec2_uniform_array - Failed to set float uniform.");
     return true;
 cleanup:
     return false;
+}
+
+bool set_vec4_uniform_array(const shader_t* shad, const char* var, const u32 count, const f32* elements) {
+    const i32 location = __get_uniform_location(shad->id, var);
+    if (location == -1) return false;
+
+    glcall(glUniform4fv(location, count, elements), cleanup, "set_vec4_uniform_array - Failed to set float uniform.");
+    return true;
+    cleanup:
+        return false;
 }

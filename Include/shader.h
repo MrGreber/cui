@@ -73,4 +73,7 @@ bool set_vec2_uniform_array(const shader_t* shad, const char* var, const u32 cou
 /** Convenience macro for setting a single vec2 uniform */
 #define set_vec2_uniform(shad, var, elements) set_vec2_uniform_array(shad, var, 1, elements)
 
+bool set_vec4_uniform_array(const shader_t* shad, const char* var, const u32 count, const f32* elements);
+#define set_vec4_uniform(shad, var, elements) set_vec4_uniform_array(shad, var, 1, elements)
+
 #endif // SHADER_H
