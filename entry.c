@@ -1,9 +1,11 @@
 #include <frame.h>
 #include <log.h>
-#include <mem.h>
 #include <math-utils.h>
 #include <panel.h>
 #include <app.h>
+#include <button.h>
+
+#include "edit.h"
 
 #define WIDTH 800
 #define HEIGHT 800
@@ -14,50 +16,64 @@ static void __init(app_t* app) {
         .normal = {
             .init = true,
             .background = {
-                .image = "C:\\Users\\roygr\\CLionProjects\\stream-draw\\Resources\\heisenberg.jpg"
+                .type = BG_COLOR,
+                .color = BLUE
+                //.image = "C:\\Users\\roygr\\CLionProjects\\stream-draw\\Resources\\heisenberg.jpg"
             },
             .border = {
                 .color = BLACK,
                 .thickness = 6,
-                .radius = 50
+                .radius = 10
             }
         }
     };
-    panel_t* panel1 = new_panel(frame, &group, &(bounding_box){100, 100, 400, 600});
-    panel_t* panel2 = new_panel(frame, &group, &(bounding_box){0, 0, 100, 100});
-    push_comp_node(frame->header.components, panel1, PANEL_COMPONENT);
-    push_comp_node(frame->header.components, panel2, PANEL_COMPONENT);
+    edit_t* edit = new_edit(frame, &group, &(bounding_box){100, 100, 400, 600});
+    // panel_t* panel1 = new_panel(frame, &group, &(bounding_box){100, 100, 400, 600});
+    // panel_t* panel2 = new_panel(panel1, &group, &(bounding_box){0, 0, 100, 100});
+    // button_t* button = new_button(frame, &group, &(bounding_box){0, 0, 50, 50});
 
     app->frame = frame;
-    push_app_var(app, panel1);
-    push_app_var(app, panel2);
+    push_app_var(app, edit);
+    // push_app_var(app, panel1);
+    // push_app_var(app, panel2);
+    // push_app_var(app, button);
 }
 static void __loop(app_t* app) {
     static f32 angle = 0.0;
     const frame_t* frame = app->frame;
-    panel_t* panel1 = get_app_var(app, 0);
-    panel_t* panel2 = get_app_var(app, 1);
+    edit_t* edit = get_app_var(app, 0);
+    // panel_t* panel1 = get_app_var(app, 0);
+    // panel_t* panel2 = get_app_var(app, 1);
+    // button_t* button = get_app_var(app, 2);
 
     const mat4 projection = m4_ortho(0.0f, (f32)frame->header.box.width, (f32)frame->header.box.height, 0.0f, -1.0f, 1.0f);
     update_frame(frame);
 
-    angle += 0.5f;
-    if (angle > deg(PI2)) angle -= deg(PI2);
-    if (angle < 0.0f) angle += deg(PI2);
-    bind_panel(panel1);
-    update_panel(panel1, &projection, angle);
-    bind_panel(panel2);
-    update_panel(panel2, &projection, angle);
+    bind_edit(edit);
+    update_edit(edit, &projection, 0.0f);
+
+    // angle += 0.5f;
+    // if (angle > deg(PI2)) angle -= deg(PI2);
+    // if (angle < 0.0f) angle += deg(PI2);
+    // bind_panel(panel1);
+    // update_panel(panel1, &projection, angle);
+    // bind_panel(panel2);
+    // update_panel(panel2, &projection, angle);
+    // bind_button(button);
+    // update_button(button, &projection, 0.0f);
 }
 static void __exit(app_t* app) {
     frame_t* frame = app->frame;
-    panel_t* panel1 = get_app_var(app, 0);
-    panel_t* panel2 = get_app_var(app, 1);
+    edit_t* edit = get_app_var(app, 0);
+    // panel_t* panel1 = get_app_var(app, 0);
+    // panel_t* panel2 = get_app_var(app, 1);
+    // button_t* button = get_app_var(app, 2);
 
-    del_panel(panel1);
-    del_panel(panel2);
+    del_edit(edit);
+    // del_panel(panel1);
+    // del_panel(panel2);
+    // del_button(button);
     del_frame(frame);
-    del_buf(&(buf_t){.ptr = app->vars, .tag = MEMTAG_POINTER, .size = sizeof(void*) * app->count});
 }
 
 int main(void) {

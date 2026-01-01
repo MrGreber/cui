@@ -1,6 +1,7 @@
 #include <utils.h>
 #include <log.h>
 #include <mem.h>
+#include <texture.h>
 
 #include <glad.h>
 #include <stdio.h>
@@ -96,4 +97,32 @@ void aligned_memset(u32* buffer, const u32 val, const u64 size) {
             for (i = end; i < size; i++) buffer[i] = val;
         }
     }
+}
+
+bool gen_comp_texture(texture_t** out, const bounding_box* box, const style_t* style) {
+    if (!out || !style) return false;
+
+    switch (style->background.type) {
+        case BG_COLOR: {
+            *out = new_texture(NULL, box->width, box->height);
+            if (!*out) goto cleanup;
+            flush_texture(*out, style->background.color);
+            break;
+        }
+        case BG_IMAGE: {
+            const color_t* data = load_texture(style->background.image, box->width, box->height);
+            if (!data) goto cleanup;
+
+            *out = new_texture(data, box->width, box->height);
+            del_buf(&(buf_t){.ptr = (void*)data, .size = box->width * box->height * sizeof(color_t), .tag = MEMTAG_COLOR});
+            if (!*out) goto cleanup;
+            break;
+        }
+        default: return false;
+    }
+
+    return true;
+cleanup:
+    logError("gen_comp_texture - Failed to generate component texture.");
+    return false;
 }

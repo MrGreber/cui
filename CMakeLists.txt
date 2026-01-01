@@ -5,6 +5,7 @@ set(CMAKE_C_STANDARD 23)
 
 file(GLOB SOURCE "Source/*.c")
 file(GLOB UI "UI/*.c")
+file(GLOB DS "Data-Structures/*.c")
 
 add_library(glad STATIC External/Source/glad.c)
 target_include_directories(glad PUBLIC External/Include)
@@ -12,6 +13,7 @@ target_include_directories(glad PUBLIC External/Include)
 add_executable(stream_draw
         ${SOURCE}
         ${UI}
+        ${DS}
         entry.c
 )
 
@@ -19,6 +21,7 @@ target_include_directories(stream_draw SYSTEM PRIVATE
         External/Include
         UI
         Include
+        Data-Structures
 )
 
 set_target_properties(stream_draw PROPERTIES

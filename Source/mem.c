@@ -24,7 +24,9 @@ static char* mem_table_labels[__MEMTAG_COUNT__ - 1] = {
     "component-node",
     "pointer",
     "panel",
-    "app"
+    "app",
+    "array",
+    "edit"
 };
 
 
@@ -105,7 +107,6 @@ void del_buf(buf_t* buffer) {
         }
     }
     buffer->ptr = NULL;
-
     mem_table[buffer->tag - 1] -= buffer->size;
 }
 

@@ -1,14 +1,13 @@
 #pragma once
-#include <geometry.h>
-#include <shader.h>
-
-#include "texture.h"
 
 #ifndef OBJECT_H
 #define OBJECT_H
+#include <geometry.h>
+#include <shader.h>
+#include <texture.h>
 
 /**
- * @struct object
+ * @struct sprite
  * @brief Represents a drawable object in OpenGL.
  *
  * Contains vertex arrays, vertex buffers, element buffers, and an associated shader.

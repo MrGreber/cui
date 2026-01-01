@@ -4,6 +4,7 @@
 
 #include <stddef.h>
 
+
 #ifndef UTILS_H
 #define UTILS_H
 
@@ -43,15 +44,23 @@ typedef enum component_tag {
     PANEL_COMPONENT
 } comp_tag;
 
+typedef enum font_type {
+    PHEEN, // default pixelated hebrew-english font
+    ARIAL
+} font_type_t;
+
+typedef enum background_type {
+    BG_NONE,
+    BG_COLOR,
+    BG_IMAGE,
+    BG_GRADIENT
+} bg_type_t;
+
 typedef struct bounding_box {
     u32 x, y;
     u32 width, height;
 } bounding_box;
 
-typedef enum font_type {
-    PHEEN, // default pixelated hebrew-english font
-    ARIAL
-} font_type_t;
 
 typedef struct font {
     u8 size;
@@ -62,9 +71,13 @@ typedef struct font {
 } font_t;
 
 typedef struct style {
-    union {
-        color_t color;
-        const char* image;
+    struct {
+        union {
+            color_t color;
+            struct texture* texture;
+            const char* image;
+        };
+        bg_type_t type;
     } background;
     struct {
         color_t color;
@@ -171,5 +184,7 @@ bool read_file(const char* path, char** out, u64* size);
 #define foreach(X, ITER) for(byte* X = ITER; *X != 0; X += sizeof(*ITER))
 
 void aligned_memset(u32* buffer, const u32 val, const u64 size);
+
+bool gen_comp_texture(struct texture** out, const bounding_box* box, const style_t* style) ;
 
 #endif //UTILS_H

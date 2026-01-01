@@ -104,7 +104,7 @@ color_t* load_texture(const char* path, u32 width, u32 height) {
     i32 channels = 0, _width, _height;
     byte* data = stbi_load(path, &_width, &_height, &channels, 4);
     if (data == NULL) {
-        logError("load_texture - Failed to load texture:\n\t%s", stbi_failure_reason());
+        logError("load_texture - Failed to load image:\n\t%s", stbi_failure_reason());
         return NULL;
     }
 

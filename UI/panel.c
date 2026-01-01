@@ -7,13 +7,15 @@
 #include <corecrt_memcpy_s.h>
 #include <glad.h>
 
-static void __default_mouse_movement_callback(const mouse_cb_param* param) {
+static void __default_mouse_callback(const mouse_cb_param* param) {
     panel_t* panel = param->instance;
     frame_t* frame = ((comp_node_t*)panel->header.components)->root->component.data;
-    // printf("frame=%p\n", frame);
+    printf("panel=%p\n", panel);
 }
 static void __default_resize_callback(const resize_cb_param* param) {
     panel_t* panel = param->instance;
+    //comp_header_t* header = get_header(panel->parent);
+
     // panel->header.box.width += param->width;
     // panel->header.box.height += param->height;
 
@@ -26,32 +28,30 @@ panel_t* new_panel(void* parent, style_group_t* group, const bounding_box* box) 
     };
     if (!new_buf(&buffer, true)) return NULL;
 
+    const comp_header_t* parent_header = get_header(parent);
+
     panel_t* panel = buffer.ptr;
-    panel->header.box.x = box->x;
-    panel->header.box.y = box->y;
+    panel->header.box.x = box->x + parent_header->box.x;
+    panel->header.box.y = box->y + parent_header->box.y;
     panel->header.box.width = box->width;
     panel->header.box.height = box->height;
     panel->parent = parent;
     if (group->normal.init) memcpy_s(&panel->styles.normal, sizeof(style_t), &group->normal, sizeof(style_t));
     if (group->hover.init) memcpy_s(&panel->styles.hover, sizeof(style_t), &group->hover, sizeof(style_t));
 
-    const color_t* data = load_texture(panel->styles.normal.background.image, box->width, box->height);
-    if (data == NULL) goto cleanup;
-
-    panel->tex = new_texture(data, box->width, box->height);
-    del_buf(&(buf_t){.ptr = (void*)data, .size = box->width * box->height * sizeof(color_t), .tag = MEMTAG_COLOR});
-    if (!panel->tex) goto cleanup;
-    //flush_texture(panel->tex, panel->styles.normal.background.color);
+    if (!gen_comp_texture(&panel->tex, box, &group->normal)) goto cleanup;
 
     // style_t* normal_style = NULL,* hover_style = NULL;
     // if (group->normal.init) normal_style = &group->normal;
     // if (group->hover.init) hover_style = &group->hover;
 
-    panel->sprite = new_sprite("__panel__");
+    panel->sprite = new_sprite("__component__");
     if (!panel->sprite) goto cleanup;
 
-    panel->header.mouse = __default_mouse_movement_callback;
+    panel->header.mouse = __default_mouse_callback;
     panel->header.resize =  __default_resize_callback;
+
+    push_comp_node(parent_header->components, panel, PANEL_COMPONENT);
     return panel;
 cleanup:
     if (panel->sprite) del_sprite(panel->sprite);
@@ -84,7 +84,6 @@ void update_panel(panel_t* panel, const mat4* projection, const f32 angle) {
     model = m4_mul(&model, &rotation);
     model = m4_mul(&model, &inv_size);
     model = m4_mul(&model, &scale);
-
     set_mat4_uniform(panel->sprite->shader, "projection", true, projection->e);
     set_mat4_uniform(panel->sprite->shader, "model", true, model.e);
 

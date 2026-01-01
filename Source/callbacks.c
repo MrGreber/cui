@@ -42,17 +42,24 @@ bool __check_press(const frame_t* frame, const u32 key) {
     return false;
 }
 void __keyboard_input(const frame_t* frame) {
-    event_t event = {.tag = __KEYBOARD_EVENT__};
-    const comp_node_t* root = frame->header.components;
-    dispatch_event(root, &event);
+    // event_t event = {.tag = __KEYBOARD_EVENT__};
+    // const comp_node_t* root = frame->header.components;
+    // dispatch_event(root, &event);
 }
-void __keyboard_callback(GLFWwindow* window, const i32 key, const i32 sc, const i32 action, const i32 mods) {
+void __keyboard_callback(GLFWwindow* window, const i32 key, const i32 sc, const i32 action, const i32 modes) {
     static bool wireframe_mode = false;
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) glfwSetWindowShouldClose(window, true);
     if (key == GLFW_KEY_F1 && action == GLFW_PRESS) {
         wireframe_mode = !wireframe_mode;
         glPolygonMode(GL_FRONT_AND_BACK, wireframe_mode ? GL_LINE : GL_FILL);
     }
+    const frame_t* frame = glfwGetWindowUserPointer(window);
+    event_t event = {
+        .param.keyboard = {.key = key, .scancode = sc, .action = action, .modes = modes},
+        .tag = __KEYBOARD_EVENT__
+    };
+    const comp_node_t* root = frame->header.components;
+    dispatch_event(root, &event);
 }
 void __mouse_movement_callback(GLFWwindow* window, const f64 mouse_x, const f64 mouse_y) {
     event_t event = {
