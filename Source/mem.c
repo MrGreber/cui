@@ -26,7 +26,8 @@ static char* mem_table_labels[__MEMTAG_COUNT__ - 1] = {
     "panel",
     "app",
     "array",
-    "edit"
+    "edit",
+    "string"
 };
 
 
@@ -88,9 +89,8 @@ bool renew_buf(buf_t* buffer, const u64 new_size) {
         return false;
     }
     buffer->ptr = new_ptr;
-    buffer->size = new_size;
-
     mem_table[buffer->tag - 1] += new_size - buffer->size;
+    buffer->size = new_size;
     return true;
 }
 void del_buf(buf_t* buffer) {

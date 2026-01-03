@@ -3,9 +3,8 @@
 #include <math-utils.h>
 #include <panel.h>
 #include <app.h>
+#include <edit.h>
 #include <button.h>
-
-#include "edit.h"
 
 #define WIDTH 800
 #define HEIGHT 800
@@ -80,9 +79,13 @@ int main(void) {
     open_logging("__log__.dat", true);
     set_exitFlag(false);
 
-    app_t* app = new_app(__init, __loop, __exit);
-    start_app(app);
-    exit_app(app);
+    str_t* string = new_str("shit", 0);
+    del_substr(string, 0, 3);
+    prints(string, true);
+
+    // app_t* app = new_app(__init, __loop, __exit);
+    // start_app(app);
+    // exit_app(app);
 
     set_exitFlag(true);
     close_logging();

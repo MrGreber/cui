@@ -1,14 +1,10 @@
 #include <frame.h>
 #include <mem.h>
 #include <camera.h>
-#include <../Recycle/canvas.h>
-#include <../Recycle/button.h>
 
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <glad.h>
 #include <glfw3.h>
-#include <glfw3native.h>
-#include <stdio.h>
 
 void __resize_callback(GLFWwindow* window, const i32 width, const i32 height) {
     if (width <= 0 || height <= 0) return;
@@ -40,11 +36,6 @@ bool __check_press(const frame_t* frame, const u32 key) {
         key_pressed[key] = false;
     }
     return false;
-}
-void __keyboard_input(const frame_t* frame) {
-    // event_t event = {.tag = __KEYBOARD_EVENT__};
-    // const comp_node_t* root = frame->header.components;
-    // dispatch_event(root, &event);
 }
 void __keyboard_callback(GLFWwindow* window, const i32 key, const i32 sc, const i32 action, const i32 modes) {
     static bool wireframe_mode = false;

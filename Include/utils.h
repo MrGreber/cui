@@ -44,10 +44,6 @@ typedef enum component_tag {
     PANEL_COMPONENT
 } comp_tag;
 
-typedef enum font_type {
-    PHEEN, // default pixelated hebrew-english font
-    ARIAL
-} font_type_t;
 
 typedef enum background_type {
     BG_NONE,
@@ -60,15 +56,6 @@ typedef struct bounding_box {
     u32 x, y;
     u32 width, height;
 } bounding_box;
-
-
-typedef struct font {
-    u8 size;
-    u8 line_spacing;
-    u8 line_height;
-    color_t color;
-    font_type_t type;
-} font_t;
 
 typedef struct style {
     struct {

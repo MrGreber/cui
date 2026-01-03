@@ -45,8 +45,6 @@ static bool __init_glad(void) {
 }
 
 extern void __resize_callback(GLFWwindow* window, const i32 width, const i32 height);
-extern bool __check_press(const frame_t* frame, const u32 key);
-extern void __keyboard_input(const frame_t* frame);
 extern void __keyboard_callback(GLFWwindow* window, i32 key, i32 sc, i32 action, i32 modes);
 extern void __mouse_movement_callback(GLFWwindow* window, const f64 mouse_x, const f64 mouse_y);
 extern void __mouse_button_callback(GLFWwindow* window, const i32 button, const i32 action, const i32 mods);
@@ -87,7 +85,6 @@ frame_t* new_frame(const color_t bg, const u32 width, const u32 height, const ch
     glfwSetCursorPosCallback(frame->glfw_ctx, __mouse_movement_callback);
     glfwSetMouseButtonCallback(frame->glfw_ctx, __mouse_button_callback);
     glfwSetScrollCallback(frame->glfw_ctx, __scroll_callback);
-    frame->header.keyboard = __keyboard_input;
 
     glfwSetWindowUserPointer(frame->glfw_ctx, frame);
     return frame;
