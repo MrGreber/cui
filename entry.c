@@ -79,13 +79,9 @@ int main(void) {
     open_logging("__log__.dat", true);
     set_exitFlag(false);
 
-    str_t* string = new_str("shit", 0);
-    del_substr(string, 0, 3);
-    prints(string, true);
-
-    // app_t* app = new_app(__init, __loop, __exit);
-    // start_app(app);
-    // exit_app(app);
+    app_t* app = new_app(__init, __loop, __exit);
+    start_app(app);
+    exit_app(app);
 
     set_exitFlag(true);
     close_logging();

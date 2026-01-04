@@ -2,7 +2,6 @@
 #include <mem.h>
 #include <log.h>
 #include <camera.h>
-#include <../Recycle/canvas.h>
 
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <glad.h>
