@@ -3,6 +3,7 @@
 #include <log.h>
 
 #include <glad.h>
+#include <stdio.h>
 
 static u32 __gl_sizeof(const u32 type) {
     switch (type) {
@@ -166,19 +167,17 @@ void del_vertex_array(vert_array* va) {
     glDeleteVertexArrays(1, &va->id);
     glBindVertexArray(0);
 
-    buf_t buffer = (buf_t){
-        .size = va->count * sizeof(vert_elem),
+    del_buf(&(buf_t){
+        .size = va->capacity * sizeof(vert_elem),
         .tag = MEMTAG_VERTEX_ARRAY_ELEMENT,
         .ptr = va->elem
-    };
-    del_buf(&buffer);
+    });
 
-    buffer = (buf_t){
+    del_buf(&(buf_t){
         .size = sizeof(vert_array),
         .tag = MEMTAG_VERTEX_ARRAY,
         .ptr = va
-    };
-    del_buf(&buffer);
+    });
 }
 void bind_vertex_array(const vert_array* va) {
     glBindVertexArray(va->id);
