@@ -8,6 +8,7 @@
  * OpenGL vertex buffer object (VBO) wrapper.
  */
 typedef struct vertex_buffer {
+    u8 type;
     u32 id; /**< OpenGL-generated buffer ID */
 } vert_buf;
 
@@ -39,13 +40,16 @@ typedef struct vertex_array {
     vert_elem* elem; /**< Array of vertex attribute descriptors */
 } vert_array;
 
+#define STATIC_BUFFER 0
+#define DYNAMIC_BUFFER 1
 /**
  * Create a new vertex buffer and upload data to GPU.
  * @param data Pointer to vertex data
  * @param size Size of data in bytes
+ * @param type
  * @return Pointer to allocated vertex buffer, or NULL on failure
  */
-vert_buf* new_vertex_buffer(const void* data, const u32 size);
+vert_buf* new_vertex_buffer(const void* data, const u32 size, const u8 type);
 
 /**
  * Delete a vertex buffer and free GPU resources.

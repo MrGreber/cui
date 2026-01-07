@@ -24,44 +24,44 @@ sprite_t* new_sprite(const char* name) {
     };
     if (!new_buf(&buffer, false)) return NULL;
 
-    sprite_t* obj = buffer.ptr;
+    sprite_t* sprite = buffer.ptr;
 
-    obj->va = new_vertex_array(2);
-    obj->vb = new_vertex_buffer(vertices, sizeof(vertices));
-    obj->eb = new_element_buffer(indices, sizeof(indices));
-    if (!obj->va || !obj->vb || !obj->eb) goto cleanup;
-    bind_vertex_array(obj->va);
-    bind_vertex_buffer(obj->vb);
-    bind_element_buffer(obj->eb);
+    sprite->va = new_vertex_array(2);
+    sprite->vb = new_vertex_buffer(vertices, sizeof(vertices), STATIC_BUFFER);
+    sprite->eb = new_element_buffer(indices, sizeof(indices));
+    if (!sprite->va || !sprite->vb || !sprite->eb) goto cleanup;
+    bind_vertex_array(sprite->va);
+    bind_vertex_buffer(sprite->vb);
+    bind_element_buffer(sprite->eb);
 
-    push_f32(obj->va, 2);
-    push_f32(obj->va, 2);
-    push_buf(obj->va, obj->vb);
+    push_f32(sprite->va, 2);
+    push_f32(sprite->va, 2);
+    push_buf(sprite->va, sprite->vb);
 
-    obj->shader = new_shader(name);
-    if (!obj->shader) goto cleanup;
-    return obj;
+    sprite->shader = new_shader(name);
+    if (!sprite->shader) goto cleanup;
+    return sprite;
 cleanup:
-    if (obj->shader) del_shader(obj->shader);
-    if (obj->va) del_vertex_array(obj->va);
-    if (obj->vb) del_vertex_buffer(obj->vb);
-    if (obj->eb) del_element_buffer(obj->eb);
+    if (sprite->shader) del_shader(sprite->shader);
+    if (sprite->va) del_vertex_array(sprite->va);
+    if (sprite->vb) del_vertex_buffer(sprite->vb);
+    if (sprite->eb) del_element_buffer(sprite->eb);
     return NULL;
 }
 
-void del_sprite(sprite_t* obj) {
-    if (!obj) return;
-    if (obj->shader) del_shader(obj->shader);
-    if (obj->va) del_vertex_array(obj->va);
-    if (obj->vb) del_vertex_buffer(obj->vb);
-    if (obj->eb) del_element_buffer(obj->eb);
+void del_sprite(sprite_t* sprite) {
+    if (!sprite) return;
+    if (sprite->shader) del_shader(sprite->shader);
+    if (sprite->va) del_vertex_array(sprite->va);
+    if (sprite->vb) del_vertex_buffer(sprite->vb);
+    if (sprite->eb) del_element_buffer(sprite->eb);
 
-    del_buf(&(buf_t){.size = sizeof(sprite_t), .tag = MEMTAG_SPRITE, .ptr = obj});
+    del_buf(&(buf_t){.size = sizeof(sprite_t), .tag = MEMTAG_SPRITE, .ptr = sprite});
 }
 
-void bind_sprite(const sprite_t* obj) {
-    bind_vertex_array(obj->va);
-    glUseProgram(obj->shader->id);
+void bind_sprite(const sprite_t* sprite) {
+    bind_vertex_array(sprite->va);
+    glUseProgram(sprite->shader->id);
 }
 
 void unbind_sprite(void) {

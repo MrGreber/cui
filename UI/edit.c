@@ -3,9 +3,10 @@
 #include <event_system.h>
 #include <math-utils.h>
 #include <frame.h>
+#include <log.h>
 
-#include <winsock.h>
-#pragma comment(lib, "Ws2_32.lib")
+#include <string.h>
+#include <stdlib.h>
 #include <corecrt_memcpy_s.h>
 #include <glad.h>
 #include <glfw3.h>
@@ -124,9 +125,17 @@ static bool __parse_fnt(const char* path, font_t* font) {
     pages_name[length] = 0;
     free(pages_name);
 
+    style_t style = {
+        .init = true,
+        .background = {
+            .type = BG_IMAGE,
+            .image = "C:\\Users\\roygr\\CLionProjects\\stream-draw\\Resources\\temp-char.png"
+        },
+    };
+    if (!gen_comp_texture(&font->atlas,  &(bounding_box){0, 0, 16, 16}, &style)) return false;
+
     fread_s(&chars, sizeof(struct fnt_chars), sizeof(struct fnt_chars), 1, stream);
     glyph_t* glyph = NULL;
-    // ToDo: allocate font.table
     struct fnt_char char_ = { 0 };
     for (u32 i = 0; i < chars.block_size / (u32)sizeof(struct fnt_char); i++) {
         fread_s(&char_, sizeof(struct fnt_char), sizeof(struct fnt_char), 1, stream);
@@ -143,7 +152,6 @@ static bool __parse_fnt(const char* path, font_t* font) {
     return true;
 }
 
-
 font_t* new_font(const char* path) {
     if (!path) return NULL;
 
@@ -152,21 +160,80 @@ font_t* new_font(const char* path) {
         .tag = MEMTAG_FONT
     };
     if (!new_buf(&buffer, false)) return NULL;
-
     font_t* font = buffer.ptr;
-    if (!__parse_fnt(path, font)) {
-        del_buf(&(buf_t){.ptr = font, .size = sizeof(font_t), .tag = MEMTAG_FONT});
-        return NULL;
-    }
-    font->va = new_vertex_array(128);
-    // ToDo: add vertex buffer allocation per char and load the texture.
+
+    if (!__parse_fnt(path, font)) goto cleanup;
+    buffer = (buf_t){
+        .ptr = NULL,
+        .size = sizeof(vec4) * 128,
+        .tag = MEMTAG_VECTOR
+    };
+    if (!new_buf(&buffer, false)) goto cleanup;
+    font->mesh.vertices = buffer.ptr;
+    font->mesh.capacity = 128;
+    font->mesh.count = 0;
+
+    font->mesh.va = new_vertex_array(2);
+    font->mesh.vb = new_vertex_buffer(NULL, 6 * sizeof(vec4) * 128, DYNAMIC_BUFFER);
+    if (!font->mesh.va || !font->mesh.vb) goto cleanup;
+    bind_vertex_array(font->mesh.va);
+    bind_vertex_buffer(font->mesh.vb);
+
+    push_f32(font->mesh.va, 2);
+    push_f32(font->mesh.va, 2);
+    push_buf(font->mesh.va, font->mesh.vb);
 
     return font;
+cleanup:
+    if (font->mesh.va) del_vertex_array(font->mesh.va);
+    if (font->mesh.vb) del_vertex_buffer(font->mesh.vb);
+    if (font->mesh.vertices) del_buf(&(buf_t){.ptr = font->mesh.vertices, .size = sizeof(vec4) * 128, .tag = MEMTAG_VECTOR});
+    del_buf(&(buf_t){.ptr = font, .size = sizeof(font_t), .tag = MEMTAG_FONT});
+    return NULL;
 }
 void del_font(font_t* font) {
     if (!font) return;
-    del_vertex_array(font->va);
+    del_vertex_array(font->mesh.va);
+    del_vertex_buffer(font->mesh.vb);
+    del_buf(&(buf_t){.ptr = font->mesh.vertices, .size = sizeof(vec4) * 128, .tag = MEMTAG_VECTOR});
     del_buf(&(buf_t){.ptr = font, .size = sizeof(font_t), .tag = MEMTAG_FONT});
+}
+void bind_font(const font_t* font) {
+    bind_vertex_array(font->mesh.va);
+    bind_texture(font->atlas);
+}
+void unbind_font(void) {
+    unbind_vertex_array();
+}
+bool __resize_text_mesh(font_t* font) {
+    if (font->mesh.capacity == UINT64_MAX) {
+        logError("__resize_app_vars - Failed to resize vars app, vars reached max size %d.", UINT16_MAX);
+        return false;
+    }
+
+    buf_t buffer = {
+        .ptr = font->mesh.vertices,
+        .size = sizeof(char_t) * font->mesh.capacity,
+        .tag = MEMTAG_BYTE
+    };
+    const u64 new_cap = font->mesh.capacity << 1;
+    if (!renew_buf(&buffer, sizeof(char_t) * new_cap)) return false;
+    font->mesh.vertices = buffer.ptr;
+    font->mesh.capacity = new_cap;
+    return true;
+}
+void push_vertices(font_t* font, const vec4* vert) {
+    if (font->mesh.capacity <= font->mesh.count && !__resize_text_mesh(font)) goto cleanup;
+
+    memcpy_s(&font->mesh.vertices[font->mesh.count], font->mesh.capacity * sizeof(vec4), vert, 6 * sizeof(vec4));
+    font->mesh.count += 6;
+
+    glBindBuffer(GL_ARRAY_BUFFER, font->mesh.vb->id);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, font->mesh.count * sizeof(vec4), font->mesh.vertices);
+
+    return;
+cleanup:
+    logError("push_vertex - Failed to resize text mesh.");
 }
 
 static void __default_mouse_callback(const mouse_cb_param* param) {
@@ -174,7 +241,6 @@ static void __default_mouse_callback(const mouse_cb_param* param) {
     frame_t* frame = ((comp_node_t*)edit->header.components)->root->component.data;
     //printf("edit=%p\n", edit);
 }
-
 static void __default_keyboard_callback(const keyboard_cb_param* param) {
     edit_t* edit = param->instance;
     frame_t* frame = ((comp_node_t*)edit->header.components)->root->component.data;
@@ -182,11 +248,11 @@ static void __default_keyboard_callback(const keyboard_cb_param* param) {
     if (param->action == GLFW_PRESS || param->action == GLFW_REPEAT) {
         switch (param->key) {
             case GLFW_KEY_ENTER: {
-                insert_char(edit->text, edit->index++, _C_'\n');
+                insert_char(edit->text.buffer, edit->text.index++, _C_'\n');
                 break;
             }
             case GLFW_KEY_TAB: {
-                insert_char(edit->text, edit->index++, _C_'\t');
+                insert_char(edit->text.buffer, edit->text.index++, _C_'\t');
                 break;
             }
             default: {
@@ -196,45 +262,52 @@ static void __default_keyboard_callback(const keyboard_cb_param* param) {
                     param->key <= _C_'Z'
                 ) ? param->key + shift : param->key;
 
-                insert_char(edit->text, edit->index++, key);
+                insert_char(edit->text.buffer, edit->text.index++, key);
+                push_vertices(edit->font, (vec4[]){
+                    {0.0f, 1.0f, 0.0f, 1.0f},
+                    {1.0f, 0.0f, 1.0f, 0.0f},
+                    {0.0f, 0.0f, 0.0f, 0.0f},
+                    {0.0f, 1.0f, 0.0f, 1.0f},
+                    {1.0f, 1.0f, 1.0f, 1.0f},
+                    {1.0f, 0.0f, 1.0f, 0.0f}
+                });
                 break;
             }
             case GLFW_KEY_LEFT_SHIFT:
             case GLFW_KEY_RIGHT_SHIFT: return;
             case GLFW_KEY_HOME: {
-                edit->index = rfind_char(edit->text, edit->index, '\n');
+                edit->text.index = rfind_char(edit->text.buffer, edit->text.index, '\n');
                 break;
             }
             case GLFW_KEY_END: {
-                edit->index = find_char(edit->text, edit->index, '\n');
+                edit->text.index = find_char(edit->text.buffer, edit->text.index, '\n');
                 break;
             }
             case GLFW_KEY_LEFT: {
-                if (edit->index) {
-                    edit->index--;
+                if (edit->text.index) {
+                    edit->text.index--;
                 }
                 break;
             }
             case GLFW_KEY_RIGHT: {
-                if (edit->index < edit->text->length) {
-                    edit->index++;
+                if (edit->text.index < edit->text.buffer->length) {
+                    edit->text.index++;
                 }
                 break;
             }
             case GLFW_KEY_BACKSPACE: {
-                if (edit->index) {
-                    pop_char(edit->text, edit->index - 1);
-                    edit->index--;
+                if (edit->text.index) {
+                    pop_char(edit->text.buffer, edit->text.index - 1);
+                    edit->text.index--;
                 }
                 break;
             }
 
         }
-        prints(edit->text, true);
+        prints(edit->text.buffer, true);
         //printf("%c:%s\n", param->key, shift);
     }
 }
-
 static void __default_resize_callback(const resize_cb_param* param) {
     edit_t* edit = param->instance;
     //comp_header_t* header = get_header(panel->parent);
@@ -251,9 +324,6 @@ edit_t* new_edit(void* parent, style_group_t* group, const bounding_box* box) {
     };
     if (!new_buf(&buffer, true)) return NULL;
 
-    font_t* font = new_font("C:\\Users\\roygr\\Downloads\\vcr_osd_mono\\vcr_osd_mono.bin");
-    del_font(font);
-
     const comp_header_t* parent_header = get_header(parent);
 
     edit_t* edit = buffer.ptr;
@@ -267,15 +337,17 @@ edit_t* new_edit(void* parent, style_group_t* group, const bounding_box* box) {
 
     if (!gen_comp_texture(&edit->tex, box, &group->normal)) goto cleanup;
 
-    // style_t* normal_style = NULL,* hover_style = NULL;
-    // if (group->normal.init) normal_style = &group->normal;
-    // if (group->hover.init) hover_style = &group->hover;
-
     edit->sprite = new_sprite("__component__");
     if (!edit->sprite) goto cleanup;
 
-    edit->text = new_str("", 0);
-    if (!edit->text) goto cleanup;
+    edit->font = new_font("C:\\Users\\roygr\\Downloads\\vcr_osd_mono\\vcr_osd_mono.bin");
+    if (!edit->font) {
+        logError("new_edit - Failed to load font.");
+        goto cleanup;
+    }
+
+    edit->text.buffer = new_str("", 0);
+    if (!edit->text.buffer) goto cleanup;
 
     edit->header.mouse = __default_mouse_callback;
     edit->header.keyboard = __default_keyboard_callback;
@@ -286,17 +358,17 @@ edit_t* new_edit(void* parent, style_group_t* group, const bounding_box* box) {
 cleanup:
     if (edit->sprite) del_sprite(edit->sprite);
     if (edit->tex) del_texture(edit->tex);
-    if (edit->text) del_str(edit->text);
+    if (edit->text.buffer) del_str(edit->text.buffer);
+    if (edit->font) del_font(edit->font);
     del_buf(&(buf_t){.size = sizeof(edit_t), .tag = MEMTAG_EDIT, .ptr = edit});
     return NULL;
 }
 void del_edit(edit_t* edit) {
     if (!edit) return;
-    if (edit->sprite) del_sprite(edit->sprite);
-    if (edit->tex) del_texture(edit->tex);
-
-    prints(edit->text, true);
-    if (edit->text) del_str(edit->text);
+    del_sprite(edit->sprite);
+    del_texture(edit->tex);
+    del_str(edit->text.buffer);
+    del_font(edit->font);
     del_buf(&(buf_t){.size = sizeof(edit_t), .tag = MEMTAG_EDIT, .ptr = edit});
 }
 void bind_edit(const edit_t* edit) {
@@ -307,11 +379,11 @@ void bind_edit(const edit_t* edit) {
 void update_edit(edit_t* edit, const mat4* projection, const f32 angle) {
     if (!edit) return;
 
-    const mat4 rotation = m4_rotateZ(rad(angle));
-    const mat4 scale = m4_scale((f32)edit->header.box.width, (f32)edit->header.box.height, 1.0f);
-    const mat4 position = m4_transl((f32)edit->header.box.x, (f32)edit->header.box.y, 0.0f);
-    const mat4 size = m4_transl((f32)edit->header.box.width * 0.5f, (f32)edit->header.box.height * 0.5f, 0.0f);
-    const mat4 inv_size = m4_transl(-(f32)edit->header.box.width * 0.5f, -(f32)edit->header.box.height * 0.5f, 0.0f);
+    mat4 rotation = m4_rotateZ(rad(angle));
+    mat4 scale = m4_scale((f32)edit->header.box.width, (f32)edit->header.box.height, 1.0f);
+    mat4 position = m4_transl((f32)edit->header.box.x, (f32)edit->header.box.y, 0.0f);
+    mat4 size = m4_transl((f32)edit->header.box.width * 0.5f, (f32)edit->header.box.height * 0.5f, 0.0f);
+    mat4 inv_size = m4_transl(-(f32)edit->header.box.width * 0.5f, -(f32)edit->header.box.height * 0.5f, 0.0f);
 
     mat4 model = m4_mul(&position, &size);
     model = m4_mul(&model, &rotation);
@@ -330,4 +402,16 @@ void update_edit(edit_t* edit, const mat4* projection, const f32 angle) {
     set_vec2_uniform(edit->sprite->shader, "size", dim.e);
 
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+    scale = m4_scale(128.0f, 128.0f, 1.0f);
+    position = m4_transl((f32)edit->header.box.x + style->border.thickness, (f32)edit->header.box.y + style->border.thickness, 0.0f);
+    size = m4_transl((f32)(edit->header.box.width - style->border.thickness) * 0.5f, (f32)(edit->header.box.height - style->border.thickness) * 0.5f, 0.0f);
+    inv_size = m4_transl(-(f32)(edit->header.box.width - style->border.thickness) * 0.5f, -(f32)(edit->header.box.height - style->border.thickness) * 0.5f, 0.0f);
+    model = m4_mul(&position, &size);
+    model = m4_mul(&model, &inv_size);
+    model = m4_mul(&model, &scale);
+    bind_font(edit->font);
+    set_mat4_uniform(edit->sprite->shader, "projection", true, projection->e);
+    set_mat4_uniform(edit->sprite->shader, "model", true, model.e);
+    glDrawArrays(GL_TRIANGLES, 0, edit->text.buffer->length);
 }

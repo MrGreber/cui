@@ -23,7 +23,7 @@ str_t* new_str(char_t* data, u64 length);
 void del_str(str_t* src);
 bool pop_char(str_t* src, const u64 index);
 bool del_substr(str_t* src, const u64 start, const u64 end);
-str_t* get_substr(str_t* src, str_t* dst);
+str_t* get_substr(str_t* src, const u64 start, const u64 end);
 bool push_char(str_t* src, const char_t c);
 bool insert_char(str_t* src, const u64 index, const char_t c);
 bool concat_str(str_t* dst, str_t* src);

@@ -28,7 +28,8 @@ static char* mem_table_labels[__MEMTAG_COUNT__ - 1] = {
     "array",
     "edit",
     "string",
-    "font"
+    "font",
+    "vector"
 };
 
 

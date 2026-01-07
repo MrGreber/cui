@@ -1,9 +1,9 @@
 #include <geometry.h>
 #include <mem.h>
 #include <log.h>
+#include <utils.h>
 
 #include <glad.h>
-#include <stdio.h>
 
 static u32 __gl_sizeof(const u32 type) {
     switch (type) {
@@ -25,24 +25,10 @@ static __forceinline u64 __closest_pow2(u64 n) {
     n++;
     return n;
 }
-__forceinline static void __gl_clear_error(void) {
-    while (glGetError() != GL_NO_ERROR);
-}
 
-#define glcall(call, cleanup, msg, ...) \
-    do { \
-        __gl_clear_error(); \
-        call; \
-        GLenum err = glGetError(); \
-        if (err != GL_NO_ERROR) { \
-            logError("Function call failed: %s, OpenGL error: %d.\n"msg, #call, err, ##__VA_ARGS__); \
-            goto cleanup; \
-        } \
-    } while (0)
-
-vert_buf* new_vertex_buffer(const void* data, const u32 size) {
+vert_buf* new_vertex_buffer(const void* data, const u32 size, const u8 type) {
     if (!size) return NULL;
-    if (data == NULL) {
+    if (!data && type == STATIC_BUFFER) {
         logWarn("new_vertex_buffer - Invalid data address NULL.");
         return NULL;
     }
@@ -54,9 +40,10 @@ vert_buf* new_vertex_buffer(const void* data, const u32 size) {
     if (!new_buf(&buffer, false)) return NULL;
 
     vert_buf* vb = buffer.ptr;
+    vb->type = type;
     glcall(glGenBuffers(1, &vb->id), cleanup, "new_vertex_buffer - Failed to allocate vertex buffer.");
     glBindBuffer(GL_ARRAY_BUFFER, vb->id);
-    glcall(glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW), cleanup, "new_vertex_buffer - Failed to copy vertex buffer data.");
+    glcall(glBufferData(GL_ARRAY_BUFFER, size, data, type ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW), cleanup, "new_vertex_buffer - Failed to copy vertex buffer data.");
 
     return vb;
 cleanup:

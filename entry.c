@@ -16,13 +16,8 @@ static void __init(app_t* app) {
             .init = true,
             .background = {
                 .type = BG_COLOR,
-                .color = BLUE
+                .color = WHITE
                 //.image = "C:\\Users\\roygr\\CLionProjects\\stream-draw\\Resources\\heisenberg.jpg"
-            },
-            .border = {
-                .color = BLACK,
-                .thickness = 6,
-                .radius = 10
             }
         }
     };

@@ -32,23 +32,35 @@ typedef struct glyph {
 typedef struct font {
     u16 size;
     u16 line_height;
+
     struct {
         u8 vert;
         u8 horiz;
     } spacing;
+
     struct {
         u8 up;
         u8 right;
         u8 down;
         u8 left;
     } padding;
+
     color_t color;
     font_type_t type;
-    glyph_t table[256];
 
-    vert_array* va;
-    vert_buf* vb;
-    texture_t* tex;
+    // ToDo: create a mesh module
+    struct {
+        u64 count;
+        u64 capacity;
+        vec4* vertices;
+
+        vert_array* va;
+        vert_buf* vb;
+    } mesh;
+    texture_t* atlas;
+
+    // ToDo: make this heap allocated
+    glyph_t table[256];
 } font_t;
 
 font_t* new_font(const char* path);
@@ -63,8 +75,12 @@ typedef struct edit {
     sprite_t* sprite;
     texture_t* tex;
 
-    str_t* text;
-    u64 index;
+    font_t* font;
+
+    struct {
+        str_t* buffer;
+        u64 index;
+    } text;
 } edit_t;
 
 edit_t* new_edit(void* parent, style_group_t* group, const bounding_box* box);

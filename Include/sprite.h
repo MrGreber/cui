@@ -30,15 +30,15 @@ sprite_t* new_sprite(const char* name);
 
 /**
  * @brief Delete an object and free its resources.
- * @param obj Pointer to the object to delete
+ * @param sprite Pointer to the object to delete
  */
-void del_sprite(sprite_t* obj);
+void del_sprite(sprite_t* sprite);
 
 /**
  * @brief Bind the object for rendering.
- * @param obj Pointer to the object to bind
+ * @param sprite Pointer to the object to bind
  */
-void bind_sprite(const sprite_t* obj);
+void bind_sprite(const sprite_t* sprite);
 
 /**
  * @brief Unbind any currently bound object.
