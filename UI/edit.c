@@ -207,17 +207,17 @@ void unbind_font(void) {
 }
 bool __resize_text_mesh(font_t* font) {
     if (font->mesh.capacity == UINT64_MAX) {
-        logError("__resize_app_vars - Failed to resize vars app, vars reached max size %d.", UINT16_MAX);
+        logError("__resize_text_mesh - Failed to resize text mesh, mesh reached max size %d.", UINT16_MAX);
         return false;
     }
 
     buf_t buffer = {
         .ptr = font->mesh.vertices,
-        .size = sizeof(char_t) * font->mesh.capacity,
+        .size = sizeof(vec4) * font->mesh.capacity,
         .tag = MEMTAG_BYTE
     };
     const u64 new_cap = font->mesh.capacity << 1;
-    if (!renew_buf(&buffer, sizeof(char_t) * new_cap)) return false;
+    if (!renew_buf(&buffer, sizeof(vec4) * new_cap)) return false;
     font->mesh.vertices = buffer.ptr;
     font->mesh.capacity = new_cap;
     return true;
@@ -228,6 +228,7 @@ void push_vertices(font_t* font, const vec4* vert) {
     memcpy_s(&font->mesh.vertices[font->mesh.count], font->mesh.capacity * sizeof(vec4), vert, 6 * sizeof(vec4));
     font->mesh.count += 6;
 
+    bind_font(font);
     glBindBuffer(GL_ARRAY_BUFFER, font->mesh.vb->id);
     glBufferSubData(GL_ARRAY_BUFFER, 0, font->mesh.count * sizeof(vec4), font->mesh.vertices);
 
@@ -263,7 +264,7 @@ static void __default_keyboard_callback(const keyboard_cb_param* param) {
                 ) ? param->key + shift : param->key;
 
                 insert_char(edit->text.buffer, edit->text.index++, key);
-                push_vertices(edit->font, (vec4[]){
+                push_vertices(edit->font, (vec4[6]){
                     {0.0f, 1.0f, 0.0f, 1.0f},
                     {1.0f, 0.0f, 1.0f, 0.0f},
                     {0.0f, 0.0f, 0.0f, 0.0f},
@@ -400,9 +401,11 @@ void update_edit(edit_t* edit, const mat4* projection, const f32 angle) {
     set_float_uniform(edit->sprite->shader, "border.thickness", style->border.thickness);
     set_vec4_uniform(edit->sprite->shader, "border.color", color.e);
     set_vec2_uniform(edit->sprite->shader, "size", dim.e);
-
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
+    set_float_uniform(edit->sprite->shader, "border.radius", 0);
+    set_float_uniform(edit->sprite->shader, "border.thickness", 0);
+    set_vec4_uniform(edit->sprite->shader, "border.color", (vec4){0}.e);
     scale = m4_scale(128.0f, 128.0f, 1.0f);
     position = m4_transl((f32)edit->header.box.x + style->border.thickness, (f32)edit->header.box.y + style->border.thickness, 0.0f);
     size = m4_transl((f32)(edit->header.box.width - style->border.thickness) * 0.5f, (f32)(edit->header.box.height - style->border.thickness) * 0.5f, 0.0f);
@@ -413,5 +416,5 @@ void update_edit(edit_t* edit, const mat4* projection, const f32 angle) {
     bind_font(edit->font);
     set_mat4_uniform(edit->sprite->shader, "projection", true, projection->e);
     set_mat4_uniform(edit->sprite->shader, "model", true, model.e);
-    glDrawArrays(GL_TRIANGLES, 0, edit->text.buffer->length);
+    glDrawArrays(GL_TRIANGLES, 0, edit->text.buffer->length * 6);
 }
