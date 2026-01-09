@@ -58,6 +58,7 @@ typedef struct font {
         vert_buf* vb;
     } mesh;
     texture_t* atlas;
+    shader_t* shader;
 
     // ToDo: make this heap allocated
     glyph_t table[256];

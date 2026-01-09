@@ -33,7 +33,7 @@ void main(void) {
         return;
     }
 
-    f32 d_inner = sdRoundRect(pos, inner_half, inner_radius);
+        f32 d_inner = sdRoundRect(pos, inner_half, inner_radius);
     if (d_inner > 0.0) out_color = border.color;
     else out_color = texture(tex, o_tpos);
 }

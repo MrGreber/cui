@@ -79,6 +79,8 @@ struct fnt_char {
     u8 channel;
 };
 #pragma pack(pop)
+#define DEFAULT_CAPACITY 128
+#define QUAD_SIZE (6 * sizeof(vec4))
 
 static __forceinline font_type_t __get_font_type(const char* font_name) {
     if (strncmp(font_name, "VCR OSD Mono", 12) == 0) return VCR_OSD_MONO;
@@ -165,16 +167,17 @@ font_t* new_font(const char* path) {
     if (!__parse_fnt(path, font)) goto cleanup;
     buffer = (buf_t){
         .ptr = NULL,
-        .size = sizeof(vec4) * 128,
+        .size = sizeof(vec4) * DEFAULT_CAPACITY,
         .tag = MEMTAG_VECTOR
     };
     if (!new_buf(&buffer, false)) goto cleanup;
     font->mesh.vertices = buffer.ptr;
-    font->mesh.capacity = 128;
+    font->mesh.capacity = DEFAULT_CAPACITY;
     font->mesh.count = 0;
+    font->size = 16;
 
     font->mesh.va = new_vertex_array(2);
-    font->mesh.vb = new_vertex_buffer(NULL, 6 * sizeof(vec4) * 128, DYNAMIC_BUFFER);
+    font->mesh.vb = new_vertex_buffer(NULL, 6 * sizeof(vec4) * DEFAULT_CAPACITY, DYNAMIC_BUFFER);
     if (!font->mesh.va || !font->mesh.vb) goto cleanup;
     bind_vertex_array(font->mesh.va);
     bind_vertex_buffer(font->mesh.vb);
@@ -183,27 +186,31 @@ font_t* new_font(const char* path) {
     push_f32(font->mesh.va, 2);
     push_buf(font->mesh.va, font->mesh.vb);
 
+    font->shader = new_shader("__text__");
+    if (!font->shader) goto cleanup;
     return font;
 cleanup:
     if (font->mesh.va) del_vertex_array(font->mesh.va);
     if (font->mesh.vb) del_vertex_buffer(font->mesh.vb);
-    if (font->mesh.vertices) del_buf(&(buf_t){.ptr = font->mesh.vertices, .size = sizeof(vec4) * 128, .tag = MEMTAG_VECTOR});
+    if (font->shader) del_shader(font->shader);
+    if (font->atlas) del_texture(font->atlas);
+    if (font->mesh.vertices) del_buf(&(buf_t){.ptr = font->mesh.vertices, .size = sizeof(vec4) * DEFAULT_CAPACITY, .tag = MEMTAG_VECTOR});
     del_buf(&(buf_t){.ptr = font, .size = sizeof(font_t), .tag = MEMTAG_FONT});
     return NULL;
 }
 void del_font(font_t* font) {
     if (!font) return;
+    del_texture(font->atlas);
+    del_shader(font->shader);
     del_vertex_array(font->mesh.va);
     del_vertex_buffer(font->mesh.vb);
-    del_buf(&(buf_t){.ptr = font->mesh.vertices, .size = sizeof(vec4) * 128, .tag = MEMTAG_VECTOR});
+    del_buf(&(buf_t){.ptr = font->mesh.vertices, .size = sizeof(vec4) * font->mesh.capacity, .tag = MEMTAG_VECTOR});
     del_buf(&(buf_t){.ptr = font, .size = sizeof(font_t), .tag = MEMTAG_FONT});
 }
 void bind_font(const font_t* font) {
     bind_vertex_array(font->mesh.va);
+    glUseProgram(font->shader->id);
     bind_texture(font->atlas);
-}
-void unbind_font(void) {
-    unbind_vertex_array();
 }
 bool __resize_text_mesh(font_t* font) {
     if (font->mesh.capacity == UINT64_MAX) {
@@ -222,19 +229,56 @@ bool __resize_text_mesh(font_t* font) {
     font->mesh.capacity = new_cap;
     return true;
 }
-void push_vertices(font_t* font, const vec4* vert) {
+void push_quad(font_t* font, const vec4* quad) {
     if (font->mesh.capacity <= font->mesh.count && !__resize_text_mesh(font)) goto cleanup;
 
-    memcpy_s(&font->mesh.vertices[font->mesh.count], font->mesh.capacity * sizeof(vec4), vert, 6 * sizeof(vec4));
+    vec4* ptr = font->mesh.vertices;
+    const u64 i = font->mesh.count;
+    const u64 size = font->mesh.count - i;
+
+    memcpy(&ptr[i], quad, QUAD_SIZE);
     font->mesh.count += 6;
 
     bind_font(font);
     glBindBuffer(GL_ARRAY_BUFFER, font->mesh.vb->id);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, font->mesh.count * sizeof(vec4), font->mesh.vertices);
+    glBufferSubData(GL_ARRAY_BUFFER, i * sizeof(vec4), (size + 6) * sizeof(vec4), &ptr[i]);
 
     return;
 cleanup:
-    logError("push_vertex - Failed to resize text mesh.");
+    logError("push_quad - Failed to resize text mesh.");
+}
+void insert_quad(font_t* font, const u64 index, const vec4* quad) {
+    if (font->mesh.capacity <= font->mesh.count && !__resize_text_mesh(font)) goto cleanup;
+
+    vec4* ptr = font->mesh.vertices;
+    const u64 i = 6 * index;
+    const u64 size = font->mesh.count - i;
+
+    memmove(&ptr[i + 6], &ptr[i], size * sizeof(vec4));
+    memcpy(&ptr[i], quad, QUAD_SIZE);
+    font->mesh.count += 6;
+
+    bind_font(font);
+    glBindBuffer(GL_ARRAY_BUFFER, font->mesh.vb->id);
+    glBufferSubData(GL_ARRAY_BUFFER, i * sizeof(vec4), (size + 6) * sizeof(vec4), &ptr[i]);
+
+    return;
+cleanup:
+    logError("insert_quad - Failed to resize text mesh.");
+}
+void pop_quad(font_t* font, const u64 index) {
+    if (index * 6 >= font->mesh.count) return;
+
+    vec4* ptr = font->mesh.vertices;
+    const u64 i = 6 * index;
+    const u64 size = font->mesh.count - (i + 6);
+
+    memmove(&ptr[i], &ptr[i + 6], size * sizeof(vec4));
+    font->mesh.count -= 6;
+
+    bind_font(font);
+    glBindBuffer(GL_ARRAY_BUFFER, font->mesh.vb->id);
+    glBufferSubData(GL_ARRAY_BUFFER, i * sizeof(vec4), size * sizeof(vec4), &ptr[i]);
 }
 
 static void __default_mouse_callback(const mouse_cb_param* param) {
@@ -246,6 +290,8 @@ static void __default_keyboard_callback(const keyboard_cb_param* param) {
     edit_t* edit = param->instance;
     frame_t* frame = ((comp_node_t*)edit->header.components)->root->component.data;
 
+    const f32 size = (f32)edit->font->size;
+    const f32 offset_x = (f32)edit->text.index * size;
     if (param->action == GLFW_PRESS || param->action == GLFW_REPEAT) {
         switch (param->key) {
             case GLFW_KEY_ENTER: {
@@ -263,15 +309,15 @@ static void __default_keyboard_callback(const keyboard_cb_param* param) {
                     param->key <= _C_'Z'
                 ) ? param->key + shift : param->key;
 
-                insert_char(edit->text.buffer, edit->text.index++, key);
-                push_vertices(edit->font, (vec4[6]){
-                    {0.0f, 1.0f, 0.0f, 1.0f},
-                    {1.0f, 0.0f, 1.0f, 0.0f},
-                    {0.0f, 0.0f, 0.0f, 0.0f},
-                    {0.0f, 1.0f, 0.0f, 1.0f},
-                    {1.0f, 1.0f, 1.0f, 1.0f},
-                    {1.0f, 0.0f, 1.0f, 0.0f}
+                insert_quad(edit->font, edit->text.index, (vec4[6]){
+                    {offset_x, size, 0.0f, 1.0f},
+                    {size + offset_x, 0.0f, 1.0f, 0.0f},
+                    {offset_x, 0.0f, 0.0f, 0.0f},
+                    {offset_x, size, 0.0f, 1.0f},
+                    {size + offset_x, size, 1.0f, 1.0f},
+                    {size + offset_x, 0.0f, 1.0f, 0.0f}
                 });
+                insert_char(edit->text.buffer, edit->text.index++, key);
                 break;
             }
             case GLFW_KEY_LEFT_SHIFT:
@@ -298,15 +344,14 @@ static void __default_keyboard_callback(const keyboard_cb_param* param) {
             }
             case GLFW_KEY_BACKSPACE: {
                 if (edit->text.index) {
-                    pop_char(edit->text.buffer, edit->text.index - 1);
-                    edit->text.index--;
+                    pop_quad(edit->font, --edit->text.index);
+                    pop_char(edit->text.buffer, edit->text.index);
                 }
                 break;
             }
 
         }
         prints(edit->text.buffer, true);
-        //printf("%c:%s\n", param->key, shift);
     }
 }
 static void __default_resize_callback(const resize_cb_param* param) {
@@ -380,11 +425,16 @@ void bind_edit(const edit_t* edit) {
 void update_edit(edit_t* edit, const mat4* projection, const f32 angle) {
     if (!edit) return;
 
+    const style_t* style = &edit->styles.normal;
+    const color_t border_color = style->border.color;
+    vec4 color = {(f32)border_color.r / 255.0f, (f32)border_color.g / 255.0f, (f32)border_color.b / 255.0f, (f32)border_color.a / 255.0f};
+    const vec2 dim = {(f32)edit->header.box.width, (f32)edit->header.box.height};
+
     mat4 rotation = m4_rotateZ(rad(angle));
     mat4 scale = m4_scale((f32)edit->header.box.width, (f32)edit->header.box.height, 1.0f);
     mat4 position = m4_transl((f32)edit->header.box.x, (f32)edit->header.box.y, 0.0f);
-    mat4 size = m4_transl((f32)edit->header.box.width * 0.5f, (f32)edit->header.box.height * 0.5f, 0.0f);
-    mat4 inv_size = m4_transl(-(f32)edit->header.box.width * 0.5f, -(f32)edit->header.box.height * 0.5f, 0.0f);
+    mat4 size = m4_transl((f32)(edit->header.box.width - style->border.thickness) * 0.5f, (f32)(edit->header.box.height - style->border.thickness) * 0.5f, 0.0f);
+    mat4 inv_size = m4_transl(-(f32)(edit->header.box.width - style->border.thickness) * 0.5f, -(f32)(edit->header.box.height - style->border.thickness) * 0.5f, 0.0f);
 
     mat4 model = m4_mul(&position, &size);
     model = m4_mul(&model, &rotation);
@@ -392,29 +442,20 @@ void update_edit(edit_t* edit, const mat4* projection, const f32 angle) {
     model = m4_mul(&model, &scale);
     set_mat4_uniform(edit->sprite->shader, "projection", true, projection->e);
     set_mat4_uniform(edit->sprite->shader, "model", true, model.e);
-
-    const style_t* style = &edit->styles.normal;
-    const color_t border_color = style->border.color;
-    const vec4 color = {(f32)border_color.r / 255.0f, (f32)border_color.g / 255.0f, (f32)border_color.b / 255.0f, (f32)border_color.a / 255.0f};
-    const vec2 dim = {(f32)edit->header.box.width, (f32)edit->header.box.height};
     set_float_uniform(edit->sprite->shader, "border.radius", style->border.radius);
     set_float_uniform(edit->sprite->shader, "border.thickness", style->border.thickness);
     set_vec4_uniform(edit->sprite->shader, "border.color", color.e);
     set_vec2_uniform(edit->sprite->shader, "size", dim.e);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
-    set_float_uniform(edit->sprite->shader, "border.radius", 0);
-    set_float_uniform(edit->sprite->shader, "border.thickness", 0);
-    set_vec4_uniform(edit->sprite->shader, "border.color", (vec4){0}.e);
-    scale = m4_scale(128.0f, 128.0f, 1.0f);
+    // draw the text mesh
     position = m4_transl((f32)edit->header.box.x + style->border.thickness, (f32)edit->header.box.y + style->border.thickness, 0.0f);
-    size = m4_transl((f32)(edit->header.box.width - style->border.thickness) * 0.5f, (f32)(edit->header.box.height - style->border.thickness) * 0.5f, 0.0f);
-    inv_size = m4_transl(-(f32)(edit->header.box.width - style->border.thickness) * 0.5f, -(f32)(edit->header.box.height - style->border.thickness) * 0.5f, 0.0f);
-    model = m4_mul(&position, &size);
-    model = m4_mul(&model, &inv_size);
-    model = m4_mul(&model, &scale);
+    color = (vec4){1.0f, 0.0f, 0.0f, 1.0f};
+    const vec4 bg = {0.0, 0.0, 0.0, 1.0f};
     bind_font(edit->font);
-    set_mat4_uniform(edit->sprite->shader, "projection", true, projection->e);
-    set_mat4_uniform(edit->sprite->shader, "model", true, model.e);
-    glDrawArrays(GL_TRIANGLES, 0, edit->text.buffer->length * 6);
+    set_mat4_uniform(edit->font->shader, "projection", true, projection->e);
+    set_mat4_uniform(edit->font->shader, "model", true, position.e);
+    set_vec4_uniform(edit->font->shader, "font.bg", bg.e);
+    set_vec4_uniform(edit->font->shader, "font.fg", color.e);
+    glDrawArrays(GL_TRIANGLES, 0, 6 * edit->text.buffer->length);
 }
