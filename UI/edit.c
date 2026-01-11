@@ -117,7 +117,7 @@ static bool __parse_fnt(const char* path, font_t* font) {
     free(font_name);
 
     fread_s(&pages, sizeof(struct fnt_pages), sizeof(struct fnt_pages), 1, stream);
-    length = pages.block_size - 6;
+    length = pages.block_size;
     byte* pages_name = malloc(sizeof(byte) * (length + 1));
     if (pages_name == NULL) {
         fclose(stream);
@@ -131,12 +131,12 @@ static bool __parse_fnt(const char* path, font_t* font) {
         .init = true,
         .background = {
             .type = BG_IMAGE,
-            .image = "C:\\Users\\roygr\\CLionProjects\\stream-draw\\Resources\\temp-char.png"
+            .image = "C:\\Users\\roygr\\CLionProjects\\stream-draw\\Resources\\vcr_osd_mono.png"
         },
     };
-    if (!gen_comp_texture(&font->atlas,  &(bounding_box){0, 0, 16, 16}, &style)) return false;
-
+    if (!gen_comp_texture(&font->atlas,  &(bounding_box){0, 0, 256, 256}, &style)) return false;
     fread_s(&chars, sizeof(struct fnt_chars), sizeof(struct fnt_chars), 1, stream);
+
     glyph_t* glyph = NULL;
     struct fnt_char char_ = { 0 };
     for (u32 i = 0; i < chars.block_size / (u32)sizeof(struct fnt_char); i++) {
@@ -151,10 +151,17 @@ static bool __parse_fnt(const char* path, font_t* font) {
         *(u32*)&glyph->offset =  *(u32*)&char_.offset;
         glyph->x_advance = char_.x_advance;
     }
+
     return true;
 }
+static __forceinline u16 __index_of_vcr_osd_mono(const char c) {
+    if (c >= 'A' && c <= 'Z') return 35 + c - 'A';
+    if (c >= 'a' && c <= 'z') return 67 + c - 'a';
+    if (c >= '0' && c <= '9') return 18 + c - '0';
+    return 0;
+}
 
-font_t* new_font(const char* path) {
+static font_t* new_font(const char* path) {
     if (!path) return NULL;
 
     buf_t buffer = {
@@ -174,7 +181,6 @@ font_t* new_font(const char* path) {
     font->mesh.vertices = buffer.ptr;
     font->mesh.capacity = DEFAULT_CAPACITY;
     font->mesh.count = 0;
-    font->size = 16;
 
     font->mesh.va = new_vertex_array(2);
     font->mesh.vb = new_vertex_buffer(NULL, 6 * sizeof(vec4) * DEFAULT_CAPACITY, DYNAMIC_BUFFER);
@@ -198,7 +204,7 @@ cleanup:
     del_buf(&(buf_t){.ptr = font, .size = sizeof(font_t), .tag = MEMTAG_FONT});
     return NULL;
 }
-void del_font(font_t* font) {
+static void del_font(font_t* font) {
     if (!font) return;
     del_texture(font->atlas);
     del_shader(font->shader);
@@ -207,12 +213,12 @@ void del_font(font_t* font) {
     del_buf(&(buf_t){.ptr = font->mesh.vertices, .size = sizeof(vec4) * font->mesh.capacity, .tag = MEMTAG_VECTOR});
     del_buf(&(buf_t){.ptr = font, .size = sizeof(font_t), .tag = MEMTAG_FONT});
 }
-void bind_font(const font_t* font) {
+static void bind_font(const font_t* font) {
     bind_vertex_array(font->mesh.va);
     glUseProgram(font->shader->id);
     bind_texture(font->atlas);
 }
-bool __resize_text_mesh(font_t* font) {
+static bool __resize_text_mesh(font_t* font) {
     if (font->mesh.capacity == UINT64_MAX) {
         logError("__resize_text_mesh - Failed to resize text mesh, mesh reached max size %d.", UINT16_MAX);
         return false;
@@ -221,7 +227,7 @@ bool __resize_text_mesh(font_t* font) {
     buf_t buffer = {
         .ptr = font->mesh.vertices,
         .size = sizeof(vec4) * font->mesh.capacity,
-        .tag = MEMTAG_BYTE
+        .tag = MEMTAG_VECTOR
     };
     const u64 new_cap = font->mesh.capacity << 1;
     if (!renew_buf(&buffer, sizeof(vec4) * new_cap)) return false;
@@ -229,77 +235,79 @@ bool __resize_text_mesh(font_t* font) {
     font->mesh.capacity = new_cap;
     return true;
 }
-void push_quad(font_t* font, const vec4* quad) {
-    if (font->mesh.capacity <= font->mesh.count && !__resize_text_mesh(font)) goto cleanup;
+static void push_glyph_quad(font_t* font, const glyph_t* g, const f32 pen_x, const f32 pen_y) {
+    if (font->mesh.capacity <= font->mesh.count + 6 && !__resize_text_mesh(font)) goto cleanup;
 
     vec4* ptr = font->mesh.vertices;
-    const u64 i = font->mesh.count;
-    const u64 size = font->mesh.count - i;
+    const f32 x0 = pen_x + g->offset.x;
+    const f32 y0 = pen_y + g->offset.y;
+    const f32 x1 = x0 + g->dim.width;
+    const f32 y1 = y0 + g->dim.height;
 
-    memcpy(&ptr[i], quad, QUAD_SIZE);
+    const vec4 quad[6] = {
+        {x0, y1, g->x0, g->y1},
+        {x1, y0, g->x1, g->y0},
+        {x0, y0, g->x0, g->y0},
+        {x0, y1, g->x0, g->y1},
+        {x1, y1, g->x1, g->y1},
+        {x1, y0, g->x1, g->y0}
+    };
+    memcpy(&ptr[font->mesh.count], quad, QUAD_SIZE);
     font->mesh.count += 6;
-
-    bind_font(font);
-    glBindBuffer(GL_ARRAY_BUFFER, font->mesh.vb->id);
-    glBufferSubData(GL_ARRAY_BUFFER, i * sizeof(vec4), (size + 6) * sizeof(vec4), &ptr[i]);
 
     return;
 cleanup:
     logError("push_quad - Failed to resize text mesh.");
 }
-void insert_quad(font_t* font, const u64 index, const vec4* quad) {
-    if (font->mesh.capacity <= font->mesh.count && !__resize_text_mesh(font)) goto cleanup;
-
-    vec4* ptr = font->mesh.vertices;
-    const u64 i = 6 * index;
-    const u64 size = font->mesh.count - i;
-
-    memmove(&ptr[i + 6], &ptr[i], size * sizeof(vec4));
-    memcpy(&ptr[i], quad, QUAD_SIZE);
-    font->mesh.count += 6;
+static void build_text_mesh(font_t* font, const str_t* text, const f32 start_x, const f32 start_y) {
+    vec2 pen = { start_x, start_y };
+    font->mesh.count = 0;
 
     bind_font(font);
+    for (u64 i = 0; i < text->length; i++) {
+        const char c = text->data[i];
+
+        if (c == '\n') {
+            pen.x = start_x;
+            pen.y += font->line_height;
+            continue;
+        }
+        if (c == ' ') {
+            pen.x += font->size;
+            continue;
+        }
+        if (c == '\t') {
+            pen.x += font->size * 4;
+            continue;
+        }
+        u64 index = __index_of_vcr_osd_mono(c);
+        printf("%c:%lld\n", c, index);
+        const glyph_t* g = &font->table[index];
+        push_glyph_quad(font, g, pen.x, pen.y);
+        pen.x += g->x_advance;
+    }
     glBindBuffer(GL_ARRAY_BUFFER, font->mesh.vb->id);
-    glBufferSubData(GL_ARRAY_BUFFER, i * sizeof(vec4), (size + 6) * sizeof(vec4), &ptr[i]);
-
-    return;
-cleanup:
-    logError("insert_quad - Failed to resize text mesh.");
-}
-void pop_quad(font_t* font, const u64 index) {
-    if (index * 6 >= font->mesh.count) return;
-
-    vec4* ptr = font->mesh.vertices;
-    const u64 i = 6 * index;
-    const u64 size = font->mesh.count - (i + 6);
-
-    memmove(&ptr[i], &ptr[i + 6], size * sizeof(vec4));
-    font->mesh.count -= 6;
-
-    bind_font(font);
-    glBindBuffer(GL_ARRAY_BUFFER, font->mesh.vb->id);
-    glBufferSubData(GL_ARRAY_BUFFER, i * sizeof(vec4), size * sizeof(vec4), &ptr[i]);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, font->mesh.count * sizeof(vec4), font->mesh.vertices);
 }
 
 static void __default_mouse_callback(const mouse_cb_param* param) {
     edit_t* edit = param->instance;
     frame_t* frame = ((comp_node_t*)edit->header.components)->root->component.data;
-    //printf("edit=%p\n", edit);
 }
 static void __default_keyboard_callback(const keyboard_cb_param* param) {
     edit_t* edit = param->instance;
     frame_t* frame = ((comp_node_t*)edit->header.components)->root->component.data;
 
-    const f32 size = (f32)edit->font->size;
-    const f32 offset_x = (f32)edit->text.index * size;
     if (param->action == GLFW_PRESS || param->action == GLFW_REPEAT) {
         switch (param->key) {
             case GLFW_KEY_ENTER: {
                 insert_char(edit->text.buffer, edit->text.index++, _C_'\n');
+                //build_text_mesh(edit->font, edit->text.buffer, 0.0, 0.0);
                 break;
             }
             case GLFW_KEY_TAB: {
                 insert_char(edit->text.buffer, edit->text.index++, _C_'\t');
+                //build_text_mesh(edit->font, edit->text.buffer, 0.0, 0.0);
                 break;
             }
             default: {
@@ -309,17 +317,11 @@ static void __default_keyboard_callback(const keyboard_cb_param* param) {
                     param->key <= _C_'Z'
                 ) ? param->key + shift : param->key;
 
-                insert_quad(edit->font, edit->text.index, (vec4[6]){
-                    {offset_x, size, 0.0f, 1.0f},
-                    {size + offset_x, 0.0f, 1.0f, 0.0f},
-                    {offset_x, 0.0f, 0.0f, 0.0f},
-                    {offset_x, size, 0.0f, 1.0f},
-                    {size + offset_x, size, 1.0f, 1.0f},
-                    {size + offset_x, 0.0f, 1.0f, 0.0f}
-                });
                 insert_char(edit->text.buffer, edit->text.index++, key);
+                build_text_mesh(edit->font, edit->text.buffer, 0.0, 0.0);
                 break;
             }
+            case GLFW_KEY_ESCAPE:
             case GLFW_KEY_LEFT_SHIFT:
             case GLFW_KEY_RIGHT_SHIFT: return;
             case GLFW_KEY_HOME: {
@@ -344,12 +346,11 @@ static void __default_keyboard_callback(const keyboard_cb_param* param) {
             }
             case GLFW_KEY_BACKSPACE: {
                 if (edit->text.index) {
-                    pop_quad(edit->font, --edit->text.index);
-                    pop_char(edit->text.buffer, edit->text.index);
+                    pop_char(edit->text.buffer, --edit->text.index);
+                    //build_text_mesh(edit->font, edit->text.buffer, 0.0, 0.0);
                 }
                 break;
             }
-
         }
         prints(edit->text.buffer, true);
     }
@@ -357,7 +358,6 @@ static void __default_keyboard_callback(const keyboard_cb_param* param) {
 static void __default_resize_callback(const resize_cb_param* param) {
     edit_t* edit = param->instance;
     //comp_header_t* header = get_header(panel->parent);
-
     // panel->header.box.width += param->width;
     // panel->header.box.height += param->height;
 
@@ -386,7 +386,7 @@ edit_t* new_edit(void* parent, style_group_t* group, const bounding_box* box) {
     edit->sprite = new_sprite("__component__");
     if (!edit->sprite) goto cleanup;
 
-    edit->font = new_font("C:\\Users\\roygr\\Downloads\\vcr_osd_mono\\vcr_osd_mono.bin");
+    edit->font = new_font("C:\\Users\\roygr\\CLionProjects\\stream-draw\\Resources\\vcr_osd_mono.fnt");
     if (!edit->font) {
         logError("new_edit - Failed to load font.");
         goto cleanup;
@@ -451,7 +451,7 @@ void update_edit(edit_t* edit, const mat4* projection, const f32 angle) {
     // draw the text mesh
     position = m4_transl((f32)edit->header.box.x + style->border.thickness, (f32)edit->header.box.y + style->border.thickness, 0.0f);
     color = (vec4){1.0f, 0.0f, 0.0f, 1.0f};
-    const vec4 bg = {0.0, 0.0, 0.0, 1.0f};
+    const vec4 bg = {0.0, 0.0, 0.0, 0.0f};
     bind_font(edit->font);
     set_mat4_uniform(edit->font->shader, "projection", true, projection->e);
     set_mat4_uniform(edit->font->shader, "model", true, position.e);

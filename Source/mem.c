@@ -57,7 +57,6 @@ bool new_buf(buf_t* buffer, const bool zero) {
         logError("new_buf - Failed to allocate memory.");
         return false;
     }
-
     mem_table[buffer->tag - 1] += buffer->size;
     return true;
 }

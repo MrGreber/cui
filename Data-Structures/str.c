@@ -61,7 +61,6 @@ str_t* new_str(char_t* data, u64 length) {
 }
 void del_str(str_t* src) {
     if (!src) return;
-
     del_buf(&(buf_t){.ptr = src->data, .size = sizeof(char_t) * src->capacity, .tag = MEMTAG_BYTE});
     del_buf(&(buf_t){.ptr = src, .size = sizeof(str_t), .tag = MEMTAG_STRING});
 }
@@ -87,7 +86,7 @@ bool pop_char(str_t* src, const u64 index) {
     if (!src || index >= src->length) return false;
 
     char_t* ptr = src->data;
-    for (u64 i = index; i < src->length; i++) ptr[i] = ptr[i + 1];
+    memmove(&ptr[index], &ptr[index + 1], (src->length - index - 1) * sizeof(char_t));
     src->length--;
     return true;
 }
@@ -117,14 +116,13 @@ cleanup:
     return false;
 }
 bool insert_char(str_t* src, const u64 index, const char_t c) {
-    if (!src) return false;
-    if (src->capacity <= src->length && !__resize_string(src)) goto cleanup;
+    if (!src || index > src->length) return false;
+    if (src->capacity <= src->length && !__resize_string(src)) return false;
 
     char_t* ptr = src->data;
-    for (u64 i = src->length; i >= index && (i64)i >= 0; i--) {
-        ptr[i + 1] = ptr[i];
-    }
-    ptr[index] = c;
+    memmove(&ptr[index + 1], &ptr[index], (src->length - index) * sizeof(char_t));
+
+    src->data[index] = c;
     src->length++;
     return true;
 cleanup:
