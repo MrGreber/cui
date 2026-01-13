@@ -5,7 +5,7 @@
 #include <utils.h>
 #include <sprite.h>
 
-typedef void (*button_callback)(void* button);
+typedef void (*button_callback)(void* vp_button);
 
 typedef struct button {
     comp_header_t header;

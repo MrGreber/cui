@@ -5,9 +5,18 @@
 #include <app.h>
 #include <edit.h>
 #include <button.h>
-
 #define WIDTH 800
 #define HEIGHT 800
+
+#include <windows.h>
+#include <mmsystem.h>
+#pragma comment(lib, "winmm.lib")
+
+static void __click(void* vp_button) {
+    button_t* button = (button_t*)vp_button;
+    PlaySoundA("C:\\Users\\roygr\\CLionProjects\\stream-draw\\Resources\\I-am-the-one-who-knocks.wav", NULL, SND_FILENAME | SND_ASYNC);
+}
+
 static void __init(app_t* app) {
     frame_t* frame = new_frame(DARK_GRAY, WIDTH, HEIGHT, "Frame");
 
@@ -17,7 +26,6 @@ static void __init(app_t* app) {
             .background = {
                 .type = BG_COLOR,
                 .color = WHITE
-                //.image = "C:\\Users\\roygr\\CLionProjects\\stream-draw\\Resources\\heisenberg.jpg"
             },
             .border = {
                 .color = BLACK,
@@ -26,7 +34,7 @@ static void __init(app_t* app) {
             }
         }
     };
-    edit_t* edit = new_edit(frame, &group, &(bounding_box){0, 0, 400, 600});
+    edit_t* edit = new_edit(frame, &group, &(bounding_box){100, 100, 400, 600});
 
     app->frame = frame;
     push_app_var(app, edit);
@@ -39,8 +47,11 @@ static void __loop(app_t* app) {
     const mat4 projection = m4_ortho(0.0f, (f32)frame->header.box.width, (f32)frame->header.box.height, 0.0f, -1.0f, 1.0f);
     update_frame(frame);
 
+    angle += 0.5f;
+    if (angle >= 360.0f) angle -= 360.0f;
+
     bind_edit(edit);
-    update_edit(edit, &projection, angle);
+    update_edit(edit, &projection, 0.0f);
 }
 static void __exit(app_t* app) {
     frame_t* frame = app->frame;

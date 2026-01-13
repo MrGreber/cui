@@ -152,7 +152,8 @@ u64 find_char(str_t* src, const u64 start, const char_t c) {
 u64 rfind_char(str_t* src, const u64 start, const char_t c) {
     if (!src) return 0;
     u64 i = start;
-    for (; src->data[i] != c && (i64)i > 0; i--) {}
+    for (; src->data[i] != c && (i64)i > 0; i--);
+    if (i) i++;
     return i;
 }
 

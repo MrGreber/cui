@@ -82,6 +82,8 @@ struct fnt_char {
 #define DEFAULT_CAPACITY 128
 #define QUAD_SIZE (6 * sizeof(vec4))
 
+
+
 static __forceinline font_type_t __get_font_type(const char* font_name) {
     if (strncmp(font_name, "VCR OSD Mono", 12) == 0) return VCR_OSD_MONO;
     else return 0;
@@ -154,11 +156,32 @@ static bool __parse_fnt(const char* path, font_t* font) {
 
     return true;
 }
-static __forceinline u16 __index_of_vcr_osd_mono(const char c) {
-    if (c >= 'A' && c <= 'Z') return 35 + c - 'A';
-    if (c >= 'a' && c <= 'z') return 67 + c - 'a';
-    if (c >= '0' && c <= '9') return 18 + c - '0';
+static __forceinline u16 __vcr_osd_mono_map(const char c) {
+    if (c >= ' ' && c <= '~') return 2 + c - ' ';
     return 0;
+}
+static char_t __map_key(const char_t c, const bool is_shift) {
+    static const char_t __map[] = {')', '!', '@', '#', '$', '%', '^', '&', '*', '('};
+
+    if (is_shift) {
+        if (c >= _C_'0' && c <= _C_'9') return __map[c - '0'];
+        switch (c) {
+            case '-': return '_';
+            case '=': return '+';
+            case '`': return '~';
+            case ',': return '<';
+            case '.': return '>';
+            case '/': return '?';
+            case ';': return ':';
+            case '\'': return '\"';
+            case '\\': return '|';
+            case '[': return '{';
+            case ']': return '}';
+            default: return c;
+        }
+    }
+    if (c >= _C_'A' && c <= _C_'Z') return c + 32;
+    return c;
 }
 
 static font_t* new_font(const char* path) {
@@ -174,7 +197,7 @@ static font_t* new_font(const char* path) {
     if (!__parse_fnt(path, font)) goto cleanup;
     buffer = (buf_t){
         .ptr = NULL,
-        .size = sizeof(vec4) * DEFAULT_CAPACITY,
+        .size = QUAD_SIZE * DEFAULT_CAPACITY,
         .tag = MEMTAG_VECTOR
     };
     if (!new_buf(&buffer, false)) goto cleanup;
@@ -183,7 +206,7 @@ static font_t* new_font(const char* path) {
     font->mesh.count = 0;
 
     font->mesh.va = new_vertex_array(2);
-    font->mesh.vb = new_vertex_buffer(NULL, 6 * sizeof(vec4) * DEFAULT_CAPACITY, DYNAMIC_BUFFER);
+    font->mesh.vb = new_vertex_buffer(NULL, QUAD_SIZE * DEFAULT_CAPACITY, DYNAMIC_BUFFER);
     if (!font->mesh.va || !font->mesh.vb) goto cleanup;
     bind_vertex_array(font->mesh.va);
     bind_vertex_buffer(font->mesh.vb);
@@ -200,7 +223,7 @@ cleanup:
     if (font->mesh.vb) del_vertex_buffer(font->mesh.vb);
     if (font->shader) del_shader(font->shader);
     if (font->atlas) del_texture(font->atlas);
-    if (font->mesh.vertices) del_buf(&(buf_t){.ptr = font->mesh.vertices, .size = sizeof(vec4) * DEFAULT_CAPACITY, .tag = MEMTAG_VECTOR});
+    if (font->mesh.vertices) del_buf(&(buf_t){.ptr = font->mesh.vertices, .size = QUAD_SIZE * DEFAULT_CAPACITY, .tag = MEMTAG_VECTOR});
     del_buf(&(buf_t){.ptr = font, .size = sizeof(font_t), .tag = MEMTAG_FONT});
     return NULL;
 }
@@ -210,7 +233,7 @@ static void del_font(font_t* font) {
     del_shader(font->shader);
     del_vertex_array(font->mesh.va);
     del_vertex_buffer(font->mesh.vb);
-    del_buf(&(buf_t){.ptr = font->mesh.vertices, .size = sizeof(vec4) * font->mesh.capacity, .tag = MEMTAG_VECTOR});
+    del_buf(&(buf_t){.ptr = font->mesh.vertices, .size = QUAD_SIZE * font->mesh.capacity, .tag = MEMTAG_VECTOR});
     del_buf(&(buf_t){.ptr = font, .size = sizeof(font_t), .tag = MEMTAG_FONT});
 }
 static void bind_font(const font_t* font) {
@@ -226,17 +249,19 @@ static bool __resize_text_mesh(font_t* font) {
 
     buf_t buffer = {
         .ptr = font->mesh.vertices,
-        .size = sizeof(vec4) * font->mesh.capacity,
+        .size = QUAD_SIZE * font->mesh.capacity,
         .tag = MEMTAG_VECTOR
     };
     const u64 new_cap = font->mesh.capacity << 1;
-    if (!renew_buf(&buffer, sizeof(vec4) * new_cap)) return false;
+    if (!renew_buf(&buffer, QUAD_SIZE * new_cap)) return false;
     font->mesh.vertices = buffer.ptr;
     font->mesh.capacity = new_cap;
     return true;
 }
+
+
 static void push_glyph_quad(font_t* font, const glyph_t* g, const f32 pen_x, const f32 pen_y) {
-    if (font->mesh.capacity <= font->mesh.count + 6 && !__resize_text_mesh(font)) goto cleanup;
+    if (font->mesh.capacity <= font->mesh.count && !__resize_text_mesh(font)) goto cleanup;
 
     vec4* ptr = font->mesh.vertices;
     const f32 x0 = pen_x + g->offset.x;
@@ -252,42 +277,69 @@ static void push_glyph_quad(font_t* font, const glyph_t* g, const f32 pen_x, con
         {x1, y1, g->x1, g->y1},
         {x1, y0, g->x1, g->y0}
     };
-    memcpy(&ptr[font->mesh.count], quad, QUAD_SIZE);
-    font->mesh.count += 6;
-
+    memcpy(&ptr[6 * font->mesh.count], quad, QUAD_SIZE);
+    font->mesh.count++;
     return;
 cleanup:
     logError("push_quad - Failed to resize text mesh.");
 }
-static void build_text_mesh(font_t* font, const str_t* text, const f32 start_x, const f32 start_y) {
+static void build_text_mesh(font_t* font, const void* text, const f32 start_x, const f32 start_y) {
+    const struct {
+        str_t* buffer;
+        u64 index;
+    }* edit_text = text;
+    const str_t* buffer = edit_text->buffer;
+
     vec2 pen = { start_x, start_y };
+    struct {
+        vec2 pos;
+        glyph_t* glyph;
+    } caret = {
+        .glyph = &font->table[__vcr_osd_mono_map('|')]
+    };
     font->mesh.count = 0;
 
     bind_font(font);
-    for (u64 i = 0; i < text->length; i++) {
-        const char c = text->data[i];
+    const f32 space = font->table[__vcr_osd_mono_map(' ')].x_advance;
+    for (u64 i = 0; i < buffer->length; i++) {
+        const char c = buffer->data[i];
 
         if (c == '\n') {
             pen.x = start_x;
             pen.y += font->line_height;
+            if (edit_text->index == i + 1) {
+                caret.pos = pen;
+            }
             continue;
         }
         if (c == ' ') {
-            pen.x += font->size;
+            pen.x += space;
+            if (edit_text->index == i + 1) {
+                caret.pos = pen;
+            }
             continue;
         }
         if (c == '\t') {
-            pen.x += font->size * 4;
+            pen.x += 4.0f * space;
+            if (edit_text->index == i + 1) {
+                caret.pos = pen;
+            }
             continue;
         }
-        u64 index = __index_of_vcr_osd_mono(c);
-        printf("%c:%lld\n", c, index);
+
+        const u64 index = __vcr_osd_mono_map(c);
         const glyph_t* g = &font->table[index];
         push_glyph_quad(font, g, pen.x, pen.y);
         pen.x += g->x_advance;
+
+        if (edit_text->index == i + 1) {
+            caret.pos = pen;
+        }
     }
+    push_glyph_quad(font, caret.glyph, caret.pos.x - (f32)caret.glyph->offset.x, caret.pos.y);
+
     glBindBuffer(GL_ARRAY_BUFFER, font->mesh.vb->id);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, font->mesh.count * sizeof(vec4), font->mesh.vertices);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, font->mesh.count * QUAD_SIZE, font->mesh.vertices);
 }
 
 static void __default_mouse_callback(const mouse_cb_param* param) {
@@ -298,27 +350,24 @@ static void __default_keyboard_callback(const keyboard_cb_param* param) {
     edit_t* edit = param->instance;
     frame_t* frame = ((comp_node_t*)edit->header.components)->root->component.data;
 
+    bounding_box* box = &edit->header.box;
     if (param->action == GLFW_PRESS || param->action == GLFW_REPEAT) {
         switch (param->key) {
             case GLFW_KEY_ENTER: {
                 insert_char(edit->text.buffer, edit->text.index++, _C_'\n');
-                //build_text_mesh(edit->font, edit->text.buffer, 0.0, 0.0);
+                build_text_mesh(edit->font, &edit->text, 0.0, 0.0);
                 break;
             }
             case GLFW_KEY_TAB: {
                 insert_char(edit->text.buffer, edit->text.index++, _C_'\t');
-                //build_text_mesh(edit->font, edit->text.buffer, 0.0, 0.0);
+                build_text_mesh(edit->font, &edit->text, 0.0, 0.0);
                 break;
             }
             default: {
-                const u8 shift = param->modes == GLFW_MOD_SHIFT ? 0 : 32;
-                const char_t key = (
-                    param->key >= _C_'A' &&
-                    param->key <= _C_'Z'
-                ) ? param->key + shift : param->key;
+                const char_t key = __map_key(param->key, param->modes == GLFW_MOD_SHIFT);
 
                 insert_char(edit->text.buffer, edit->text.index++, key);
-                build_text_mesh(edit->font, edit->text.buffer, 0.0, 0.0);
+                build_text_mesh(edit->font, &edit->text, 0.0, 0.0);
                 break;
             }
             case GLFW_KEY_ESCAPE:
@@ -326,28 +375,37 @@ static void __default_keyboard_callback(const keyboard_cb_param* param) {
             case GLFW_KEY_RIGHT_SHIFT: return;
             case GLFW_KEY_HOME: {
                 edit->text.index = rfind_char(edit->text.buffer, edit->text.index, '\n');
+                build_text_mesh(edit->font, &edit->text, 0.0, 0.0);
                 break;
             }
             case GLFW_KEY_END: {
                 edit->text.index = find_char(edit->text.buffer, edit->text.index, '\n');
+                build_text_mesh(edit->font, &edit->text, 0.0, 0.0);
                 break;
             }
             case GLFW_KEY_LEFT: {
                 if (edit->text.index) {
                     edit->text.index--;
+                    build_text_mesh(edit->font, &edit->text, 0.0, 0.0);
                 }
                 break;
             }
             case GLFW_KEY_RIGHT: {
                 if (edit->text.index < edit->text.buffer->length) {
                     edit->text.index++;
+                    build_text_mesh(edit->font, &edit->text, 0.0, 0.0);
                 }
                 break;
+            }
+            case GLFW_KEY_UP: {
+            }
+            case GLFW_KEY_DOWN: {
+                return;
             }
             case GLFW_KEY_BACKSPACE: {
                 if (edit->text.index) {
                     pop_char(edit->text.buffer, --edit->text.index);
-                    //build_text_mesh(edit->font, edit->text.buffer, 0.0, 0.0);
+                    build_text_mesh(edit->font, &edit->text, 0.0, 0.0);
                 }
                 break;
             }
@@ -457,5 +515,5 @@ void update_edit(edit_t* edit, const mat4* projection, const f32 angle) {
     set_mat4_uniform(edit->font->shader, "model", true, position.e);
     set_vec4_uniform(edit->font->shader, "font.bg", bg.e);
     set_vec4_uniform(edit->font->shader, "font.fg", color.e);
-    glDrawArrays(GL_TRIANGLES, 0, 6 * edit->text.buffer->length);
+    glDrawArrays(GL_TRIANGLES, 0, 6 * edit->font->mesh.count);
 }
