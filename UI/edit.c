@@ -129,14 +129,14 @@ static bool __parse_fnt(const char* path, font_t* font) {
     pages_name[length] = 0;
     free(pages_name);
 
-    style_t style = {
+    const style_t style = {
         .init = true,
         .background = {
             .type = BG_IMAGE,
-            .image = "C:\\Users\\roygr\\CLionProjects\\stream-draw\\Resources\\vcr_osd_mono.png"
+            .image = __DIR__"\\Resources\\vcr_osd_mono.png"
         },
     };
-    if (!gen_comp_texture(&font->atlas,  &(bounding_box){0, 0, 256, 256}, &style)) return false;
+    if (!gen_comp_texture(&font->atlas, NULL, &style)) return false;
     fread_s(&chars, sizeof(struct fnt_chars), sizeof(struct fnt_chars), 1, stream);
 
     glyph_t* glyph = NULL;
@@ -370,6 +370,8 @@ static void __default_keyboard_callback(const keyboard_cb_param* param) {
                 build_text_mesh(edit->font, &edit->text, 0.0, 0.0);
                 break;
             }
+            case GLFW_KEY_LEFT_CONTROL:
+            case GLFW_KEY_RIGHT_CONTROL:
             case GLFW_KEY_ESCAPE:
             case GLFW_KEY_LEFT_SHIFT:
             case GLFW_KEY_RIGHT_SHIFT: return;
@@ -410,7 +412,6 @@ static void __default_keyboard_callback(const keyboard_cb_param* param) {
                 break;
             }
         }
-        prints(edit->text.buffer, true);
     }
 }
 static void __default_resize_callback(const resize_cb_param* param) {
@@ -444,7 +445,7 @@ edit_t* new_edit(void* parent, style_group_t* group, const bounding_box* box) {
     edit->sprite = new_sprite("__component__");
     if (!edit->sprite) goto cleanup;
 
-    edit->font = new_font("C:\\Users\\roygr\\CLionProjects\\stream-draw\\Resources\\vcr_osd_mono.fnt");
+    edit->font = new_font(__DIR__"\\Resources\\vcr_osd_mono.fnt");
     if (!edit->font) {
         logError("new_edit - Failed to load font.");
         goto cleanup;
@@ -482,7 +483,7 @@ void bind_edit(const edit_t* edit) {
 }
 void update_edit(edit_t* edit, const mat4* projection, const f32 angle) {
     if (!edit) return;
-
+    frame_t* frame = ((comp_node_t*)edit->header.components)->root->component.data;
     const style_t* style = &edit->styles.normal;
     const color_t border_color = style->border.color;
     vec4 color = {(f32)border_color.r / 255.0f, (f32)border_color.g / 255.0f, (f32)border_color.b / 255.0f, (f32)border_color.a / 255.0f};
@@ -508,12 +509,20 @@ void update_edit(edit_t* edit, const mat4* projection, const f32 angle) {
 
     // draw the text mesh
     position = m4_transl((f32)edit->header.box.x + style->border.thickness, (f32)edit->header.box.y + style->border.thickness, 0.0f);
+    size = m4_scale(0.5f, 0.5f, 1.0f);
+    model = m4_mul(&position, &size);
     color = (vec4){1.0f, 0.0f, 0.0f, 1.0f};
     const vec4 bg = {0.0, 0.0, 0.0, 0.0f};
     bind_font(edit->font);
+    glEnable(GL_SCISSOR_TEST);
+    glScissor(
+        edit->header.box.x , frame->header.box.height - edit->header.box.y - edit->header.box.height + style->border.thickness,
+        edit->header.box.width - style->border.thickness, edit->header.box.height - style->border.thickness
+    );
     set_mat4_uniform(edit->font->shader, "projection", true, projection->e);
-    set_mat4_uniform(edit->font->shader, "model", true, position.e);
+    set_mat4_uniform(edit->font->shader, "model", true, model.e);
     set_vec4_uniform(edit->font->shader, "font.bg", bg.e);
     set_vec4_uniform(edit->font->shader, "font.fg", color.e);
     glDrawArrays(GL_TRIANGLES, 0, 6 * edit->font->mesh.count);
+    glDisable(GL_SCISSOR_TEST);
 }

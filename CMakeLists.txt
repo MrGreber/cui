@@ -33,6 +33,7 @@ target_compile_definitions(stream_draw PRIVATE
         GLFW_STATIC
         PROJECT_NAME=\"sDraw-\"
         UNICODE _UNICODE
+        __DIR__="${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
 find_package(OpenGL REQUIRED)

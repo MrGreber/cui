@@ -39,7 +39,7 @@ void flush_texture(const texture_t* tex, const color_t bg);
 void set_texture_pixel(const color_t color, const i32 x, const i32 y);
 void draw_texture_line(const color_t color, i32 x0, i32 y0, const i32 x1, const i32 y1);
 
-color_t* load_texture(const char* path, u32 width, u32 height);
+color_t* load_texture(const char* path, u32* width, u32* height);
 
 #endif // TEXTURE_H
 

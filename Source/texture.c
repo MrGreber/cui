@@ -100,24 +100,37 @@ void draw_texture_line(const color_t color, i32 x0, i32 y0, const i32 x1, const 
     }
 }
 
-color_t* load_texture(const char* path, u32 width, u32 height) {
+color_t* load_texture(const char* path, u32* width, u32* height) {
+    const bool resize = !*width && !*height;
+
     i32 channels = 0, _width, _height;
     byte* data = stbi_load(path, &_width, &_height, &channels, 4);
     if (data == NULL) {
         logError("load_texture - Failed to load image:\n\t%s", stbi_failure_reason());
         return NULL;
     }
+    *width = _width;
+    *height = _height;
 
     buf_t buffer = {
-        .size = width * height * sizeof(color_t),
+        .size = *width * *height * sizeof(color_t),
         .tag = MEMTAG_COLOR
     };
-    if (!new_buf(&buffer, false)) return NULL;
-    stbir_resize_uint8_srgb(
-        data, _width, _height, 0,
-        buffer.ptr, width, height, 0,
-        STBIR_RGBA
-    );
+    if (!new_buf(&buffer, false)) {
+        stbi_image_free(data);
+        logError("load_texture - Failed to allocate buffer for texture data.");
+        return NULL;
+    }
+
+    if (resize) {
+        stbir_resize_uint8_srgb(
+            data, _width, _height, 0,
+            buffer.ptr, *width, *height, 0,
+            STBIR_RGBA
+        );
+    }
+    else memcpy(buffer.ptr, data, buffer.size);
+
     stbi_image_free(data);
     data = buffer.ptr;
 

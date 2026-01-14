@@ -64,7 +64,7 @@ cleanup:
 }
 
 
-#define SHADER_DIR "C:\\Users\\roygr\\CLionProjects\\stream-draw\\Shader\\"
+#define SHADER_DIR __DIR__"\\Shader\\"
 shader_t* new_shader(const char* name) {
     buf_t buffer = {
         .size = sizeof(shader_t),

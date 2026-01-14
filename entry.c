@@ -14,7 +14,7 @@
 
 static void __click(void* vp_button) {
     button_t* button = (button_t*)vp_button;
-    PlaySoundA("C:\\Users\\roygr\\CLionProjects\\stream-draw\\Resources\\I-am-the-one-who-knocks.wav", NULL, SND_FILENAME | SND_ASYNC);
+    PlaySoundA(__DIR__"\\Resources\\I-am-the-one-who-knocks.wav", NULL, SND_FILENAME | SND_ASYNC);
 }
 
 static void __init(app_t* app) {

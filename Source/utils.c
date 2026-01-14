@@ -104,17 +104,32 @@ bool gen_comp_texture(texture_t** out, const bounding_box* box, const style_t* s
 
     switch (style->background.type) {
         case BG_COLOR: {
+            if (!box) {
+                logError("gen_comp_texture - Invalid parameter, box address %p.\n", NULL);
+                return false;
+            }
+
             *out = new_texture(NULL, box->width, box->height);
             if (!*out) goto cleanup;
             flush_texture(*out, style->background.color);
             break;
         }
         case BG_IMAGE: {
-            const color_t* data = load_texture(style->background.image, box->width, box->height);
-            if (!data) goto cleanup;
+            u32 width = 0;
+            u32 height = 0;
+            if (box) {
+                width = box->width;
+                height = box->height;
+            }
 
-            *out = new_texture(data, box->width, box->height);
-            del_buf(&(buf_t){.ptr = (void*)data, .size = box->width * box->height * sizeof(color_t), .tag = MEMTAG_COLOR});
+            const color_t* data = load_texture(style->background.image, &width, &height);
+            if (!data) {
+                logError("gen_comp_texture - Failed to load texture.");
+                goto cleanup;
+            }
+
+            *out = new_texture(data, width, height);
+            del_buf(&(buf_t){.ptr = (void*)data, .size = width * height * sizeof(color_t), .tag = MEMTAG_COLOR});
             if (!*out) goto cleanup;
             break;
         }
