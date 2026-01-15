@@ -8,15 +8,6 @@
 #define WIDTH 800
 #define HEIGHT 800
 
-#include <windows.h>
-#include <mmsystem.h>
-#pragma comment(lib, "winmm.lib")
-
-static void __click(void* vp_button) {
-    button_t* button = (button_t*)vp_button;
-    PlaySoundA(__DIR__"\\Resources\\I-am-the-one-who-knocks.wav", NULL, SND_FILENAME | SND_ASYNC);
-}
-
 static void __init(app_t* app) {
     frame_t* frame = new_frame(DARK_GRAY, WIDTH, HEIGHT, "Frame");
 

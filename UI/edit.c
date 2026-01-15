@@ -120,23 +120,24 @@ static bool __parse_fnt(const char* path, font_t* font) {
 
     fread_s(&pages, sizeof(struct fnt_pages), sizeof(struct fnt_pages), 1, stream);
     length = pages.block_size;
-    byte* pages_name = malloc(sizeof(byte) * (length + 1));
+    const u64 dir_size = sizeof(__DIR__"/Resources/") - 1;
+    byte* pages_name = malloc(sizeof(byte) * (dir_size + length + 1));
     if (pages_name == NULL) {
         fclose(stream);
         return false;
     }
-    fread_s(pages_name, length + 1, sizeof(byte), length, stream);
-    pages_name[length] = 0;
-    free(pages_name);
-
+    fread_s((char*)(pages_name + dir_size), length + 1, sizeof(byte), length, stream);
+    pages_name[length + dir_size] = 0;
+    memcpy(pages_name, __DIR__"/Resources/", dir_size);
     const style_t style = {
         .init = true,
         .background = {
             .type = BG_IMAGE,
-            .image = __DIR__"\\Resources\\vcr_osd_mono.png"
+            .image = (const char*)pages_name
         },
     };
     if (!gen_comp_texture(&font->atlas, NULL, &style)) return false;
+    free(pages_name);
     fread_s(&chars, sizeof(struct fnt_chars), sizeof(struct fnt_chars), 1, stream);
 
     glyph_t* glyph = NULL;
@@ -258,7 +259,6 @@ static bool __resize_text_mesh(font_t* font) {
     font->mesh.capacity = new_cap;
     return true;
 }
-
 
 static void push_glyph_quad(font_t* font, const glyph_t* g, const f32 pen_x, const f32 pen_y) {
     if (font->mesh.capacity <= font->mesh.count && !__resize_text_mesh(font)) goto cleanup;
@@ -402,6 +402,7 @@ static void __default_keyboard_callback(const keyboard_cb_param* param) {
             case GLFW_KEY_UP: {
             }
             case GLFW_KEY_DOWN: {
+                build_text_mesh(edit->font, &edit->text, 0.0, -edit->font->line_height);
                 return;
             }
             case GLFW_KEY_BACKSPACE: {
@@ -509,11 +510,12 @@ void update_edit(edit_t* edit, const mat4* projection, const f32 angle) {
 
     // draw the text mesh
     position = m4_transl((f32)edit->header.box.x + style->border.thickness, (f32)edit->header.box.y + style->border.thickness, 0.0f);
-    size = m4_scale(0.5f, 0.5f, 1.0f);
+    size = m4_scale(1.0f, 1.0f, 1.0f);
     model = m4_mul(&position, &size);
     color = (vec4){1.0f, 0.0f, 0.0f, 1.0f};
     const vec4 bg = {0.0, 0.0, 0.0, 0.0f};
     bind_font(edit->font);
+    // ToDO: change this to work for a rotated edit
     glEnable(GL_SCISSOR_TEST);
     glScissor(
         edit->header.box.x , frame->header.box.height - edit->header.box.y - edit->header.box.height + style->border.thickness,
