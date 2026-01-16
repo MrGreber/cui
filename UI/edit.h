@@ -6,10 +6,6 @@
 #include <sprite.h>
 #include <str.h>
 
-// typedef struct glyph {
-//
-// } glyph_t;
-
 typedef enum font_type {
     VCR_OSD_MONO,
 } font_type_t;
@@ -45,7 +41,8 @@ typedef struct font {
         u8 left;
     } padding;
 
-    color_t color;
+    color_t fg;
+    color_t bg;
     font_type_t type;
 
     // ToDo: create a mesh module
@@ -64,9 +61,6 @@ typedef struct font {
     glyph_t table[256];
 } font_t;
 
-font_t* new_font(const char* path);
-void del_font(font_t* font);
-
 typedef struct edit {
     comp_header_t header;
     style_group_t styles;
@@ -84,9 +78,10 @@ typedef struct edit {
     } text;
 } edit_t;
 
-edit_t* new_edit(void* parent, style_group_t* group, const bounding_box* box);
+edit_t* new_edit(void* parent, const style_group_t* group, const bounding_box* box);
 void del_edit(edit_t* edit);
 void bind_edit(const edit_t* edit);
+void set_font(edit_t* edit, const char* path, const color_t fg, const color_t bg);
 void update_edit(edit_t* edit, const mat4* projection, const f32 angle);
 
 #endif //EDIT_H

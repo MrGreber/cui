@@ -5,6 +5,7 @@
 
 #include <glad.h>
 
+
 static u32 __gl_sizeof(const u32 type) {
     switch (type) {
         case GL_FLOAT:

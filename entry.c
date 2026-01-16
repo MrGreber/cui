@@ -26,6 +26,7 @@ static void __init(app_t* app) {
         }
     };
     edit_t* edit = new_edit(frame, &group, &(bounding_box){100, 100, 400, 600});
+    set_font(edit, __DIR__"\\Resources\\vcr_osd_mono.fnt", BLUE, TRANSP);
 
     app->frame = frame;
     push_app_var(app, edit);
@@ -38,8 +39,8 @@ static void __loop(app_t* app) {
     const mat4 projection = m4_ortho(0.0f, (f32)frame->header.box.width, (f32)frame->header.box.height, 0.0f, -1.0f, 1.0f);
     update_frame(frame);
 
-    angle += 0.5f;
-    if (angle >= 360.0f) angle -= 360.0f;
+    // angle += 0.5f;
+    // if (angle >= 360.0f) angle -= 360.0f;
 
     bind_edit(edit);
     update_edit(edit, &projection, 0.0f);

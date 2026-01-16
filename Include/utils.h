@@ -140,6 +140,13 @@ color_t hsv_to_rgb(const f32 h, const f32 s, const f32 v);
  */
 #define color_cast(h) ((color_t){.hex = h})
 
+__forceinline vec4 color_v4(const color_t c) {
+    return (vec4){(f32)c.r / 255.f, (f32)c.g / 255.f, (f32)c.b / 255.f, (f32)c.a / 255.f};
+}
+__forceinline color_t v4_color(const vec4 v) {
+    return (color_t){v.x * 255.f, v.y * 255.f, v.z * 255.f, v.w * 255.f};
+}
+
 /** Convert a byte (0-255) to a float (0.0-1.0) */
 #define byte_to_float(b) (((f32)b) * 0.0039215686274509803921568627451f)
 
