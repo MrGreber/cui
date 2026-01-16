@@ -2,7 +2,7 @@
 #include <mem.h>
 #include <log.h>
 
-#include <corecrt_memcpy_s.h>
+#include <memory.h>
 
 array_t* new_array(u64 capacity, const u64 size, const element_free free) {
     if (!size || !free) {
@@ -74,7 +74,7 @@ void push_array(array_t* array, const void* element) {
     if (array->capacity <= array->count && !__resize_array(array)) goto cleanup;
 
     void* address = (byte*)array->elements + array->size * array->count++;
-    memcpy_s(address, array->size, element, array->size);
+    memcpy(address, element, array->size);
 
     return;
 cleanup:

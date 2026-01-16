@@ -42,7 +42,7 @@ bool read_file(const char* path, char** out, u64* size) {
         .tag = MEMTAG_BYTE
     };
     if (!new_buf(&buffer, true)) goto cleanup;
-    if (fread_s(buffer.ptr, pos, 1, pos, stream) != pos) goto cleanup;
+    if (fread(buffer.ptr, 1, pos, stream) != pos) goto cleanup;
 
     *out = buffer.ptr;
     *size = pos;

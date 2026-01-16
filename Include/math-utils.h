@@ -305,7 +305,7 @@ __forceinline void print_v4(const vec4* vector) {
     printf("<%7.2f, %7.2f, %7.2f, %7.2f>\n", v[0], v[1], v[2], v[3]);
 }
 
-static __forceinline f32 inv_sqrt(const f32 n) {
+__forceinline f32 inv_sqrt(const f32 n) {
     i32 i;
     f32 x2, y;
     const f32 threehalfs = 1.5f;

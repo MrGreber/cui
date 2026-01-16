@@ -2,26 +2,17 @@
 #include <mem.h>
 #include <log.h>
 
-#include <corecrt_memcpy_s.h>
+#include <memory.h>
+#include <string.h>
 #include <stdio.h>
+#include <utils.h>
 
 static u64 __static_length(char_t* data) {
     const u64 start = (u64)data;
     while(*++data) {}
     return (u64)data - start;
 }
-static __forceinline u64 __closest_pow2(u64 n) {
-    if (n == 0) return 1;
-    n--;
-    n |= n >> 1;
-    n |= n >> 2;
-    n |= n >> 4;
-    n |= n >> 8;
-    n |= n >> 16;
-    n |= n >> 32;
-    n++;
-    return n;
-}
+
 
 str_t* new_str(char_t* data, u64 length) {
     u64 cap = 0;
@@ -102,7 +93,7 @@ bool del_substr(str_t* src, const u64 start, const u64 end) {
     return true;
 }
 str_t* get_substr(str_t* src, const u64 start, const u64 end) {
-    if (!src || start >= src->length || end >= src->length) return false;
+    if (!src || start >= src->length || end >= src->length) return NULL;
     return new_str(src->data + start * sizeof(char_t), end - start);
 }
 bool push_char(str_t* src, const char_t c) {

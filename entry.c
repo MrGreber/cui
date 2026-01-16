@@ -56,7 +56,7 @@ int main(void) {
     open_logging("__log__.dat", true);
     set_exitFlag(false);
 
-    app_t* app = new_app(__init, __loop, __exit);
+    app_t* app = new_app((app_init_t)__init, (app_loop_t)__loop, (app_exit_t)__exit);
     start_app(app);
     exit_app(app);
 

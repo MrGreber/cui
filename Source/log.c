@@ -15,7 +15,8 @@
 
 #include <intrin.h>
 #define debugBreak() __debugbreak()
-
+#elif __MINGW32__ || __MINGW64__
+#define debugBreak() DebugBreak()
 #endif
 #endif
 

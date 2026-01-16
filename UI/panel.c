@@ -4,7 +4,7 @@
 #include <frame.h>
 #include <math-utils.h>
 
-#include <corecrt_memcpy_s.h>
+#include <memory.h>
 #include <glad.h>
 
 static void __default_mouse_callback(const mouse_cb_param* param) {
@@ -36,8 +36,8 @@ panel_t* new_panel(void* parent, style_group_t* group, const bounding_box* box) 
     panel->header.box.width = box->width;
     panel->header.box.height = box->height;
     panel->parent = parent;
-    if (group->normal.init) memcpy_s(&panel->styles.normal, sizeof(style_t), &group->normal, sizeof(style_t));
-    if (group->hover.init) memcpy_s(&panel->styles.hover, sizeof(style_t), &group->hover, sizeof(style_t));
+    if (group->normal.init) memcpy(&panel->styles.normal, &group->normal, sizeof(style_t));
+    if (group->hover.init) memcpy(&panel->styles.hover, &group->hover, sizeof(style_t));
 
     if (!gen_comp_texture(&panel->tex, box, &group->normal)) goto cleanup;
 
@@ -48,8 +48,8 @@ panel_t* new_panel(void* parent, style_group_t* group, const bounding_box* box) 
     panel->sprite = new_sprite("__component__");
     if (!panel->sprite) goto cleanup;
 
-    panel->header.mouse = __default_mouse_callback;
-    panel->header.resize =  __default_resize_callback;
+    panel->header.mouse = (callback)__default_mouse_callback;
+    panel->header.resize = (callback)__default_resize_callback;
 
     push_comp_node(parent_header->components, panel, PANEL_COMPONENT);
     return panel;

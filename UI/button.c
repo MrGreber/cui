@@ -4,7 +4,7 @@
 #include <frame.h>
 #include <math-utils.h>
 
-#include <corecrt_memcpy_s.h>
+#include <memory.h>
 #include <glad.h>
 #include <glfw3.h>
 
@@ -41,8 +41,8 @@ button_t* new_button(void* parent, style_group_t* group, const bounding_box* box
     button->header.box.width = box->width;
     button->header.box.height = box->height;
     button->parent = parent;
-    if (group->normal.init) memcpy_s(&button->styles.normal, sizeof(style_t), &group->normal, sizeof(style_t));
-    if (group->hover.init) memcpy_s(&button->styles.hover, sizeof(style_t), &group->hover, sizeof(style_t));
+    if (group->normal.init) memcpy(&button->styles.normal, &group->normal, sizeof(style_t));
+    if (group->hover.init) memcpy(&button->styles.hover, &group->hover, sizeof(style_t));
 
     if (!gen_comp_texture(&button->tex, box, &group->normal)) goto cleanup;
 
@@ -53,8 +53,8 @@ button_t* new_button(void* parent, style_group_t* group, const bounding_box* box
     button->sprite = new_sprite("__component__");
     if (!button->sprite) goto cleanup;
 
-    button->header.mouse = __default_mouse_callback;
-    button->header.resize =  __default_resize_callback;
+    button->header.mouse = (callback)__default_mouse_callback;
+    button->header.resize =  (callback)__default_resize_callback;
 
     push_comp_node(parent_header->components, button, PANEL_COMPONENT);
     return button;

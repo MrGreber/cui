@@ -14,18 +14,6 @@ static u32 __gl_sizeof(const u32 type) {
         default: return 0;
     }
 }
-static __forceinline u64 __closest_pow2(u64 n) {
-    if (n == 0) return 1;
-    n--;
-    n |= n >> 1;
-    n |= n >> 2;
-    n |= n >> 4;
-    n |= n >> 8;
-    n |= n >> 16;
-    n |= n >> 32;
-    n++;
-    return n;
-}
 
 vert_buf* new_vertex_buffer(const void* data, const u32 size, const u8 type) {
     if (!size) return NULL;

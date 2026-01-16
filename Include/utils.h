@@ -147,6 +147,19 @@ __forceinline color_t v4_color(const vec4 v) {
     return (color_t){v.x * 255.f, v.y * 255.f, v.z * 255.f, v.w * 255.f};
 }
 
+__forceinline u64 __closest_pow2(u64 n) {
+    if (n == 0) return 1;
+    n--;
+    n |= n >> 1;
+    n |= n >> 2;
+    n |= n >> 4;
+    n |= n >> 8;
+    n |= n >> 16;
+    n |= n >> 32;
+    n++;
+    return n;
+}
+
 /** Convert a byte (0-255) to a float (0.0-1.0) */
 #define byte_to_float(b) (((f32)b) * 0.0039215686274509803921568627451f)
 

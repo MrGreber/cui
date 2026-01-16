@@ -16,7 +16,7 @@ static bool __compile_shader(const u32 type, const char* path, u32* id) {
 
     const u32 _id = glCreateShader(type);
     if (!_id) goto cleanup;
-    glcall(glShaderSource(_id, 1, &source, NULL), cleanup, "__compile_shader - Failed to build shader: %s.", path);
+    glcall(glShaderSource(_id, 1, (const GLchar**)&source, NULL), cleanup, "__compile_shader - Failed to build shader: %s.", path);
     glcall(glCompileShader(_id), cleanup, "__compile_shader - Failed to compile shader: %s.", path);
 
     i32 success = 0;

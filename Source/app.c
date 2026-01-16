@@ -30,7 +30,7 @@ app_t* new_app(const app_init_t init, const app_loop_t loop, const app_exit_t ex
     }
     app->vars = buffer.ptr;
 
-    init(app);
+    init((void*)app);
     return app;
 }
 void start_app(app_t* app) {
@@ -39,7 +39,7 @@ void start_app(app_t* app) {
     while (!glfwWindowShouldClose(app->frame->glfw_ctx)) {
         update_frame(app->frame);
 
-        app->loop(app);
+        app->loop((void*)app);
 
         glfwSwapBuffers(app->frame->glfw_ctx);
         glfwPollEvents();
@@ -83,7 +83,7 @@ void* get_app_var(const app_t* app, const u16 index) {
 void exit_app(app_t* app) {
     if (!app) return;
 
-    app->exit(app);
+    app->exit((void*)app);
     del_buf(&(buf_t){.ptr = app->vars, .size = sizeof(void*) * app->capacity, .tag = MEMTAG_POINTER});
     del_buf(&(buf_t){.ptr = app, .size = sizeof(app_t), .tag = MEMTAG_APP});
     print_memtable();

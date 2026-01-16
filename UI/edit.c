@@ -7,7 +7,7 @@
 
 #include <string.h>
 #include <stdlib.h>
-#include <corecrt_memcpy_s.h>
+#include <memory.h>
 #include <glad.h>
 #include <glfw3.h>
 
@@ -82,7 +82,7 @@ struct fnt_char {
 #define DEFAULT_CAPACITY 128
 #define QUAD_SIZE (6 * sizeof(vec4))
 
-static __forceinline font_type_t __get_font_type(const char* font_name) {
+__forceinline font_type_t __get_font_type(const char* font_name) {
     if (strncmp(font_name, "VCR OSD Mono", 12) == 0) return VCR_OSD_MONO;
     else return 0;
 }
@@ -96,7 +96,7 @@ static bool __parse_fnt(const char* path, font_t* font) {
     struct fnt_common common = { 0 };
     struct fnt_pages pages = { 0 };
     struct fnt_chars chars = { 0 };
-    fread_s(&info, sizeof(struct fnt_info), sizeof(struct fnt_info), 1, stream);
+    fread(&info, sizeof(struct fnt_info), 1, stream);
 
     u32 length = info.block_size - 14;
     byte* font_name = malloc(sizeof(byte) * (length + 1));
@@ -104,10 +104,10 @@ static bool __parse_fnt(const char* path, font_t* font) {
         fclose(stream);
         return false;
     }
-    fread_s(font_name, length + 1, sizeof(byte), length, stream);
+    fread(font_name, sizeof(byte), length, stream);
     font_name[length] = 0;
 
-    fread_s(&common, sizeof(struct fnt_common), sizeof(struct fnt_common), 1, stream);
+    fread(&common, sizeof(struct fnt_common), 1, stream);
     font->type = __get_font_type((const char*)font_name);
     font->size = info.font_size;
     font->line_height = common.lineHeight;
@@ -116,7 +116,7 @@ static bool __parse_fnt(const char* path, font_t* font) {
     const f32 inv_atlas_h = 1.0f / (f32)common.scale.height;
     free(font_name);
 
-    fread_s(&pages, sizeof(struct fnt_pages), sizeof(struct fnt_pages), 1, stream);
+    fread(&pages, sizeof(struct fnt_pages), 1, stream);
     length = pages.block_size;
     const u64 dir_size = sizeof(__DIR__"/Resources/") - 1;
     byte* pages_name = malloc(sizeof(byte) * (dir_size + length + 1));
@@ -124,7 +124,7 @@ static bool __parse_fnt(const char* path, font_t* font) {
         fclose(stream);
         return false;
     }
-    fread_s((char*)(pages_name + dir_size), length + 1, sizeof(byte), length, stream);
+    fread((char*)(pages_name + dir_size), sizeof(byte), length, stream);
     pages_name[length + dir_size] = 0;
     memcpy(pages_name, __DIR__"/Resources/", dir_size);
     const style_t style = {
@@ -136,12 +136,12 @@ static bool __parse_fnt(const char* path, font_t* font) {
     };
     if (!gen_comp_texture(&font->atlas, NULL, &style)) return false;
     free(pages_name);
-    fread_s(&chars, sizeof(struct fnt_chars), sizeof(struct fnt_chars), 1, stream);
+    fread(&chars, sizeof(struct fnt_chars), 1, stream);
 
     glyph_t* glyph = NULL;
     struct fnt_char char_ = { 0 };
     for (u32 i = 0; i < chars.block_size / (u32)sizeof(struct fnt_char); i++) {
-        fread_s(&char_, sizeof(struct fnt_char), sizeof(struct fnt_char), 1, stream);
+        fread(&char_, sizeof(struct fnt_char), 1, stream);
         glyph = &font->table[i];
         glyph->id = char_.id;
         glyph->x0 = ((f32)char_.x) * inv_atlas_w;
@@ -155,7 +155,7 @@ static bool __parse_fnt(const char* path, font_t* font) {
 
     return true;
 }
-static __forceinline u16 __vcr_osd_mono_map(const char c) {
+__forceinline u16 __vcr_osd_mono_map(const char c) {
     if (c >= ' ' && c <= '~') return 2 + c - ' ';
     return 0;
 }
@@ -465,9 +465,9 @@ edit_t* new_edit(void* parent, const style_group_t* group, const bounding_box* b
     edit->text.buffer = new_str("", 0);
     if (!edit->text.buffer) goto cleanup;
 
-    edit->header.mouse = __default_mouse_callback;
-    edit->header.keyboard = __default_keyboard_callback;
-    edit->header.resize =  __default_resize_callback;
+    edit->header.mouse = (callback)__default_mouse_callback;
+    edit->header.keyboard = (callback)__default_keyboard_callback;
+    edit->header.resize = (callback)__default_resize_callback;
 
     push_comp_node(parent_header->components, edit, PANEL_COMPONENT);
     return edit;
