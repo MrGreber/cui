@@ -21,6 +21,7 @@ static void __default_mouse_callback(const mouse_cb_param* param) {
         canvas->prev.x = param->x;
         canvas->prev.y = param->y;
     }
+    else canvas->prev.x = canvas->prev.y = -1;
 
 }
 static void __default_keyboard_callback(const keyboard_cb_param* param) {
