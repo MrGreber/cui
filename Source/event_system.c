@@ -70,7 +70,8 @@ const char* __components_strings__[] = {
     "frame",
     "canvas",
     "button",
-    "panel"
+    "panel",
+    "edit"
 };
 
 void print_comp_node(comp_node_t* root) {
@@ -111,7 +112,6 @@ void dispatch_event(const comp_node_t* node, event_t* event) {
                 }
 
             }
-
             if (!flag) {
                 const comp_header_t* header = get_header(node->component.data);
                 if (triggered) {

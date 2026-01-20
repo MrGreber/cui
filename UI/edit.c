@@ -282,7 +282,6 @@ static void push_glyph_quad(font_t* font, const glyph_t* g, const f32 pen_x, con
 cleanup:
     logError("push_quad - Failed to resize text mesh.");
 }
-
 static void build_text_mesh(font_t* font, const void* text, f32 start_x, f32 start_y) {
     // TODO: optimize this function,
     // every AI I know of is dumb enough to not understand how to do it even though
@@ -447,8 +446,8 @@ edit_t* new_edit(void* parent, const style_group_t* group, const bounding_box* b
     edit->header.box.width = box->width;
     edit->header.box.height = box->height;
     edit->parent = parent;
-    if (group->normal.init) memcpy_s(&edit->styles.normal, sizeof(style_t), &group->normal, sizeof(style_t));
-    if (group->hover.init) memcpy_s(&edit->styles.hover, sizeof(style_t), &group->hover, sizeof(style_t));
+    if (group->normal.init) memcpy(&edit->styles.normal, &group->normal, sizeof(style_t));
+    if (group->hover.init) memcpy(&edit->styles.hover, &group->hover, sizeof(style_t));
 
     if (!gen_comp_texture(&edit->tex, box, &group->normal)) goto cleanup;
 
@@ -468,8 +467,7 @@ edit_t* new_edit(void* parent, const style_group_t* group, const bounding_box* b
     edit->header.mouse = (callback)__default_mouse_callback;
     edit->header.keyboard = (callback)__default_keyboard_callback;
     edit->header.resize = (callback)__default_resize_callback;
-
-    push_comp_node(parent_header->components, edit, PANEL_COMPONENT);
+    push_comp_node(parent_header->components, edit, EDIT_COMPONENT);
     return edit;
 cleanup:
     if (edit->sprite) del_sprite(edit->sprite);

@@ -41,7 +41,8 @@ typedef enum component_tag {
     FRAME_COMPONENT,
     CANVAS_COMPONENT,
     BUTTON_COMPONENT,
-    PANEL_COMPONENT
+    PANEL_COMPONENT,
+    EDIT_COMPONENT
 } comp_tag;
 
 

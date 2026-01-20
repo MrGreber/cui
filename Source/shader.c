@@ -85,7 +85,7 @@ shader_t* new_shader(const char* name) {
         fragment_path,
         &shad->id
     )) {
-        logFatal("new_shader - Failed to complie shader.");
+        logFatal("new_shader - Failed to compile shader.");
         del_buf(&buffer);
         return NULL;
     }

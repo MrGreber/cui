@@ -55,8 +55,7 @@ button_t* new_button(void* parent, style_group_t* group, const bounding_box* box
 
     button->header.mouse = (callback)__default_mouse_callback;
     button->header.resize =  (callback)__default_resize_callback;
-
-    push_comp_node(parent_header->components, button, PANEL_COMPONENT);
+    push_comp_node(parent_header->components, button, BUTTON_COMPONENT);
     return button;
 cleanup:
     if (button->sprite) del_sprite(button->sprite);
