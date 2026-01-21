@@ -30,7 +30,7 @@ static void __init(app_t* app) {
     // edit_t* edit = new_edit(frame, &group, &(bounding_box){100, 100, 400, 600});
     // set_font(edit, __DIR__"\\Resources\\vcr_osd_mono.fnt", BLUE, TRANSP);
 
-    canvas_t* canvas = new_canvas(frame, &(bounding_box){0, 0, 400, 600});
+    canvas_t* canvas = new_canvas(frame, 400, 600);
 
     app->frame = frame;
     //push_app_var(app, edit);

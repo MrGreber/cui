@@ -22,13 +22,24 @@ typedef struct canvas {
         i32 x;
         i32 y;
     } prev;
+    struct {
+        u32 width;
+        u32 height;
+    } dim;
+    struct {
+        // saves the transformations
+        mat4 model;
+        mat4 inv_model;
+        u8 init;
+    } transform;
+
 
     camera_t* camera;
     sprite_t* sprite;
     texture_t* tex;
 } canvas_t;
 
-canvas_t* new_canvas(void* parent, const bounding_box* box);
+canvas_t* new_canvas(void* parent, const u32 width, const u32 height);
 void del_canvas(canvas_t* canvas);
 void bind_canvas(canvas_t* canvas);
 void set_brush(canvas_t* canvas, const color_t color, const f32 size);

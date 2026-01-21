@@ -341,6 +341,26 @@ __forceinline vec2 v2_scale(const vec2* v, const f32 s) {
     return (vec2){v->x * s, v->y * s};
 }
 
+__forceinline void v2_transl(vec2* v, const f32 x, const f32 y) {
+    v->x += x;
+    v->y += y;
+}
+
+__forceinline void v2_rotateZ(vec2* v, const f32 a) {
+    static f32 prev_angle = 0.0f;
+    static f32 c = 1.0f;
+    static f32 s = 0.0f;
+    if (a != prev_angle) {
+        prev_angle = a;
+        c = cosf(-a);
+        s = sinf(-a);
+    }
+    v->x = v->x * c - v->y * s;
+    v->y = v->x * s + v->y * c;
+}
+
+
+
 __forceinline f32 v3_normal(const vec3* v) {
     return v->x * v->x + v->y * v->y + v->z * v->z;
 }

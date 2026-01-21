@@ -14,29 +14,55 @@ static void __default_mouse_callback(const mouse_cb_param* param) {
     const frame_t* frame = ((comp_node_t*)canvas->header.components)->root->component.data;
 
     if (glfwGetMouseButton(frame->glfw_ctx, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+        if (canvas->transform.init & 2) {
+            const mat4 rotation = m4_rotateZ(rad(canvas->camera->roll));
+            const mat4 scale = m4_scale(canvas->camera->zoom, canvas->camera->zoom, 1.0f);
+            const mat4 position = m4_transl(canvas->camera->position.x, canvas->camera->position.y, 0.0f);
+            const mat4 size = m4_transl((f32)canvas->dim.width * 0.5f, (f32)canvas->dim.height * 0.5f, 0.0f);
+            const mat4 inv_size = m4_transl(-(f32)canvas->dim.width * 0.5f, -(f32)canvas->dim.height * 0.5f, 0.0f);
+            canvas->transform.inv_model = m4_mul(&position, &size);
+            canvas->transform.inv_model = m4_mul(&canvas->transform.inv_model, &rotation);
+            canvas->transform.inv_model = m4_mul(&canvas->transform.inv_model, &inv_size);
+            canvas->transform.inv_model = m4_mul(&canvas->transform.inv_model, &scale);
+            canvas->transform.inv_model = m4_inverse(&canvas->transform.inv_model);
+            canvas->transform.inv_model = m4_transp(&canvas->transform.inv_model);
+            canvas->transform.init ^= 2;
+        }
 
-        if (canvas->prev.x != -1 && canvas->prev.y != -1) draw_texture_line(BLACK, canvas->prev.x, canvas->prev.y, param->x, param->y);
-        else set_texture_pixel(BLACK, param->x, param->y);
+        vec4 mpos = {param->x, param->y, 0.0f, 1.0f};
+        mpos = mv4_mul(&canvas->transform.inv_model, &mpos);
 
-        canvas->prev.x = param->x;
-        canvas->prev.y = param->y;
+        if (canvas->prev.x != -1 && canvas->prev.y != -1) draw_texture_line(BLACK, canvas->prev.x, canvas->prev.y, mpos.x, mpos.y);
+        else set_texture_pixel(BLACK, mpos.x, mpos.y);
+
+        canvas->prev.x = mpos.x;
+        canvas->prev.y = mpos.y;
     }
     else canvas->prev.x = canvas->prev.y = -1;
-
 }
 static void __default_keyboard_callback(const keyboard_cb_param* param) {
-    const canvas_t* canvas = param->instance;
+    canvas_t* canvas = param->instance;
     const frame_t* frame = ((comp_node_t*)canvas->header.components)->root->component.data;
+    canvas->transform.init ^= 3;
+}
+static void __default_scroll_callback(const scroll_cb_param* param) {
+    canvas_t* canvas = param->instance;
+    const frame_t* frame = ((comp_node_t*)canvas->header.components)->root->component.data;
+    camera_t* camera = canvas->camera;
+
+    camera->zoom = 2.0f;
+    canvas->transform.init ^= 3;
 }
 static void __default_resize_callback(const resize_cb_param* param) {
-    const canvas_t* canvas = param->instance;
+    canvas_t* canvas = param->instance;
+    canvas->transform.init ^= 3;
     // comp_header_t* header = get_header(edit->parent);
     // edit->header.box.width += param->width;
     // edit->header.box.height += param->height;
 }
 
 
-canvas_t* new_canvas(void* parent, const bounding_box* box) {
+canvas_t* new_canvas(void* parent, const u32 width, const u32 height) {
     buf_t buffer = {
         .size = sizeof(canvas_t),
         .tag = MEMTAG_CANVAS
@@ -46,14 +72,17 @@ canvas_t* new_canvas(void* parent, const bounding_box* box) {
     const comp_header_t* parent_header = get_header(parent);
 
     canvas_t* canvas = buffer.ptr;
-    canvas->header.box.x = box->x + parent_header->box.x;
-    canvas->header.box.y = box->y + parent_header->box.y;
-    canvas->header.box.width = box->width;
-    canvas->header.box.height = box->height;
+    canvas->transform.init = 3;
+    canvas->dim.width = width;
+    canvas->dim.height = height;
+    canvas->header.box.x = parent_header->box.x;
+    canvas->header.box.y = parent_header->box.y;
+    canvas->header.box.width = parent_header->box.width;
+    canvas->header.box.height = parent_header->box.height;
     canvas->parent = parent;
     canvas->prev.x = -1;
     canvas->prev.y = -1;
-    if (!gen_comp_texture(&canvas->tex, box, &(style_t){.background = {.type = BG_COLOR, .color = WHITE}})) goto cleanup;
+    if (!gen_comp_texture(&canvas->tex, &(bounding_box){0, 0, width, height}, &(style_t){.background = {.type = BG_COLOR, .color = WHITE}})) goto cleanup;
 
     canvas->sprite = new_sprite("__canvas__");
     if (!canvas->sprite) goto cleanup;
@@ -64,6 +93,7 @@ canvas_t* new_canvas(void* parent, const bounding_box* box) {
     canvas->header.mouse = (callback)__default_mouse_callback;
     canvas->header.keyboard = (callback)__default_keyboard_callback;
     canvas->header.resize = (callback)__default_resize_callback;
+    canvas->header.scroll = (callback)__default_scroll_callback;
     push_comp_node(parent_header->components, canvas, CANVAS_COMPONENT);
     return canvas;
 cleanup:
@@ -94,19 +124,21 @@ void set_brush(canvas_t* canvas, const color_t color, const f32 size) {
 void update_canvas(canvas_t* canvas, const mat4* projection) {
     if (!canvas) return;
     const frame_t* frame = ((comp_node_t*)canvas->header.components)->root->component.data;
+    if (canvas->transform.init & 1) {
+        const mat4 rotation = m4_rotateZ(rad(canvas->camera->roll));
+        const mat4 scale = m4_scale(canvas->camera->zoom * (f32)canvas->dim.width, canvas->camera->zoom * (f32)canvas->dim.height, 1.0f);
+        const mat4 position = m4_transl(canvas->camera->position.x, canvas->camera->position.y, 0.0f);
+        const mat4 size = m4_transl((f32)canvas->dim.width * 0.5f, (f32)canvas->dim.height * 0.5f, 0.0f);
+        const mat4 inv_size = m4_transl(-(f32)canvas->dim.width * 0.5f, -(f32)canvas->dim.height * 0.5f, 0.0f);
 
-    const mat4 rotation = m4_rotateZ(rad(0.0f));
-    const mat4 scale = m4_scale((f32)canvas->header.box.width, (f32)canvas->header.box.height, 1.0f);
-    const mat4 position = m4_transl((f32)canvas->header.box.x, (f32)canvas->header.box.y, 0.0f);
-    const mat4 size = m4_transl((f32)canvas->header.box.width * 0.5f, (f32)canvas->header.box.height * 0.5f, 0.0f);
-    const mat4 inv_size = m4_transl(-(f32)canvas->header.box.width * 0.5f, -(f32)canvas->header.box.height * 0.5f, 0.0f);
-
-    mat4 model = m4_mul(&position, &size);
-    model = m4_mul(&model, &rotation);
-    model = m4_mul(&model, &inv_size);
-    model = m4_mul(&model, &scale);
+        canvas->transform.model = m4_mul(&position, &size);
+        canvas->transform.model = m4_mul(&canvas->transform.model, &rotation);
+        canvas->transform.model = m4_mul(&canvas->transform.model, &inv_size);
+        canvas->transform.model = m4_mul(&canvas->transform.model, &scale);
+        canvas->transform.init ^= 1;
+    }
     set_mat4_uniform(canvas->sprite->shader, "projection", true, projection->e);
-    set_mat4_uniform(canvas->sprite->shader, "model", true, model.e);
+    set_mat4_uniform(canvas->sprite->shader, "model", true, canvas->transform.model.e);
 
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
