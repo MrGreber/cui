@@ -43,22 +43,75 @@ static void __default_mouse_callback(const mouse_cb_param* param) {
 static void __default_keyboard_callback(const keyboard_cb_param* param) {
     canvas_t* canvas = param->instance;
     const frame_t* frame = ((comp_node_t*)canvas->header.components)->root->component.data;
-    canvas->transform.init ^= 3;
+    camera_t* camera = canvas->camera;
+
+    if (param->action == GLFW_PRESS || param->action == GLFW_REPEAT) {
+#ifndef SPEED
+#define SPEED 10.0f
+        switch (param->key) {
+            case GLFW_KEY_Q: {
+                camera->roll -= 2.0f;
+                if (camera->roll < 0.0f) camera->roll += 360.0f;
+                break;
+            }
+            case GLFW_KEY_E: {
+                camera->roll += 2.0f;
+                if (camera->roll > 360.0f) camera->roll -= 360.0f;
+                break;
+            }
+            case GLFW_KEY_W: {
+                camera->position.y -= SPEED;
+                break;
+            }
+            case GLFW_KEY_S: {
+                camera->position.y += SPEED;
+                break;
+            }
+            case GLFW_KEY_A: {
+                camera->position.x -= SPEED;
+                break;
+            }
+            case GLFW_KEY_D: {
+                camera->position.x += SPEED;
+                break;
+            }
+            case GLFW_KEY_SPACE: {
+                flush_texture(canvas->tex, WHITE);
+                break;
+            }
+            case GLFW_KEY_R: {
+                reset_camera(camera);
+                break;
+            }
+            default: break;
+        }
+
+        canvas->transform.init |= 3;
+#undef SPEED
+#else
+#error For some reason your dumbass decided to define a global macro named SPEED, what the fuck if you try to compiler me again I will send assassins after your ass
+#endif
+    }
+
 }
 static void __default_scroll_callback(const scroll_cb_param* param) {
     canvas_t* canvas = param->instance;
     const frame_t* frame = ((comp_node_t*)canvas->header.components)->root->component.data;
     camera_t* camera = canvas->camera;
 
-    camera->zoom = 2.0f;
-    canvas->transform.init ^= 3;
+    const f32 s = tanhf(param->delta);
+    camera->zoom -= (f32)s;
+    if (camera->zoom < 0.5f) camera->zoom = 0.5f;
+    if (camera->zoom > 100.0f) camera->zoom = 100.0f;
+
+    canvas->transform.init |= 3;
 }
 static void __default_resize_callback(const resize_cb_param* param) {
     canvas_t* canvas = param->instance;
-    canvas->transform.init ^= 3;
-    // comp_header_t* header = get_header(edit->parent);
-    // edit->header.box.width += param->width;
-    // edit->header.box.height += param->height;
+    // comp_header_t* header = get_header(canvas->parent);
+    // canvas->header.box.height += param->height;
+    // canvas->header.box.width += param->width;
+    canvas->transform.init |= 3;
 }
 
 
