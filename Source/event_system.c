@@ -3,6 +3,10 @@
 #include <frame.h>
 #include <stdio.h>
 
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <glfw3.h>
+#include <glfw3native.h>
+
 comp_node_t* new_comp_node(void* data, const comp_tag tag) {
     buf_t buffer = {
         .size = sizeof(comp_node_t),
@@ -87,6 +91,7 @@ void print_comp_node(comp_node_t* root) {
 }
 void dispatch_event(const comp_node_t* node, event_t* event) {
     if (!node) return;
+    static bool curser_state = true;
 
     frame_t* frame = node->root ? node->root->component.data : node->component.data;
     if (!frame->focused.data) {
@@ -117,6 +122,16 @@ void dispatch_event(const comp_node_t* node, event_t* event) {
                 if (triggered) {
                     frame->focused.data = node->component.data;
                     frame->focused.tag = node->component.tag;
+                }
+
+                // toggles between canvas mouse curser and regular mouse curser
+                if (node->component.tag == CANVAS_COMPONENT && curser_state) {
+                    ShowCursor(false);
+                    curser_state = false;
+                }
+                if (node->component.tag != CANVAS_COMPONENT && !curser_state) {
+                    ShowCursor(true);
+                    curser_state = true;
                 }
 
                 if (!header || !header->mouse) return;

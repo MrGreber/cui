@@ -184,6 +184,13 @@ void update_canvas(canvas_t* canvas, const mat4* projection) {
     }
     set_mat4_uniform(canvas->sprite->shader, "projection", true, projection->e);
     set_mat4_uniform(canvas->sprite->shader, "model", true, canvas->transform.model.e);
+
+    glEnable(GL_SCISSOR_TEST);
+    glScissor(
+        canvas->header.box.x, frame->header.box.height - canvas->header.box.y - canvas->header.box.height,
+        canvas->header.box.width, canvas->header.box.height
+    );
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
+    glDisable(GL_SCISSOR_TEST);
 }
 
