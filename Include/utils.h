@@ -193,6 +193,6 @@ bool read_file(const char* path, char** out, u64* size);
 
 void aligned_memset(u32* buffer, const u32 val, const u64 size);
 
-bool gen_comp_texture(struct texture** out, const bounding_box* box, const style_t* style);
+bool gen_texture(struct texture** out, const bounding_box* box, const style_t* style);
 
 #endif //UTILS_H

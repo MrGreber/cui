@@ -4,7 +4,6 @@
 #include <frame.h>
 
 #define GLFW_EXPOSE_NATIVE_WIN32
-#include <memory.h>
 #include <glad.h>
 #include <glfw3.h>
 #include <glfw3native.h>
@@ -28,12 +27,11 @@ static void __default_mouse_callback(const mouse_cb_param* param) {
             canvas->transform.inv_model = m4_transp(&canvas->transform.inv_model);
             canvas->transform.init ^= 2;
         }
-
         vec4 mpos = {param->x, param->y, 0.0f, 1.0f};
         mpos = mv4_mul(&canvas->transform.inv_model, &mpos);
 
-        if (canvas->prev.x != -1 && canvas->prev.y != -1) draw_texture_line(BLACK, canvas->prev.x, canvas->prev.y, mpos.x, mpos.y);
-        else set_texture_pixel(BLACK, mpos.x, mpos.y);
+        if (canvas->prev.x != -1 && canvas->prev.y != -1) draw_texture_line(canvas->brush.color, canvas->prev.x, canvas->prev.y, mpos.x, mpos.y);
+        else set_texture_pixel(canvas->brush.color, mpos.x, mpos.y);
 
         canvas->prev.x = mpos.x;
         canvas->prev.y = mpos.y;
@@ -76,7 +74,7 @@ static void __default_keyboard_callback(const keyboard_cb_param* param) {
                 break;
             }
             case GLFW_KEY_SPACE: {
-                flush_texture(canvas->tex, WHITE);
+                flush_texture(canvas->sprite->tex, WHITE);
                 break;
             }
             case GLFW_KEY_R: {
@@ -108,9 +106,6 @@ static void __default_scroll_callback(const scroll_cb_param* param) {
 }
 static void __default_resize_callback(const resize_cb_param* param) {
     canvas_t* canvas = param->instance;
-    // comp_header_t* header = get_header(canvas->parent);
-    // canvas->header.box.height += param->height;
-    // canvas->header.box.width += param->width;
     canvas->transform.init |= 3;
 }
 
@@ -135,10 +130,10 @@ canvas_t* new_canvas(void* parent, const u32 width, const u32 height) {
     canvas->parent = parent;
     canvas->prev.x = -1;
     canvas->prev.y = -1;
-    if (!gen_comp_texture(&canvas->tex, &(bounding_box){0, 0, width, height}, &(style_t){.background = {.type = BG_COLOR, .color = WHITE}})) goto cleanup;
 
     canvas->sprite = new_sprite("__canvas__");
     if (!canvas->sprite) goto cleanup;
+    if (!set_sprite_texture(canvas->sprite, width, height, &(style_t){.background = {.type = BG_COLOR, .color = WHITE}})) goto cleanup;
 
     canvas->camera = new_camera();
     if (!canvas->camera) goto cleanup;
@@ -151,7 +146,6 @@ canvas_t* new_canvas(void* parent, const u32 width, const u32 height) {
     return canvas;
 cleanup:
     if (canvas->sprite) del_sprite(canvas->sprite);
-    if (canvas->tex) del_texture(canvas->tex);
     if (canvas->camera) del_camera(canvas->camera);
     del_buf(&(buf_t){.size = sizeof(canvas_t), .tag = MEMTAG_CANVAS, .ptr = canvas});
     return NULL;
@@ -159,14 +153,12 @@ cleanup:
 void del_canvas(canvas_t* canvas) {
     if (!canvas) return;
     del_sprite(canvas->sprite);
-    del_texture(canvas->tex);
     del_camera(canvas->camera);
     del_buf(&(buf_t){.size = sizeof(canvas_t), .tag = MEMTAG_CANVAS, .ptr = canvas});
 }
 void bind_canvas(canvas_t* canvas) {
     if (!canvas) return;
     bind_sprite(canvas->sprite);
-    bind_texture(canvas->tex);
 }
 void set_brush(canvas_t* canvas, const color_t color, const f32 size) {
     if (!canvas) return;
@@ -192,8 +184,6 @@ void update_canvas(canvas_t* canvas, const mat4* projection) {
     }
     set_mat4_uniform(canvas->sprite->shader, "projection", true, projection->e);
     set_mat4_uniform(canvas->sprite->shader, "model", true, canvas->transform.model.e);
-
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
 }
 

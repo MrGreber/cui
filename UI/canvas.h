@@ -36,7 +36,6 @@ typedef struct canvas {
 
     camera_t* camera;
     sprite_t* sprite;
-    texture_t* tex;
 } canvas_t;
 
 canvas_t* new_canvas(void* parent, const u32 width, const u32 height);

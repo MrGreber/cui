@@ -134,7 +134,7 @@ static bool __parse_fnt(const char* path, font_t* font) {
             .image = (const char*)pages_name
         },
     };
-    if (!gen_comp_texture(&font->atlas, NULL, &style)) return false;
+    if (!gen_texture(&font->atlas, NULL, &style)) return false;
     free(pages_name);
     fread(&chars, sizeof(struct fnt_chars), 1, stream);
 
@@ -426,6 +426,7 @@ rebuild_text_mesh:
 }
 static void __default_resize_callback(const resize_cb_param* param) {
     edit_t* edit = param->instance;
+    edit->transform.init |= 1;
     // comp_header_t* header = get_header(edit->parent);
     // edit->header.box.width += param->width;
     // edit->header.box.height += param->height;
@@ -441,6 +442,7 @@ edit_t* new_edit(void* parent, const style_group_t* group, const bounding_box* b
     const comp_header_t* parent_header = get_header(parent);
 
     edit_t* edit = buffer.ptr;
+    edit->transform.init = 1;
     edit->header.box.x = box->x + parent_header->box.x;
     edit->header.box.y = box->y + parent_header->box.y;
     edit->header.box.width = box->width;
@@ -449,10 +451,9 @@ edit_t* new_edit(void* parent, const style_group_t* group, const bounding_box* b
     if (group->normal.init) memcpy(&edit->styles.normal, &group->normal, sizeof(style_t));
     if (group->hover.init) memcpy(&edit->styles.hover, &group->hover, sizeof(style_t));
 
-    if (!gen_comp_texture(&edit->tex, box, &group->normal)) goto cleanup;
-
     edit->sprite = new_sprite("__component__");
     if (!edit->sprite) goto cleanup;
+    if (!set_sprite_texture(edit->sprite, box->width, box->height, (style_t*)&group->normal)) goto cleanup;
 
     // Loads default font
     edit->font = new_font(__DIR__"\\Resources\\vcr_osd_mono.fnt");
@@ -471,7 +472,6 @@ edit_t* new_edit(void* parent, const style_group_t* group, const bounding_box* b
     return edit;
 cleanup:
     if (edit->sprite) del_sprite(edit->sprite);
-    if (edit->tex) del_texture(edit->tex);
     if (edit->text.buffer) del_str(edit->text.buffer);
     if (edit->font) del_font(edit->font);
     del_buf(&(buf_t){.size = sizeof(edit_t), .tag = MEMTAG_EDIT, .ptr = edit});
@@ -480,7 +480,6 @@ cleanup:
 void del_edit(edit_t* edit) {
     if (!edit) return;
     del_sprite(edit->sprite);
-    del_texture(edit->tex);
     del_str(edit->text.buffer);
     del_font(edit->font);
     del_buf(&(buf_t){.size = sizeof(edit_t), .tag = MEMTAG_EDIT, .ptr = edit});
@@ -488,7 +487,6 @@ void del_edit(edit_t* edit) {
 void bind_edit(const edit_t* edit) {
     if (!edit) return;
     bind_sprite(edit->sprite);
-    bind_texture(edit->tex);
 }
 void set_font(edit_t* edit, const char* path, const color_t fg, const color_t bg) {
     if (!edit) {
@@ -518,18 +516,22 @@ void update_edit(edit_t* edit, const mat4* projection, const f32 angle) {
     const vec4 border_color = {(f32)style->border.color.r / 255.0f, (f32)style->border.color.g / 255.0f, (f32)style->border.color.b / 255.0f, (f32)style->border.color.a / 255.0f};
     const vec2 dim = {(f32)edit->header.box.width, (f32)edit->header.box.height};
 
-    mat4 rotation = m4_rotateZ(rad(angle));
-    mat4 scale = m4_scale((f32)edit->header.box.width, (f32)edit->header.box.height, 1.0f);
-    mat4 position = m4_transl((f32)edit->header.box.x, (f32)edit->header.box.y, 0.0f);
-    mat4 size = m4_transl((f32)(edit->header.box.width - style->border.thickness) * 0.5f, (f32)(edit->header.box.height - style->border.thickness) * 0.5f, 0.0f);
-    mat4 inv_size = m4_transl(-(f32)(edit->header.box.width - style->border.thickness) * 0.5f, -(f32)(edit->header.box.height - style->border.thickness) * 0.5f, 0.0f);
+    if (edit->transform.init & 1) {
+        const mat4 rotation = m4_rotateZ(rad(angle));
+        const mat4 scale = m4_scale((f32)edit->header.box.width, (f32)edit->header.box.height, 1.0f);
+        const mat4 position = m4_transl((f32)edit->header.box.x, (f32)edit->header.box.y, 0.0f);
+        const mat4 size = m4_transl((f32)edit->header.box.width * 0.5f, (f32)edit->header.box.height * 0.5f, 0.0f);
+        const mat4 inv_size = m4_transl(-(f32)edit->header.box.width * 0.5f, -(f32)edit->header.box.height * 0.5f, 0.0f);
 
-    mat4 model = m4_mul(&position, &size);
-    model = m4_mul(&model, &rotation);
-    model = m4_mul(&model, &inv_size);
-    model = m4_mul(&model, &scale);
+        edit->transform.model = m4_mul(&position, &size);
+        edit->transform.model = m4_mul(&edit->transform.model, &rotation);
+        edit->transform.model = m4_mul(&edit->transform.model, &inv_size);
+        edit->transform.model = m4_mul(&edit->transform.model, &scale);
+        edit->transform.init ^= 1;
+    }
+
     set_mat4_uniform(edit->sprite->shader, "projection", true, projection->e);
-    set_mat4_uniform(edit->sprite->shader, "model", true, model.e);
+    set_mat4_uniform(edit->sprite->shader, "model", true, edit->transform.model.e);
     set_float_uniform(edit->sprite->shader, "border.radius", style->border.radius);
     set_float_uniform(edit->sprite->shader, "border.thickness", style->border.thickness);
     set_vec4_uniform(edit->sprite->shader, "border.color", border_color.e);
@@ -537,9 +539,9 @@ void update_edit(edit_t* edit, const mat4* projection, const f32 angle) {
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
     // draw the text mesh
-    position = m4_transl((f32)edit->header.box.x + style->border.thickness, (f32)edit->header.box.y + style->border.thickness, 0.0f);
-    size = m4_scale(1.0f, 1.0f, 1.0f);
-    model = m4_mul(&position, &size);
+    const mat4 position = m4_transl((f32)edit->header.box.x + style->border.thickness, (f32)edit->header.box.y + style->border.thickness, 0.0f);
+    const mat4 size = m4_scale(1.0f, 1.0f, 1.0f);
+    const mat4 model = m4_mul(&position, &size);
     bind_font(edit->font);
     // ToDO: change this to work for a rotated edit
     glEnable(GL_SCISSOR_TEST);

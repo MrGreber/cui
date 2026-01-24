@@ -17,7 +17,7 @@ const static f32 vertices[] = {
     1.0f, 1.0f, 1.0f, 1.0f
 };
 
-sprite_t* new_sprite(const char* name) {
+sprite_t* new_sprite(const char* shader_name) {
     buf_t buffer = {
         .size = sizeof(sprite_t),
         .tag = MEMTAG_SPRITE,
@@ -38,7 +38,9 @@ sprite_t* new_sprite(const char* name) {
     push_f32(sprite->va, 2);
     push_buf(sprite->va, sprite->vb);
 
-    sprite->shader = new_shader(name);
+    sprite->shader = new_shader(shader_name);
+    sprite->tex = NULL;
+
     if (!sprite->shader) goto cleanup;
     return sprite;
 cleanup:
@@ -51,6 +53,7 @@ cleanup:
 
 void del_sprite(sprite_t* sprite) {
     if (!sprite) return;
+    if (sprite->tex) del_texture(sprite->tex);
     if (sprite->shader) del_shader(sprite->shader);
     if (sprite->va) del_vertex_array(sprite->va);
     if (sprite->vb) del_vertex_buffer(sprite->vb);
@@ -62,8 +65,16 @@ void del_sprite(sprite_t* sprite) {
 void bind_sprite(const sprite_t* sprite) {
     bind_vertex_array(sprite->va);
     glUseProgram(sprite->shader->id);
+    if (sprite->tex) bind_texture(sprite->tex);
+
 }
 
 void unbind_sprite(void) {
     unbind_vertex_array();
+}
+
+bool set_sprite_texture(sprite_t* sprite, const u32 width, const u32 height, style_t* style) {
+    if (!sprite || !style) return false;
+    if (!gen_texture(&sprite->tex, &(bounding_box){0, 0, width, height}, style)) return false;
+    return true;
 }

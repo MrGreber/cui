@@ -23,10 +23,10 @@ typedef struct sprite {
 
 /**
  * @brief Create a rectangle object for 2D rendering.
- * @param name
+ * @param shader_name
  * @return Pointer to the allocated rectangle object
  */
-sprite_t* new_sprite(const char* name);
+sprite_t* new_sprite(const char* shader_name);
 
 /**
  * @brief Delete an object and free its resources.
@@ -44,5 +44,7 @@ void bind_sprite(const sprite_t* sprite);
  * @brief Unbind any currently bound object.
  */
 void unbind_sprite(void);
+
+bool set_sprite_texture(sprite_t* sprite, const u32 width, const u32 height, style_t* style);
 
 #endif // OBJECT_H

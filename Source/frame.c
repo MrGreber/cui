@@ -49,6 +49,8 @@ extern void __mouse_movement_callback(GLFWwindow* window, const f64 mouse_x, con
 extern void __mouse_button_callback(GLFWwindow* window, const i32 button, const i32 action, const i32 mods);
 extern void __scroll_callback(GLFWwindow* window, const f64 x, const f64 scroll_y);
 
+#define FLAG_DEFAULT_STATE 1
+
 frame_t* new_frame(const color_t bg, const u32 width, const u32 height, const char* title) {
     buf_t buffer = {
         .size = sizeof(frame_t),
@@ -79,6 +81,7 @@ frame_t* new_frame(const color_t bg, const u32 width, const u32 height, const ch
     frame->header.box.height = height;
     frame->bg = bg;
     frame->title = (char*)title;
+    frame->flags = FLAG_DEFAULT_STATE;
 
     glfwSetKeyCallback(frame->glfw_ctx, __keyboard_callback);
     glfwSetCursorPosCallback(frame->glfw_ctx, __mouse_movement_callback);
@@ -108,14 +111,13 @@ void update_frame(const frame_t* frame) {
     const f32 time = 2.0f * glfwGetTime();
     const f32 fps = ((f32)frame_count) / time;
     frame_count++;
-    // printf("frames=%d, time=%.2f\n", frame_count, time);
 
     sprintf_s(caption, sizeof(caption), "%s-FPS: %.2f", frame->title, fps);
     glfwSetWindowTitle(frame->glfw_ctx, caption);
 
     const color_t bg = frame->bg;
     glViewport(0, 0, frame->header.box.width, frame->header.box.height);
-    // clears the canvas buffer
+    // clears the window to a color
     glClearColor(
         byte_to_float(bg.r),
         byte_to_float(bg.g),
@@ -124,4 +126,29 @@ void update_frame(const frame_t* frame) {
     );
     glClear(GL_COLOR_BUFFER_BIT);
 
+}
+void set_frame_position(frame_t* frame, const u16 x, const u16 y) {
+    if (!frame) return;
+
+    glfwSetWindowPos(frame->glfw_ctx, x, y);
+}
+
+void set_frame_flag(frame_t* frame, const frame_flag field) {
+    if (!frame) return;
+    if (sizeof(frame->flags) <= field) return;
+
+    const byte bit = 1 << field;
+    switch (field) {
+        case HIDE_FLAG: {
+            if (frame->flags & bit) {
+                glfwHideWindow(frame->glfw_ctx);
+                frame->flags ^= bit;
+            }
+            else {
+                glfwShowWindow(frame->glfw_ctx);
+                frame->flags ^= bit;
+            }
+            break;
+        }
+    }
 }

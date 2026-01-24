@@ -6,6 +6,11 @@
 #ifndef FRAME_H
 #define FRAME_H
 
+typedef enum frame_flag{
+    HIDE_FLAG
+} frame_flag;
+
+
 /**
  * @struct frame
  * @brief Represents a rendering frame or window.
@@ -18,6 +23,7 @@ typedef struct frame {
 
     color_t bg;
     void* glfw_ctx;        /**< GLFW window/context pointer */
+    byte flags;
 
     comp_t focused;
 } frame_t;
@@ -44,4 +50,6 @@ void del_frame(frame_t* frame);
  */
 void update_frame(const frame_t* frame);
 
+void set_frame_position(frame_t* frame, const u16 x, const u16 y);
+void set_frame_flag(frame_t* frame, const frame_flag field);
 #endif // FRAME_H

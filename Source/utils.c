@@ -99,9 +99,8 @@ void aligned_memset(u32* buffer, const u32 val, const u64 size) {
     }
 }
 
-bool gen_comp_texture(texture_t** out, const bounding_box* box, const style_t* style) {
+bool gen_texture(texture_t** out, const bounding_box* box, const style_t* style) {
     if (!out || !style) return false;
-
     switch (style->background.type) {
         case BG_COLOR: {
             if (!box) {
@@ -127,7 +126,6 @@ bool gen_comp_texture(texture_t** out, const bounding_box* box, const style_t* s
                 logError("gen_comp_texture - Failed to load texture.");
                 goto cleanup;
             }
-
             *out = new_texture(data, width, height);
             del_buf(&(buf_t){.ptr = (void*)data, .size = width * height * sizeof(color_t), .tag = MEMTAG_COLOR});
             if (!*out) goto cleanup;

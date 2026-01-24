@@ -59,43 +59,16 @@ void __post_error(const error_t err, const char* file, const u32 line, const cha
 		va_start(args, format);
 
 		char msg[1024] = { 0 };
-		u64 msg_length = (u64)vsprintf_s(msg, sizeof(msg), format, args);
-		if (msg_length == (u64)-1) {
-			return;
-		}
+		const u64 msg_length = (u64)vsprintf_s(msg, sizeof(msg), format, args);
+		if (msg_length == (u64)-1) return;
 		va_end(args);
 
 		char* file_name = PathFindFileNameA(file) - 1;
 		fprintf(__log_file, error_format, log_labels[err], msg, file_name, line);
-		if (__stderr_flag) {
-#if APP
-			printf(error_format, log_labels[err], msg, file_name, line);
-#else
-			char caption[8 + sizeof(PROJECT_NAME)] = PROJECT_NAME;
-			memcpy(caption + sizeof(PROJECT_NAME), log_labels[err], log_labels_lengths[err]);
+		if (__stderr_flag) printf(error_format, log_labels[err], msg, file_name, line);
 
-			const u64 path_length = strlen(file);
-
-			msg_length = path_length + msg_length + 32;
-			char* formated_msg = (char*)calloc(msg_length, sizeof(char));
-			if (formated_msg == NULL) {
-				return;
-			}
-
-			if (err == __LOG__) {
-				sprintf_s(formated_msg, msg_length, dialog_log_format, msg);
-			}
-			else {
-				sprintf_s(formated_msg, msg_length, dialog_error_format, msg, file_name, line);
-			}
-
-			MessageBoxA(NULL, formated_msg, caption, 0);
-			free(formated_msg);
-#endif
-		}
 
 		if (err > 0 && err != __LOG__) error_exit();
-
 	}
 }
 void set_exitFlag(const bool flag) {

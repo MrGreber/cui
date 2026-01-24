@@ -10,9 +10,12 @@ typedef struct panel {
     style_group_t styles;
 
     void* parent;
+    struct {
+        mat4 model;
+        u8 init;
+    } transform;
 
     sprite_t* sprite;
-    texture_t* tex;
 } panel_t;
 
 

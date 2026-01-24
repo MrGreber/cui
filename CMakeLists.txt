@@ -29,7 +29,6 @@ set_target_properties(stream_draw PROPERTIES
 )
 
 target_compile_definitions(stream_draw PRIVATE
-        APP=1
         GLFW_STATIC
         PROJECT_NAME=\"sDraw-\"
         UNICODE _UNICODE

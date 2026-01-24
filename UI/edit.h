@@ -68,9 +68,13 @@ typedef struct edit {
     void* parent;
 
     sprite_t* sprite;
-    texture_t* tex;
 
     font_t* font;
+    struct {
+        // saves the transformations
+        mat4 model;
+        u8 init;
+    } transform;
 
     struct {
         str_t* buffer;
