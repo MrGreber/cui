@@ -102,17 +102,23 @@ void del_frame(frame_t* frame) {
     del_buf(&(buf_t){.size = sizeof(frame_t), .tag = MEMTAG_FRAME, .ptr = frame});
     glfwTerminate();
 }
+
 void update_frame(const frame_t* frame) {
     if (!frame) return;
 
-    static u32 frame_count = 0;
     static char caption[64] = { 0 };
-
-    const f32 time = 2.0f * glfwGetTime();
-    const f32 fps = ((f32)frame_count) / time;
+    static u32 frame_count = 0;
+    static f64 acc = 0.0;
+    const f64 dt = get_deltaTime();
+    acc += dt;
     frame_count++;
 
-    sprintf_s(caption, sizeof(caption), "%s-FPS: %.2f", frame->title, fps);
+    if (acc >= 1.0f) {
+        const f64 fps = frame_count / acc;
+        sprintf_s(caption, sizeof(caption), "%s-FPS: %.2f", frame->title, fps);
+        acc = 0.0f;
+        frame_count = 0;
+    }
     glfwSetWindowTitle(frame->glfw_ctx, caption);
 
     const color_t bg = frame->bg;

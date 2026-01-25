@@ -15,10 +15,16 @@ void __gl_clear_error(void) {
 }
 
 
-f32 get_deltaTime(void) {
-    static f32 last = 0.0f;
-    f32 current = (f32)glfwGetTime();
-    f32 dt = current - last;
+f64 get_deltaTime(void) {
+    static f64 last = 0.0f;
+    const f64 current = glfwGetTime();
+
+    if (last == 0.0) {
+        last = current;
+        return 0.0f;
+    }
+
+    const f64 dt = current - last;
     last = current;
     return dt;
 }

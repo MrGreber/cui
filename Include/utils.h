@@ -165,7 +165,7 @@ __forceinline u64 __closest_pow2(u64 n) {
 #define byte_to_float(b) (((f32)b) * 0.0039215686274509803921568627451f)
 
 /** Get time delta between frames (implementation dependent) */
-f32 get_deltaTime(void);
+f64 get_deltaTime(void);
 
 /** Clear any OpenGL errors before a call */
 void __gl_clear_error(void);
