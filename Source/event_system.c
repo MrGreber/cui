@@ -89,15 +89,20 @@ const char* __components_strings__[] = {
     "edit"
 };
 
-void print_comp_node(comp_node_t* root) {
+void print_comp_node(comp_node_t* root, u64 indent) {
     if (!root) return;
+
+    if (indent) {
+        for (u64 i = 0; i < indent - 1; i++) putc('\t', stdout);
+    }
 
     if (root->component.tag == FRAME_COMPONENT) printf("%s[%p]\n", __components_strings__[root->component.tag], root->component.data);
     else printf("|__%s[%p]\n", __components_strings__[root->component.tag], root->component.data);
 
     for (u64 i = 0; i < root->count; i++) {
         comp_node_t* node = root->nodes[i];
-        print_comp_node(node);
+        print_comp_node(node, indent + 1);
+
     }
 }
 void dispatch_event(const comp_node_t* node, event_t* event) {

@@ -110,8 +110,10 @@ color_t* load_texture(const char* path, u32* width, u32* height) {
         return NULL;
     }
 
+
+
     buf_t buffer = {
-        .size = *width * *height * sizeof(color_t),
+        .size = (resize ? *width * *height : _width * _height) * sizeof(color_t),
         .tag = MEMTAG_COLOR
     };
     if (!new_buf(&buffer, false)) {

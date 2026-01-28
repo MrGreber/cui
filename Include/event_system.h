@@ -64,7 +64,7 @@ typedef struct component_node {
 comp_node_t* new_comp_node(void* data, const comp_tag tag);
 void del_comp_node(comp_node_t* root);
 bool push_comp_node(comp_node_t* root, void* val, const comp_tag tag);
-void print_comp_node(comp_node_t* root);
+void print_comp_node(comp_node_t* root, u64 indent);
 
 void dispatch_event(const comp_node_t* node, event_t* event);
 
