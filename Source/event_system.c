@@ -7,6 +7,10 @@
 #include <glfw3.h>
 #include <glfw3native.h>
 
+static GLFWcursor* arrow = NULL;
+static GLFWcursor* hand = NULL;
+static GLFWcursor* oval = NULL;
+
 comp_node_t* new_comp_node(void* data, const comp_tag tag) {
     buf_t buffer = {
         .size = sizeof(comp_node_t),
@@ -25,6 +29,13 @@ comp_node_t* new_comp_node(void* data, const comp_tag tag) {
     };
     if (!new_buf(&buffer, true)) goto cleanup;
     tree->nodes = buffer.ptr;
+
+    if (tag == FRAME_COMPONENT && !arrow && !hand) {
+        arrow = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
+        hand  = glfwCreateStandardCursor(GLFW_HAND_CURSOR);
+        oval = load_cursor(__DIR__"\\Resources\\oval.png", 8, 8, 4, 4);
+        glfwSetCursor(((frame_t*)data)->ctx, arrow);
+    }
 
     return tree;
 cleanup:
@@ -126,11 +137,11 @@ void dispatch_event(const comp_node_t* node, event_t* event) {
 
                 // toggles between canvas mouse curser and regular mouse curser
                 if (node->component.tag == CANVAS_COMPONENT && curser_state) {
-                    ShowCursor(false);
+                    glfwSetCursor(frame->ctx, oval);
                     curser_state = false;
                 }
                 if (node->component.tag != CANVAS_COMPONENT && !curser_state) {
-                    ShowCursor(true);
+                    glfwSetCursor(frame->ctx, arrow);
                     curser_state = true;
                 }
 

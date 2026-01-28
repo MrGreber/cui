@@ -195,4 +195,6 @@ void aligned_memset(u32* buffer, const u32 val, const u64 size);
 
 bool gen_texture(struct texture** out, const bounding_box* box, const style_t* style);
 
+void* load_cursor(const char* path, const u16 width, const u16 height, const u16 hotx, const u16 hoty);
+
 #endif //UTILS_H

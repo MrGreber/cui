@@ -101,7 +101,7 @@ void draw_texture_line(const color_t color, i32 x0, i32 y0, const i32 x1, const 
 }
 
 color_t* load_texture(const char* path, u32* width, u32* height) {
-    const bool resize = !*width && !*height;
+    const bool resize = *width != 0 && *height != 0;
 
     i32 channels = 0, _width, _height;
     byte* data = stbi_load(path, &_width, &_height, &channels, 4);
@@ -109,8 +109,6 @@ color_t* load_texture(const char* path, u32* width, u32* height) {
         logError("load_texture - Failed to load image:\n\t%s", stbi_failure_reason());
         return NULL;
     }
-    *width = _width;
-    *height = _height;
 
     buf_t buffer = {
         .size = *width * *height * sizeof(color_t),
@@ -129,7 +127,11 @@ color_t* load_texture(const char* path, u32* width, u32* height) {
             STBIR_RGBA
         );
     }
-    else memcpy(buffer.ptr, data, buffer.size);
+    else {
+        memcpy(buffer.ptr, data, buffer.size);
+        *width = _width;
+        *height = _height;
+    }
 
     stbi_image_free(data);
     data = buffer.ptr;

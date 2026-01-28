@@ -28,11 +28,11 @@ void __resize_callback(GLFWwindow* window, const i32 width, const i32 height) {
 }
 bool __check_press(const frame_t* frame, const u32 key) {
     static bool key_pressed[GLFW_KEY_LAST] = { 0 };
-    if (glfwGetKey(frame->glfw_ctx, key) == GLFW_PRESS && !key_pressed[key]) {
+    if (glfwGetKey(frame->ctx, key) == GLFW_PRESS && !key_pressed[key]) {
         key_pressed[key] = true;
         return true;
     }
-    if (glfwGetKey(frame->glfw_ctx, key) == GLFW_RELEASE) {
+    if (glfwGetKey(frame->ctx, key) == GLFW_RELEASE) {
         key_pressed[key] = false;
     }
     return false;

@@ -145,3 +145,15 @@ cleanup:
     logError("gen_comp_texture - Failed to generate component texture.");
     return false;
 }
+
+void* load_cursor(const char* path, const u16 width, const u16 height, const u16 hotx, const u16 hoty) {
+    GLFWimage img = { .width = width, .height = height };
+    img.pixels = (byte*)load_texture(path, (u32*)&img.width, (u32*)&img.height);
+    if (!img.pixels) return NULL;
+
+    GLFWcursor* cursor = glfwCreateCursor(&img, hotx, hoty);
+    if (!cursor) return NULL;
+    del_buf(&(buf_t){.ptr = (void*)img.pixels, .size = width * height * sizeof(color_t), .tag = MEMTAG_COLOR});
+
+    return cursor;
+}

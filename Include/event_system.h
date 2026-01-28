@@ -1,10 +1,9 @@
 #pragma once
-#include <defines.h>
-#include <utils.h>
 
 #ifndef EVENT_H
 #define EVENT_H
-
+#include <defines.h>
+#include <utils.h>
 
 typedef enum event_tag {
     __MOUSE_EVENT__,
@@ -62,14 +61,11 @@ typedef struct component_node {
     struct component_node** nodes;
 } comp_node_t;
 
-
-
 comp_node_t* new_comp_node(void* data, const comp_tag tag);
 void del_comp_node(comp_node_t* root);
 bool push_comp_node(comp_node_t* root, void* val, const comp_tag tag);
 void print_comp_node(comp_node_t* root);
 
 void dispatch_event(const comp_node_t* node, event_t* event);
-
 
 #endif //EVENT_H

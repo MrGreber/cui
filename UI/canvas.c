@@ -12,7 +12,7 @@ static void __default_mouse_callback(const mouse_cb_param* param) {
     canvas_t* canvas = param->instance;
     const frame_t* frame = ((comp_node_t*)canvas->header.components)->root->component.data;
 
-    if (glfwGetMouseButton(frame->glfw_ctx, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+    if (glfwGetMouseButton(frame->ctx, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
         if (canvas->transform.init & 2) {
             const mat4 rotation = m4_rotateZ(rad(canvas->camera->roll));
             const mat4 scale = m4_scale(canvas->camera->zoom, canvas->camera->zoom, 1.0f);
@@ -130,6 +130,7 @@ canvas_t* new_canvas(void* parent, const u32 width, const u32 height) {
     canvas->parent = parent;
     canvas->prev.x = -1;
     canvas->prev.y = -1;
+
 
     canvas->sprite = new_sprite("__canvas__");
     if (!canvas->sprite) goto cleanup;

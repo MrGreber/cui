@@ -36,12 +36,12 @@ app_t* new_app(const app_init_t init, const app_loop_t loop, const app_exit_t ex
 void start_app(app_t* app) {
     if (!app) return;
 
-    while (!glfwWindowShouldClose(app->frame->glfw_ctx)) {
+    while (!glfwWindowShouldClose(app->frame->ctx)) {
         update_frame(app->frame);
 
         app->loop((void*)app);
 
-        glfwSwapBuffers(app->frame->glfw_ctx);
+        glfwSwapBuffers(app->frame->ctx);
         glfwPollEvents();
     }
 }

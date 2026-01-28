@@ -61,8 +61,8 @@ frame_t* new_frame(const color_t bg, const u32 width, const u32 height, const ch
     frame_t* frame = buffer.ptr;
 
     if (!__init_glfw()) goto cleanup;
-    frame->glfw_ctx = glfwCreateWindow(width, height, title, 0, 0);
-    if (!frame->glfw_ctx) {
+    frame->ctx = glfwCreateWindow(width, height, title, 0, 0);
+    if (!frame->ctx) {
         logError("new_frame - Failed to create frame window.");
         goto cleanup;
     }
@@ -72,8 +72,8 @@ frame_t* new_frame(const color_t bg, const u32 width, const u32 height, const ch
         goto cleanup;
     }
 
-    glfwMakeContextCurrent(frame->glfw_ctx);
-    glfwSetFramebufferSizeCallback(frame->glfw_ctx, __resize_callback);
+    glfwMakeContextCurrent(frame->ctx);
+    glfwSetFramebufferSizeCallback(frame->ctx, __resize_callback);
 
     if (!__init_glad()) goto cleanup;
 
@@ -83,12 +83,12 @@ frame_t* new_frame(const color_t bg, const u32 width, const u32 height, const ch
     frame->title = (char*)title;
     frame->flags = FLAG_DEFAULT_STATE;
 
-    glfwSetKeyCallback(frame->glfw_ctx, __keyboard_callback);
-    glfwSetCursorPosCallback(frame->glfw_ctx, __mouse_movement_callback);
-    glfwSetMouseButtonCallback(frame->glfw_ctx, __mouse_button_callback);
-    glfwSetScrollCallback(frame->glfw_ctx, __scroll_callback);
+    glfwSetKeyCallback(frame->ctx, __keyboard_callback);
+    glfwSetCursorPosCallback(frame->ctx, __mouse_movement_callback);
+    glfwSetMouseButtonCallback(frame->ctx, __mouse_button_callback);
+    glfwSetScrollCallback(frame->ctx, __scroll_callback);
 
-    glfwSetWindowUserPointer(frame->glfw_ctx, frame);
+    glfwSetWindowUserPointer(frame->ctx, frame);
     return frame;
 cleanup:
     if (frame->header.components) del_comp_node(frame->header.components);
@@ -119,7 +119,7 @@ void update_frame(const frame_t* frame) {
         acc = 0.0f;
         frame_count = 0;
     }
-    glfwSetWindowTitle(frame->glfw_ctx, caption);
+    glfwSetWindowTitle(frame->ctx, caption);
 
     const color_t bg = frame->bg;
     glViewport(0, 0, frame->header.box.width, frame->header.box.height);
@@ -136,7 +136,7 @@ void update_frame(const frame_t* frame) {
 void set_frame_position(frame_t* frame, const u16 x, const u16 y) {
     if (!frame) return;
 
-    glfwSetWindowPos(frame->glfw_ctx, x, y);
+    glfwSetWindowPos(frame->ctx, x, y);
 }
 
 void set_frame_flag(frame_t* frame, const frame_flag field) {
@@ -147,11 +147,11 @@ void set_frame_flag(frame_t* frame, const frame_flag field) {
     switch (field) {
         case HIDE_FLAG: {
             if (frame->flags & bit) {
-                glfwHideWindow(frame->glfw_ctx);
+                glfwHideWindow(frame->ctx);
                 frame->flags ^= bit;
             }
             else {
-                glfwShowWindow(frame->glfw_ctx);
+                glfwShowWindow(frame->ctx);
                 frame->flags ^= bit;
             }
             break;

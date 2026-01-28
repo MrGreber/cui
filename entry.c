@@ -7,6 +7,8 @@
 #include <button.h>
 #include <canvas.h>
 
+#include "glad.h"
+
 #define WIDTH 800
 #define HEIGHT 800
 
@@ -49,7 +51,6 @@ static void __loop(app_t* app) {
     canvas_t* canvas = get_app_var(app, 0);
     panel_t* panel = get_app_var(app, 1);
 
-
     const mat4 projection = m4_ortho(0.0f, (f32)frame->header.box.width, (f32)frame->header.box.height, 0.0f, -1.0f, 1.0f);
     update_frame(frame);
 
@@ -62,7 +63,6 @@ static void __loop(app_t* app) {
     update_panel(panel, &projection, 0.0f);
     bind_canvas(canvas);
     update_canvas(canvas, &projection);
-
 }
 static void __exit(app_t* app) {
     frame_t* frame = app->frame;

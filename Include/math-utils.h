@@ -42,12 +42,16 @@ typedef union mat4 {
 } mat4;
 
 __forceinline bool m4_cmp(const mat4* A, const mat4* B, const f32 tolerance) {
+#ifndef SIMD
     for (u8 i = 0; i < 16; i++) if (fabsf(A->e[i] - B->e[i]) > tolerance) return false;
+#endif
     return true;
 }
 
 __forceinline bool m4_is_zero(const mat4* M) {
+#ifndef SIMD
     for (u8 i = 0; i < 16; i++) if (M->e[i] != 0.0f) return false;
+#endif
     return true;
 }
 
@@ -129,11 +133,13 @@ __forceinline mat4 m4_transp(const mat4* in) {
     mat4 out = { 0 };
     f32* O = out.e;
 
+#ifndef SIMD
     for (u8 i = 0; i < 4; i++) {
         for (u8 j = 0; j < 4; j++) {
             O[j + 4 * i] = I[i + 4 * j];
         }
     }
+#endif
 
     return out;
 }
@@ -221,6 +227,7 @@ __forceinline mat4 m4_inverse(const mat4* in) {
 
     mat4 out = { 0 };
     f32* O = out.e;
+#ifndef SIMD
     O[0] = inv_d * m00;
     O[1] = inv_d * m10;
     O[2] = inv_d * m20;
@@ -240,6 +247,7 @@ __forceinline mat4 m4_inverse(const mat4* in) {
     O[13] = inv_d * m13;
     O[14] = inv_d * m23;
     O[15] = inv_d * m33;
+#endif
 
     return out;
 }
@@ -247,6 +255,7 @@ __forceinline mat4 m4_inverse(const mat4* in) {
 __forceinline mat4 m4_mul(const mat4* A, const mat4* B) {
     mat4 out = { 0 };
 
+#ifndef SIMD
     for (u8 i = 0; i < 4; i++) {
             const f32 a0 = A->v[i].x;
             const f32 a1 = A->v[i].y;
@@ -258,6 +267,7 @@ __forceinline mat4 m4_mul(const mat4* A, const mat4* B) {
             out.v[i].z = a0 * B->v[0].z + a1 * B->v[1].z + a2 * B->v[2].z + a3 * B->v[3].z;
             out.v[i].w = a0 * B->v[0].w + a1 * B->v[1].w + a2 * B->v[2].w + a3 * B->v[3].w;
     }
+#endif
 
     return out;
 }
@@ -269,11 +279,12 @@ __forceinline vec4 mv4_mul(const mat4* M, const vec4* v) {
     const f32 v2 = v->z;
     const f32 v3 = v->w;
 
+#ifndef SIMD
     out.x = v0 * M->v[0].x + v1 * M->v[1].x + v2 * M->v[2].x + v3 * M->v[3].x;
     out.y = v0 * M->v[0].y + v1 * M->v[1].y + v2 * M->v[2].y + v3 * M->v[3].y;
     out.z = v0 * M->v[0].z + v1 * M->v[1].z + v2 * M->v[2].z + v3 * M->v[3].z;
     out.w = v0 * M->v[0].w + v1 * M->v[1].w + v2 * M->v[2].w + v3 * M->v[3].w;
-
+#endif
     return out;
 }
 

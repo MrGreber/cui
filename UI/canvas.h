@@ -33,7 +33,6 @@ typedef struct canvas {
         u8 init;
     } transform;
 
-
     camera_t* camera;
     sprite_t* sprite;
 } canvas_t;
