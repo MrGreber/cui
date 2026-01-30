@@ -1,2 +1,2 @@
-# SDraw
+# CUI
 A drawing application
