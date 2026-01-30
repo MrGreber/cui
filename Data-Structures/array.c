@@ -53,7 +53,7 @@ void del_array(array_t* array) {
 
 static bool __resize_array(array_t* array) {
     if (array->capacity == UINT64_MAX) {
-        logError("__resize_app_vars - Failed to resize vars app, vars reached max size %d.", UINT16_MAX);
+        logError("__resize_array - Failed to resize array, array reached max size %d.", UINT16_MAX);
         return false;
     }
 

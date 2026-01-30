@@ -66,4 +66,7 @@
  */
 #define f64 double
 
+#define uptr uintptr_t
+#define iptr intptr_t
+
 #endif // H_DEFINES

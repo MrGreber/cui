@@ -29,7 +29,9 @@ static char* mem_table_labels[__MEMTAG_COUNT__ - 1] = {
     "edit",
     "string",
     "font",
-    "vector"
+    "vector",
+    "hashmap",
+    "key-value-pair"
 };
 
 
