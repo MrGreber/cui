@@ -40,12 +40,17 @@ static void __init(app_t* app) {
     edit_t* edit = new_edit(frame, &group, &(bounding_box){0, 0, 200, 100});
     set_font(edit, __DIR__"\\Resources\\vcr_osd_mono.fnt", BLUE, TRANSP);
 
+
+
+
+
     app->frame = frame;
     push_app_var(app, edit);
     push_app_var(app, canvas);
     push_app_var(app, panel);
     print_comp_node(frame->header.components, 0);
 }
+static bool flag = true;
 static void __loop(app_t* app) {
     static f32 angle = 0.0;
     frame_t* frame = app->frame;
@@ -65,6 +70,13 @@ static void __loop(app_t* app) {
     update_panel(panel, &projection, 0.0f);
     bind_canvas(canvas);
     update_canvas(canvas, &projection);
+
+    if (flag) {
+        print_shader(panel->sprite->shader);
+        print_shader(canvas->sprite->shader);
+        print_shader(edit->sprite->shader);
+        flag = false;
+    }
 }
 static void __exit(app_t* app) {
     frame_t* frame = app->frame;
@@ -78,24 +90,26 @@ static void __exit(app_t* app) {
     del_frame(frame);
 }
 
+
 int main(void) {
     open_logging("__log__.dat", true);
     set_exitFlag(false);
 
-    // app_t* app = new_app((app_init_t)__init, (app_loop_t)__loop, (app_exit_t)__exit);
-    // start_app(app);
-    // exit_app(app);
+    app_t* app = new_app((app_init_t)__init, (app_loop_t)__loop, (app_exit_t)__exit);
+    start_app(app);
+    exit_app(app);
 
-    hmap_t* map = new_hmap(0, 0);
-    kvp_t pair = new_kvp(cast_u64("shit"), 5, false, 7, 4, false);
-    insert_hmap(map, &pair);
-    pair = new_kvp(9, 4, false, 7, 4, false);
-    insert_hmap(map, &pair);
-    print_hmap(map, 0);
+    // hmap_t* map = new_hmap(0, 0);
+    // kvp_t pair = new_kvp(cast_u64("shit"), 5, false, 7, 4, false);
+    // insert_hmap(map, &pair);
+    // insert_hmap(map, &pair);
+    // pair = new_kvp(9, 4, false, 7, 4, false);
+    // insert_hmap(map, &pair);
+    //print_hmap(map, 0);
 
-    kvp_t* ptr = search_hmap(map, cast_u64("shit"), 5);
-    print_kvp(ptr);
-    del_hmap(map);
+    // kvp_t* ptr = search_hmap(map, cast_u64("shit"), 5);
+    // print_kvp(ptr);
+    // del_hmap(map);
 
     set_exitFlag(true);
     close_logging();

@@ -10,10 +10,23 @@
  *
  * Stores the name of the uniform and its location in the shader program.
  */
+#define MAX_UNIFORM_NAME 32
 typedef struct uniform {
-    char name[32];   /**< Uniform variable name (max 31 chars + null terminator) */
-    u32 location;    /**< Location of the uniform in the shader program */
+    char name[MAX_UNIFORM_NAME];   /**< Uniform variable name (max 31 chars + null terminator) */
+    i32 location;    /**< Location of the uniform in the shader program */
+    struct uniform* next;
 } uniform_t;
+
+typedef struct uniform_map {
+    uniform_t* elem;
+
+    struct {
+        u64 count;
+        u64 capacity;
+        uniform_t* elem;
+    } collisions;
+} unimap_t;
+
 
 /**
  * @struct shader
@@ -23,6 +36,7 @@ typedef struct uniform {
  */
 typedef struct shader {
     u32 id; /**< OpenGL shader program ID */
+    unimap_t* map;
 } shader_t;
 
 /**
@@ -75,5 +89,7 @@ bool set_vec2_uniform_array(const shader_t* shad, const char* var, const u32 cou
 
 bool set_vec4_uniform_array(const shader_t* shad, const char* var, const u32 count, const f32* elements);
 #define set_vec4_uniform(shad, var, elements) set_vec4_uniform_array(shad, var, 1, elements)
+
+void print_shader(shader_t* shad);
 
 #endif // SHADER_H

@@ -111,24 +111,49 @@ bool insert_hmap(hmap_t* map, const kvp_t* src) {
     if (!map || !src) return false;
     if (4 * map->collisions.count >= 3 * map->collisions.capacity && !__resize_hashmap(map)) return false;
 
-    void* ptr;
+    u8* ptr;
     if (src->key.size <= sizeof(uptr)) ptr = (u8*)&src->key.ptr;
-    else ptr = (void*)src->key.ptr;
+    else ptr = (u8*)src->key.ptr;
 
     const u64 index = map->func(ptr, src->key.size) & (map->collisions.capacity - 1);
     kvp_t* dst = &map->elem[index];
-    if (!dst->init) {
+    u8* pair_ptr = dst->key.size <= sizeof(void*) ? (u8*)&dst->key.ptr : (u8*)dst->key.ptr;
+    if (
+        dst->key.size == src->key.size &&
+        pair_ptr[0] == ptr[0] &&
+        !memcmp(ptr, pair_ptr, src->key.size)
+    ) dst->value = src->value;
+
+    else if (!dst->init) {
         memcpy(dst, src, sizeof(kvp_t));
         dst->init |= 1;
     }
     else {
         kvp_t* cur = dst;
-        kvp_t* next = &map->collisions.elem[map->collisions.count++];
+        while (
+            cur->next &&
+            (
+                cur->key.size != src->key.size ||
+                pair_ptr[0] != ptr[0] ||
+                memcmp(ptr, pair_ptr, src->key.size)
+            )
+        ) {
+            cur = cur->next;
+            pair_ptr = dst->key.size <= sizeof(void*) ? (u8*)&dst->key.ptr : (u8*)dst->key.ptr;
+        }
 
-        while (cur->next) cur = cur->next;
-        memcpy(next, src, sizeof(kvp_t));
-        next->init |= 1;
-        cur->next = next;
+        if (
+            cur->key.size != src->key.size ||
+            pair_ptr[0] != ptr[0] ||
+            memcmp(ptr, pair_ptr, src->key.size)
+        ) {
+            kvp_t* next = &map->collisions.elem[map->collisions.count++];
+            memcpy(next, src, sizeof(kvp_t));
+            next->init |= 1;
+            cur->next = next;
+        }
+        else cur->value = src->value;
+
     }
 
     return true;

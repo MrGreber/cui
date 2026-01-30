@@ -37,11 +37,10 @@ typedef struct hashmap {
     hash_function func;
 
     struct {
-        kvp_t* elem;
-        u64 capacity;
         u64 count;
+        u64 capacity;
+        kvp_t* elem;
     } collisions;
-
 } hmap_t;
 
 hmap_t* new_hmap(u64 capacity, hash_function func);
