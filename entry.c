@@ -30,8 +30,6 @@ static void __init(app_t* app) {
             }
         }
     };
-
-
     panel_t* panel = new_panel(frame, &group, &(bounding_box){200, 100, 600, 600});
     canvas_t* canvas = new_canvas(panel, 400, 600);
     set_brush(canvas, RED, 1);
@@ -39,10 +37,6 @@ static void __init(app_t* app) {
     group.normal.background.color = WHITE;
     edit_t* edit = new_edit(frame, &group, &(bounding_box){0, 0, 200, 100});
     set_font(edit, __DIR__"\\Resources\\vcr_osd_mono.fnt", BLUE, TRANSP);
-
-
-
-
 
     app->frame = frame;
     push_app_var(app, edit);
@@ -98,18 +92,6 @@ int main(void) {
     app_t* app = new_app((app_init_t)__init, (app_loop_t)__loop, (app_exit_t)__exit);
     start_app(app);
     exit_app(app);
-
-    // hmap_t* map = new_hmap(0, 0);
-    // kvp_t pair = new_kvp(cast_u64("shit"), 5, false, 7, 4, false);
-    // insert_hmap(map, &pair);
-    // insert_hmap(map, &pair);
-    // pair = new_kvp(9, 4, false, 7, 4, false);
-    // insert_hmap(map, &pair);
-    //print_hmap(map, 0);
-
-    // kvp_t* ptr = search_hmap(map, cast_u64("shit"), 5);
-    // print_kvp(ptr);
-    // del_hmap(map);
 
     set_exitFlag(true);
     close_logging();

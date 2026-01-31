@@ -13,20 +13,6 @@ static void __default_mouse_callback(const mouse_cb_param* param) {
     const frame_t* frame = ((comp_node_t*)canvas->header.components)->root->component.data;
 
     if (glfwGetMouseButton(frame->ctx, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
-        if (canvas->transform.init & 2) {
-            const mat4 rotation = m4_rotateZ(rad(canvas->camera->roll));
-            const mat4 scale = m4_scale(canvas->camera->zoom, canvas->camera->zoom, 1.0f);
-            const mat4 position = m4_transl(canvas->camera->position.x, canvas->camera->position.y, 0.0f);
-            const mat4 size = m4_transl((f32)canvas->dim.width * 0.5f, (f32)canvas->dim.height * 0.5f, 0.0f);
-            const mat4 inv_size = m4_transl(-(f32)canvas->dim.width * 0.5f, -(f32)canvas->dim.height * 0.5f, 0.0f);
-            canvas->transform.inv_model = m4_mul(&position, &size);
-            canvas->transform.inv_model = m4_mul(&canvas->transform.inv_model, &rotation);
-            canvas->transform.inv_model = m4_mul(&canvas->transform.inv_model, &inv_size);
-            canvas->transform.inv_model = m4_mul(&canvas->transform.inv_model, &scale);
-            canvas->transform.inv_model = m4_inverse(&canvas->transform.inv_model);
-            canvas->transform.inv_model = m4_transp(&canvas->transform.inv_model);
-            canvas->transform.init ^= 2;
-        }
         vec4 mpos = {param->x, param->y, 0.0f, 1.0f};
         mpos = mv4_mul(&canvas->transform.inv_model, &mpos);
 
@@ -97,9 +83,15 @@ static void __default_scroll_callback(const scroll_cb_param* param) {
     const frame_t* frame = ((comp_node_t*)canvas->header.components)->root->component.data;
     camera_t* camera = canvas->camera;
 
-    const f32 s = tanhf(param->delta);
-    camera->zoom -= (f32)s;
-    if (camera->zoom < 0.5f) camera->zoom = 0.5f;
+#ifndef ZOOM_SPEED
+#define ZOOM_SPEED 0.15f
+    const f32 factor = expf(param->delta * ZOOM_SPEED);
+#undef ZOOM_SPEED
+#else
+#error For some reason your dumbass also decided to define this macro why do you have to make me want to shove a shotgun barrel up my mouth
+#endif
+    camera->zoom *= factor;
+    if (camera->zoom < 0.5f)  camera->zoom = 0.5f;
     if (camera->zoom > 100.0f) camera->zoom = 100.0f;
 
     canvas->transform.init |= 3;
@@ -170,19 +162,26 @@ void set_brush(canvas_t* canvas, const color_t color, const f32 size) {
 void update_canvas(canvas_t* canvas, const mat4* projection) {
     if (!canvas) return;
     const frame_t* frame = ((comp_node_t*)canvas->header.components)->root->component.data;
-    if (canvas->transform.init & 1) {
+    if (canvas->transform.init == 3) {
         const mat4 rotation = m4_rotateZ(rad(canvas->camera->roll));
-        const mat4 scale = m4_scale(canvas->camera->zoom * (f32)canvas->dim.width, canvas->camera->zoom * (f32)canvas->dim.height, 1.0f);
-        const mat4 position = m4_transl(canvas->camera->position.x, canvas->camera->position.y, 0.0f);
+        const mat4 position = m4_transl(canvas->camera->position.x + canvas->header.box.x, canvas->camera->position.y + canvas->header.box.y, 0.0f);
         const mat4 size = m4_transl((f32)canvas->dim.width * 0.5f, (f32)canvas->dim.height * 0.5f, 0.0f);
         const mat4 inv_size = m4_transl(-(f32)canvas->dim.width * 0.5f, -(f32)canvas->dim.height * 0.5f, 0.0f);
 
+        const mat4 scale = m4_scale(canvas->camera->zoom * (f32)canvas->dim.width, canvas->camera->zoom * (f32)canvas->dim.height, 1.0f);
+        const mat4 inv_scale = m4_scale(canvas->camera->zoom, canvas->camera->zoom, 1.0f);
         canvas->transform.model = m4_mul(&position, &size);
         canvas->transform.model = m4_mul(&canvas->transform.model, &rotation);
         canvas->transform.model = m4_mul(&canvas->transform.model, &inv_size);
+
+        canvas->transform.inv_model = m4_mul(&canvas->transform.model, &inv_scale);
         canvas->transform.model = m4_mul(&canvas->transform.model, &scale);
-        canvas->transform.init ^= 1;
+
+        canvas->transform.inv_model = m4_inverse(&canvas->transform.inv_model);
+        canvas->transform.inv_model = m4_transp(&canvas->transform.inv_model);
+        canvas->transform.init ^= 3;
     }
+
     set_mat4_uniform(canvas->sprite->shader, "projection", true, projection->e);
     set_mat4_uniform(canvas->sprite->shader, "model", true, canvas->transform.model.e);
 
