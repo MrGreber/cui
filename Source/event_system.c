@@ -7,18 +7,11 @@
 #include <glfw3.h>
 #include <glfw3native.h>
 
+#include "edit.h"
+
 
 static GLFWcursor* __cursors[__COMPONENT_TAG_COUNT__] = { 0 };
 #define __get_comp_cursor(tag) __cursors[tag]
-// static GLFWcursor* __get_component_cursor(const comp_tag tag) {
-//     switch (tag) {
-//         case PANEL_COMPONENT:
-//         case FRAME_COMPONENT:
-//             return __cursors[0];
-//         default:
-//             return __cursors[tag - 1];
-//     }
-// }
 
 comp_node_t* new_comp_node(void* data, const comp_tag tag) {
     buf_t buffer = {
@@ -154,6 +147,8 @@ void dispatch_event(const comp_node_t* node, event_t* event) {
             if (!flag) {
                 const comp_header_t* header = get_header(node->component.data);
                 if (triggered) {
+                    if (frame->focused.tag == EDIT_COMPONENT) unfocus_edit(frame->focused.data);
+
                     frame->focused.data = node->component.data;
                     frame->focused.tag = node->component.tag;
                 }

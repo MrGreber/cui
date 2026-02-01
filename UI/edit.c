@@ -282,6 +282,10 @@ static void push_glyph_quad(font_t* font, const glyph_t* g, const f32 pen_x, con
 cleanup:
     logError("push_quad - Failed to resize text mesh.");
 }
+static void pop_glyph_quad(font_t* font) {
+    if (font->mesh.count > 0) font->mesh.count--;
+}
+
 static void build_text_mesh(font_t* font, const void* text, f32 start_x, f32 start_y) {
     // TODO: optimize this function,
     // every AI I know of is dumb enough to not understand how to do it even though
@@ -355,6 +359,10 @@ static void build_text_mesh(font_t* font, const void* text, f32 start_x, f32 sta
 static void __default_mouse_callback(const mouse_cb_param* param) {
     const edit_t* edit = param->instance;
     const frame_t* frame = ((comp_node_t*)edit->header.components)->root->component.data;
+
+    if (param->action == GLFW_PRESS) {
+        build_text_mesh(edit->font, &edit->text, 0.0, 0.0);
+    }
 }
 static void __default_keyboard_callback(const keyboard_cb_param* param) {
     edit_t* edit = param->instance;
@@ -430,6 +438,10 @@ static void __default_resize_callback(const resize_cb_param* param) {
     // comp_header_t* header = get_header(edit->parent);
     // edit->header.box.width += param->width;
     // edit->header.box.height += param->height;
+}
+
+void unfocus_edit(edit_t* edit) {
+    pop_glyph_quad(edit->font);
 }
 
 edit_t* new_edit(void* parent, const style_group_t* group, const bounding_box* box) {
@@ -509,6 +521,8 @@ void set_font(edit_t* edit, const char* path, const color_t fg, const color_t bg
  exit_set_font:;
 }
 void update_edit(edit_t* edit, const mat4* projection, const f32 angle) {
+    static bool flag = true;
+
     if (!edit) return;
     const frame_t* frame = ((comp_node_t*)edit->header.components)->root->component.data;
     const font_t* font = edit->font;
@@ -538,6 +552,14 @@ void update_edit(edit_t* edit, const mat4* projection, const f32 angle) {
     set_vec2_uniform(edit->sprite->shader, "size", dim.e);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
+    // if (flag) {
+    //     edit->font->mesh.count--;
+    //     flag = false;
+    // }
+    // else {
+    //     edit->font->mesh.count++;
+    //     flag = true;
+    // }
     // draw the text mesh
     const mat4 position = m4_transl((f32)edit->header.box.x + style->border.thickness, (f32)edit->header.box.y + style->border.thickness, 0.0f);
     const mat4 size = m4_scale(1.0f, 1.0f, 1.0f);

@@ -34,7 +34,7 @@ static void __init(app_t* app) {
     canvas_t* canvas = new_canvas(panel, 400, 600);
     set_brush(canvas, RED, 1);
 
-    group.normal.background.color = WHITE;
+    //group.normal.background.color = WHITE;
     edit_t* edit = new_edit(frame, &group, &(bounding_box){0, 0, 200, 100});
     set_font(edit, __DIR__"\\Resources\\vcr_osd_mono.fnt", BLUE, TRANSP);
 

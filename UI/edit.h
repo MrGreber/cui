@@ -87,5 +87,6 @@ void del_edit(edit_t* edit);
 void bind_edit(const edit_t* edit);
 void set_font(edit_t* edit, const char* path, const color_t fg, const color_t bg);
 void update_edit(edit_t* edit, const mat4* projection, const f32 angle);
+void unfocus_edit(edit_t* edit);
 
 #endif //EDIT_H
