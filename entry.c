@@ -44,7 +44,7 @@ static void __init(app_t* app) {
     push_app_var(app, panel);
     print_comp_node(frame->header.components, 0);
 }
-static bool flag = true;
+
 static void __loop(app_t* app) {
     static f32 angle = 0.0;
     frame_t* frame = app->frame;
@@ -64,13 +64,6 @@ static void __loop(app_t* app) {
     update_panel(panel, &projection, 0.0f);
     bind_canvas(canvas);
     update_canvas(canvas, &projection);
-
-    if (flag) {
-        print_shader(panel->sprite->shader);
-        print_shader(canvas->sprite->shader);
-        print_shader(edit->sprite->shader);
-        flag = false;
-    }
 }
 static void __exit(app_t* app) {
     frame_t* frame = app->frame;

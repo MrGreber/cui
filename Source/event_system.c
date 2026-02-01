@@ -7,9 +7,18 @@
 #include <glfw3.h>
 #include <glfw3native.h>
 
-static GLFWcursor* arrow = NULL;
-static GLFWcursor* hand = NULL;
-static GLFWcursor* oval = NULL;
+
+static GLFWcursor* __cursors[__COMPONENT_TAG_COUNT__] = { 0 };
+#define __get_comp_cursor(tag) __cursors[tag]
+// static GLFWcursor* __get_component_cursor(const comp_tag tag) {
+//     switch (tag) {
+//         case PANEL_COMPONENT:
+//         case FRAME_COMPONENT:
+//             return __cursors[0];
+//         default:
+//             return __cursors[tag - 1];
+//     }
+// }
 
 comp_node_t* new_comp_node(void* data, const comp_tag tag) {
     buf_t buffer = {
@@ -30,11 +39,13 @@ comp_node_t* new_comp_node(void* data, const comp_tag tag) {
     if (!new_buf(&buffer, true)) goto cleanup;
     tree->nodes = buffer.ptr;
 
-    if (tag == FRAME_COMPONENT && !arrow && !hand) {
-        arrow = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
-        hand  = glfwCreateStandardCursor(GLFW_HAND_CURSOR);
-        oval = load_cursor(__DIR__"\\Resources\\oval.png", 8, 8, 4, 4);
-        glfwSetCursor(((frame_t*)data)->ctx, arrow);
+    if (tag == FRAME_COMPONENT && !__cursors[0]) {
+        __cursors[0] = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
+        __cursors[1] = __cursors[0];
+        __cursors[2] = glfwCreateStandardCursor(GLFW_HAND_CURSOR);
+        __cursors[3] = glfwCreateStandardCursor(GLFW_IBEAM_CURSOR);
+        __cursors[4] = load_cursor(__DIR__"\\Resources\\oval.png", 8, 8, 4, 4);
+        glfwSetCursor(((frame_t*)data)->ctx, __cursors[0]);
     }
 
     return tree;
@@ -48,6 +59,13 @@ void del_comp_node(comp_node_t* root) {
     for (u64 i = 0; i < root->count; i++) del_comp_node(root->nodes[i]);
     del_buf(&(buf_t){.size = root->capacity * sizeof(comp_node_t*), .tag = MEMTAG_POINTER, .ptr = root->nodes});
     del_buf(&(buf_t){.size = sizeof(comp_node_t), .tag = MEMTAG_COMPONENT_NODE, .ptr = root});
+
+    for (u16 i = 1; i < __COMPONENT_TAG_COUNT__; i++) {
+        if (__cursors[i]) {
+            glfwDestroyCursor(__cursors[i]);
+            __cursors[i] = NULL;
+        }
+    }
 }
 static bool __resize_tree(comp_node_t* root) {
     const u64 new_cap = root->capacity << 1;
@@ -140,14 +158,11 @@ void dispatch_event(const comp_node_t* node, event_t* event) {
                     frame->focused.tag = node->component.tag;
                 }
 
-                // toggles between canvas mouse curser and regular mouse curser
-                if (node->component.tag == CANVAS_COMPONENT && curser_state) {
-                    glfwSetCursor(frame->ctx, oval);
-                    curser_state = false;
-                }
-                if (node->component.tag != CANVAS_COMPONENT && !curser_state) {
-                    glfwSetCursor(frame->ctx, arrow);
-                    curser_state = true;
+                // toggles between different cursors for each component
+                GLFWcursor* desired = __get_comp_cursor(node->component.tag);
+                if (frame->cursor != desired) {
+                    glfwSetCursor(frame->ctx, desired);
+                    frame->cursor = desired;
                 }
 
                 if (!header || !header->mouse) return;

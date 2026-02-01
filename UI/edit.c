@@ -287,7 +287,7 @@ static void build_text_mesh(font_t* font, const void* text, f32 start_x, f32 sta
     // every AI I know of is dumb enough to not understand how to do it even though
     // the optimization is hella simple I mean I tried to do it myself for 2 times in a row
     // however it failed but I got close since I was able to render the text mesh semi correct and I know how to optimize
-    // so i will try again tomorrow
+    // so i will try again sometime
 
     const struct {
         str_t* buffer;

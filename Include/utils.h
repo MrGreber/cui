@@ -39,12 +39,12 @@ typedef union color {
 
 typedef enum component_tag {
     FRAME_COMPONENT,
-    CANVAS_COMPONENT,
-    BUTTON_COMPONENT,
     PANEL_COMPONENT,
-    EDIT_COMPONENT
+    BUTTON_COMPONENT,
+    EDIT_COMPONENT,
+    CANVAS_COMPONENT,
+    __COMPONENT_TAG_COUNT__
 } comp_tag;
-
 
 typedef enum background_type {
     BG_NONE,

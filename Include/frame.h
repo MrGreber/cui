@@ -23,6 +23,7 @@ typedef struct frame {
 
     color_t bg;
     void* ctx;        /**< GLFW window/context pointer */
+    void* cursor;
     byte flags;
 
     comp_t focused;
