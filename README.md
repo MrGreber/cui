@@ -44,18 +44,6 @@ In progress...
 Most UI frameworks hide you behind layers of abstraction.  
 With CUI, you get **performance, control, and simplicity** — everything a C programmer could dream of.
 
----
-
-## 🛠️ Roadmap
-
-- [x] Core components (button, canvas, edit, panel)
-- [x] Event handling system
-- [ ] Theming support
-- [ ] Advanced layout engine
-- [ ] Cross-platform rendering backend
-
----
-
 ## 📜 License
 
 This project is licensed under the **Apache License 2.0**. See the [LICENSE](LICENSE) file for details.
