@@ -44,7 +44,7 @@ static void __init(app_t* app) {
     push_app_var(app, panel);
     print_comp_node(frame->header.components, 0);
 }
-
+static bool flag = true;
 static void __loop(app_t* app) {
     static f32 angle = 0.0;
     frame_t* frame = app->frame;
@@ -53,17 +53,22 @@ static void __loop(app_t* app) {
     panel_t* panel = get_app_var(app, 2);
 
     const mat4 projection = m4_ortho(0.0f, (f32)frame->header.box.width, (f32)frame->header.box.height, 0.0f, -1.0f, 1.0f);
-    update_frame(frame);
+    f64 dt = update_frame(frame);
 
     // angle += 0.5f;
     // if (angle >= 360.0f) angle -= 360.0f;
 
     bind_edit(edit);
-    update_edit(edit, &projection, 0.0f);
+    update_edit(edit, &projection, 0.0f, dt);
     bind_panel(panel);
     update_panel(panel, &projection, 0.0f);
     bind_canvas(canvas);
     update_canvas(canvas, &projection);
+
+    if (flag) {
+        print_shader(edit->font->shader);
+        flag = false;
+    }
 }
 static void __exit(app_t* app) {
     frame_t* frame = app->frame;
@@ -76,6 +81,7 @@ static void __exit(app_t* app) {
     del_canvas(canvas);
     del_frame(frame);
 }
+
 
 
 int main(void) {

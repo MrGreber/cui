@@ -67,7 +67,8 @@ cleanup:
 
 
 
-#define DEFAULT_CAPACITY 256
+#define UNIMAP_END UINT32_MAX
+#define DEFAULT_CAPACITY 16
 static u64 __unimap_hash_function(const char* var, const u8 length) {
     u64 hash = 1469598103934665603ULL;
 
@@ -77,7 +78,6 @@ static u64 __unimap_hash_function(const char* var, const u8 length) {
     }
     return hash;
 }
-
 static bool __new_uniform_map(shader_t* shader) {
     buf_t buffer = {
         .size = sizeof(unimap_t),
@@ -121,50 +121,59 @@ static bool __resize_unimap(unimap_t* map) {
         .tag = MEMTAG_KEY_VALUE_PAIR
     };
     if (!renew_buf(&buffer, new_capacity * sizeof(uniform_t))) return false;
-
     map->collisions.elem =  buffer.ptr;
     map->collisions.capacity = new_capacity;
 
     return true;
 }
 
-static bool __insert_unimap(unimap_t* map, const char* var, const u8 length, const i32 location) {
-    if (4 * map->collisions.count >= 3 * map->collisions.capacity && !__resize_unimap(map)) return false;
+static bool __insert_unimap(unimap_t* map, const char* name, const u8 length, const i32 location) {
+    if (map->collisions.count == map->collisions.capacity && !__resize_unimap(map)) return false;
 
     const u8 min = length > MAX_UNIFORM_NAME ? MAX_UNIFORM_NAME : length;
-    const u64 index = __unimap_hash_function(var, length) & (map->collisions.capacity - 1);
+    const u64 index = __unimap_hash_function(name, length) & (DEFAULT_CAPACITY - 1);
     uniform_t* dst = &map->elem[index];
-    if (dst->name[0] == var[0] && !memcmp(dst->name, var, min)) dst->location = location;
+
+    if (dst->name[0] == name[0] && !memcmp(dst->name, name, min)) dst->location = location;
     else if (!dst->name[0]) {
-        memcpy(dst->name, var, min);
+        memcpy(dst->name, name, min);
         dst->location = location;
+        dst->next_index = UNIMAP_END;
     }
     else {
         uniform_t* cur = dst;
-        while (cur->next && (cur->name[0] != var[0] || memcmp(cur->name, var, min))) cur = cur->next;
+        while (
+            cur->next_index != UNIMAP_END && // checks for initialization of the next node
+            (cur->name[0] != name[0] || memcmp(cur->name, name, min) != 0)
+        ) cur = &map->collisions.elem[cur->next_index];
 
-        if (cur->name[0] != var[0] && memcmp(dst->name, var, min)) {
+        if (cur->name[0] != name[0] || memcmp(cur->name, name, min) != 0) {
+            cur->next_index = map->collisions.count;
             uniform_t* next = &map->collisions.elem[map->collisions.count++];
-            memcpy(next->name, var, min);
+            memcpy(next->name, name, min);
             next->location = location;
-            cur->next = next;
+            next->next_index = UNIMAP_END;
         }
         else cur->location = location;
     }
     return true;
 }
-
-static i32 __search_unimap(unimap_t* map, const char* var, const u8 length) {
-    if (!map || !var || !length) return -1;
+static i32 __search_unimap(unimap_t* map, const char* name, const u8 length) {
+    if (!map || !name || !length) return -1;
 
     const u8 min = length > MAX_UNIFORM_NAME ? MAX_UNIFORM_NAME : length;
-    const u64 index = __unimap_hash_function(var, length) & (map->collisions.capacity - 1);
+    const u64 index = __unimap_hash_function(name, length) & (map->collisions.capacity - 1);
 
-    uniform_t* uniform = &map->elem[index];
-    if (!uniform->name[0]) return -1;
+    uniform_t* cur = &map->elem[index];
+    if (!cur->name[0]) return -1;
 
-    while (uniform->name[0] != var[0] || memcmp(uniform->name, var, min)) uniform = uniform->next;
-    return uniform->location;
+    while (
+        cur->next_index != UNIMAP_END && // checks for initialization of the next node
+        (cur->name[0] != name[0] || memcmp(cur->name, name, min) != 0)
+    ) cur = &map->collisions.elem[cur->next_index];
+
+    if (cur->name[0] != name[0] || memcmp(cur->name, name, min) != 0) return -1;
+    else return cur->location;
 }
 
 static void __del_unimap(unimap_t* map) {
@@ -183,7 +192,7 @@ static void __print_unimap(unimap_t* map) {
     }
     for (u64 i = 0; i < map->collisions.count; i++) {
         const uniform_t* uniform = &map->collisions.elem[i];
-        if (uniform->name[0]) printf("\t%.32s: %d\n", uniform->name, uniform->location);
+        if (uniform->name[0]) printf("\t[coll]%-.32s: %d\n", uniform->name, uniform->location);
     }
 }
 
@@ -227,26 +236,24 @@ void del_shader(shader_t* shad) {
 }
 
 
-static i32 __get_uniform_location(unimap_t* map, const u32 id, const char* var) {
-    const u64 length = strlen(var);
-    i32 location = __search_unimap(map, var, length);
+static i32 __get_uniform_location(unimap_t* map, const u32 id, const char* name) {
+    const u64 length = strlen(name);
+    i32 location = __search_unimap(map, name, length);
 
     if (map && location == -1) {
-        location = glGetUniformLocation(id, var);
+        location = glGetUniformLocation(id, name);
         if (location == -1) {
-            logFatal("__get_uniform_location - Failed to find uniform: %s.", var);
+            logFatal("__get_uniform_location - Failed to find uniform: %s.", name);
             return -1;
         }
 
-        if (!__insert_unimap(map, var, length, location)) return -1;
-        // printf("shader[%d]:\n", id);
-        // __print_unimap(map);
+        if (!__insert_unimap(map, name, length, location)) return -1;
     }
 
     return location;
 }
-bool set_mat4_uniform_array(const shader_t* shad, const char* var, const u32 count, const bool transpose, const f32* elements) {
-    const i32 location = __get_uniform_location(shad->map, shad->id, var);
+bool set_mat4_uniform_array(const shader_t* shad, const char* name, const u32 count, const bool transpose, const f32* elements) {
+    const i32 location = __get_uniform_location(shad->map, shad->id, name);
     if (location == -1) return false;
 
     glcall(glUniformMatrix4fv(location, count, transpose, elements), cleanup, "set_mat4_uniform_array - Failed to set matrix uniform.");
@@ -254,8 +261,8 @@ bool set_mat4_uniform_array(const shader_t* shad, const char* var, const u32 cou
 cleanup:
     return false;
 }
-bool set_float_uniform(const shader_t* shad, const char* var, const f32 v) {
-    const i32 location = __get_uniform_location(shad->map, shad->id, var);
+bool set_float_uniform(const shader_t* shad, const char* name, const f32 v) {
+    const i32 location = __get_uniform_location(shad->map, shad->id, name);
     if (location == -1) return false;
 
     glcall(glUniform1f(location, v), cleanup, "set_float_uniform - Failed to set float uniform.");
@@ -264,8 +271,8 @@ cleanup:
     return false;
 }
 
-bool set_vec2_uniform_array(const shader_t* shad, const char* var, const u32 count, const f32* elements) {
-    const i32 location = __get_uniform_location(shad->map, shad->id, var);
+bool set_vec2_uniform_array(const shader_t* shad, const char* name, const u32 count, const f32* elements) {
+    const i32 location = __get_uniform_location(shad->map, shad->id, name);
     if (location == -1) return false;
 
     glcall(glUniform2fv(location, count, elements), cleanup, "set_vec2_uniform_array - Failed to set float uniform.");
@@ -274,8 +281,8 @@ cleanup:
     return false;
 }
 
-bool set_vec4_uniform_array(const shader_t* shad, const char* var, const u32 count, const f32* elements) {
-    const i32 location = __get_uniform_location(shad->map, shad->id, var);
+bool set_vec4_uniform_array(const shader_t* shad, const char* name, const u32 count, const f32* elements) {
+    const i32 location = __get_uniform_location(shad->map, shad->id, name);
     if (location == -1) return false;
 
     glcall(glUniform4fv(location, count, elements), cleanup, "set_vec4_uniform_array - Failed to set float uniform.");

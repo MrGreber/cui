@@ -147,8 +147,6 @@ void dispatch_event(const comp_node_t* node, event_t* event) {
             if (!flag) {
                 const comp_header_t* header = get_header(node->component.data);
                 if (triggered) {
-                    if (frame->focused.tag == EDIT_COMPONENT) unfocus_edit(frame->focused.data);
-
                     frame->focused.data = node->component.data;
                     frame->focused.tag = node->component.tag;
                 }

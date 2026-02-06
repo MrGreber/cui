@@ -115,7 +115,7 @@ bool insert_hmap(hmap_t* map, const kvp_t* src) {
     if (src->key.size <= sizeof(uptr)) ptr = (u8*)&src->key.ptr;
     else ptr = (u8*)src->key.ptr;
 
-    const u64 index = map->func(ptr, src->key.size) & (map->collisions.capacity - 1);
+    const u64 index = map->func(ptr, src->key.size) & (DEFAULT_CAPACITY - 1);
     kvp_t* dst = &map->elem[index];
     u8* pair_ptr = dst->key.size <= sizeof(void*) ? (u8*)&dst->key.ptr : (u8*)dst->key.ptr;
     if (
@@ -139,7 +139,7 @@ bool insert_hmap(hmap_t* map, const kvp_t* src) {
             )
         ) {
             cur = cur->next;
-            pair_ptr = dst->key.size <= sizeof(void*) ? (u8*)&dst->key.ptr : (u8*)dst->key.ptr;
+            pair_ptr = cur->key.size <= sizeof(void*) ? (u8*)&cur->key.ptr : (u8*)dst->key.ptr;
         }
 
         if (
@@ -153,7 +153,6 @@ bool insert_hmap(hmap_t* map, const kvp_t* src) {
             cur->next = next;
         }
         else cur->value = src->value;
-
     }
 
     return true;

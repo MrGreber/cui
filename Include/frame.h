@@ -49,7 +49,7 @@ void del_frame(frame_t* frame);
  * @brief Update the frame (swap buffers, poll events, etc.)
  * @param frame Pointer to the frame to update
  */
-void update_frame(const frame_t* frame);
+f64 update_frame(const frame_t* frame);
 
 void set_frame_position(frame_t* frame, const u16 x, const u16 y);
 void set_frame_flag(frame_t* frame, const frame_flag field);

@@ -440,10 +440,6 @@ static void __default_resize_callback(const resize_cb_param* param) {
     // edit->header.box.height += param->height;
 }
 
-void unfocus_edit(edit_t* edit) {
-    pop_glyph_quad(edit->font);
-}
-
 edit_t* new_edit(void* parent, const style_group_t* group, const bounding_box* box) {
     buf_t buffer = {
         .size = sizeof(edit_t),
@@ -520,7 +516,9 @@ void set_font(edit_t* edit, const char* path, const color_t fg, const color_t bg
     edit->font->fg = fg;
  exit_set_font:;
 }
-void update_edit(edit_t* edit, const mat4* projection, const f32 angle) {
+#define CLOCK_TIME 0.02
+void update_edit(edit_t* edit, const mat4* projection, const f32 angle, const f64 delta) {
+    static f64 clock = CLOCK_TIME;
     static bool flag = true;
 
     if (!edit) return;
@@ -543,7 +541,6 @@ void update_edit(edit_t* edit, const mat4* projection, const f32 angle) {
         edit->transform.model = m4_mul(&edit->transform.model, &scale);
         edit->transform.init ^= 1;
     }
-
     set_mat4_uniform(edit->sprite->shader, "projection", true, projection->e);
     set_mat4_uniform(edit->sprite->shader, "model", true, edit->transform.model.e);
     set_float_uniform(edit->sprite->shader, "border.radius", style->border.radius);
@@ -552,14 +549,29 @@ void update_edit(edit_t* edit, const mat4* projection, const f32 angle) {
     set_vec2_uniform(edit->sprite->shader, "size", dim.e);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
-    // if (flag) {
-    //     edit->font->mesh.count--;
-    //     flag = false;
-    // }
-    // else {
-    //     edit->font->mesh.count++;
-    //     flag = true;
-    // }
+    // todo: semi-working clock for the edit cursor
+    if (frame->focused.data == edit) {
+        if (0.0 >= clock) {
+            if (flag) {
+                if (edit->font->mesh.count > 0)
+                    edit->font->mesh.count--;
+                flag = false;
+            }
+            else {
+                edit->font->mesh.count++;
+                flag = true;
+            }
+            clock = CLOCK_TIME;
+        }
+        if (clock > 0.0) {
+            clock -= delta;
+        }
+    }
+    else {
+        if (edit->font->mesh.count > 0 && flag)
+            edit->font->mesh.count--;
+        flag = false;
+    }
     // draw the text mesh
     const mat4 position = m4_transl((f32)edit->header.box.x + style->border.thickness, (f32)edit->header.box.y + style->border.thickness, 0.0f);
     const mat4 size = m4_scale(1.0f, 1.0f, 1.0f);
