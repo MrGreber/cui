@@ -36,7 +36,8 @@ static void __init(app_t* app) {
 
     //group.normal.background.color = WHITE;
     edit_t* edit = new_edit(frame, &group, &(bounding_box){0, 0, 200, 100});
-    set_font(edit, __DIR__"\\Resources\\vcr_osd_mono.fnt", BLUE, TRANSP);
+    set_font(edit->font, __DIR__"\\Resources\\vcr_osd_mono.fnt", BLUE, TRANSP);
+    set_text(edit, "shit", 4);
 
     app->frame = frame;
     push_app_var(app, edit);
@@ -66,7 +67,6 @@ static void __loop(app_t* app) {
     update_canvas(canvas, &projection);
 
     if (flag) {
-        print_shader(edit->font->shader);
         flag = false;
     }
 }

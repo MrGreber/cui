@@ -19,7 +19,9 @@ typedef struct string {
     u64 capacity;
 } str_t;
 
+
 str_t* new_str(char_t* data, u64 length);
+bool assign_str(str_t* dst, char_t* src, const u64 length);
 void del_str(str_t* src);
 bool pop_char(str_t* src, const u64 index);
 bool del_substr(str_t* src, const u64 start, const u64 end);
