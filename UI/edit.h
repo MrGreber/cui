@@ -14,7 +14,6 @@ typedef struct edit {
     void* parent;
 
     sprite_t* sprite;
-
     font_t* font;
     struct {
         // saves the transformations
@@ -41,8 +40,8 @@ typedef struct edit {
 edit_t* new_edit(void* parent, const style_group_t* group, const bounding_box* box);
 void del_edit(edit_t* edit);
 void bind_edit(const edit_t* edit);
-void set_text(edit_t* edit, char_t* text, const u64 length);
-void update_edit(edit_t* edit, const mat4* projection, const f32 angle, const f64 delta);
+void set_edit_text(edit_t* edit, char_t* text, const u64 length);
+void update_edit(edit_t* edit, const mat4* projection, const f64 delta);
 void unfocus_edit(edit_t* edit);
 
 #endif //EDIT_H

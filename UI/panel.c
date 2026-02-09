@@ -68,18 +68,16 @@ void bind_panel(const panel_t* panel) {
     bind_sprite(panel->sprite);
 }
 
-void update_panel(panel_t* panel, const mat4* projection, const f32 angle) {
+void update_panel(panel_t* panel, const mat4* projection) {
     if (!panel) return;
 
     if (panel->transform.init & 1) {
-        const mat4 rotation = m4_rotateZ(rad(angle));
         const mat4 scale = m4_scale((f32)panel->header.box.width, (f32)panel->header.box.height, 1.0f);
         const mat4 position = m4_transl((f32)panel->header.box.x, (f32)panel->header.box.y, 0.0f);
         const mat4 size = m4_transl((f32)panel->header.box.width * 0.5f, (f32)panel->header.box.height * 0.5f, 0.0f);
         const mat4 inv_size = m4_transl(-(f32)panel->header.box.width * 0.5f, -(f32)panel->header.box.height * 0.5f, 0.0f);
 
         panel->transform.model = m4_mul(&position, &size);
-        panel->transform.model = m4_mul(&panel->transform.model, &rotation);
         panel->transform.model = m4_mul(&panel->transform.model, &inv_size);
         panel->transform.model = m4_mul(&panel->transform.model, &scale);
         panel->transform.init ^= 1;

@@ -214,6 +214,7 @@ cleanup:
 }
 void del_font(font_t* font) {
     if (!font) return;
+    del_texture(font->atlas);
     del_buf(&(buf_t){.ptr = font->glyphs, .size = sizeof(glyph_t) * font->count, .tag = MEMTAG_FONT});
     del_buf(&(buf_t){.ptr = font, .size = sizeof(font_t), .tag = MEMTAG_FONT});
 }

@@ -66,7 +66,6 @@ void bind_sprite(const sprite_t* sprite) {
     bind_vertex_array(sprite->va);
     glUseProgram(sprite->shader->id);
     if (sprite->tex) bind_texture(sprite->tex);
-
 }
 
 void unbind_sprite(void) {

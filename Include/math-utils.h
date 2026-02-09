@@ -419,6 +419,8 @@ __forceinline mat4 lookAt2D() {
 #define PI2 6.283185307179586476925286766559f
 #define rad(theta) (0.01745329251994329576923690768489f * (theta))
 #define deg(theta) (57.295779513082320876798154814092f * (theta))
+#define U64(N) N##ULL
+
 
 #endif //MATH_UTILS_H
 

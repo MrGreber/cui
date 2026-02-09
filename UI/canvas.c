@@ -16,8 +16,8 @@ static void __default_mouse_callback(const mouse_cb_param* param) {
         vec4 mpos = {param->x, param->y, 0.0f, 1.0f};
         mpos = mv4_mul(&canvas->transform.inv_model, &mpos);
 
-        if (canvas->prev.x != -1 && canvas->prev.y != -1) draw_texture_line(canvas->brush.color, canvas->prev.x, canvas->prev.y, mpos.x, mpos.y);
-        else set_texture_pixel(canvas->brush.color, mpos.x, mpos.y);
+        if (canvas->prev.x != -1 && canvas->prev.y != -1) draw_texture_line(canvas->sprite->tex, canvas->brush.color, canvas->prev.x, canvas->prev.y, mpos.x, mpos.y);
+        else set_texture_pixel(canvas->sprite->tex, canvas->brush.color, mpos.x, mpos.y);
 
         canvas->prev.x = mpos.x;
         canvas->prev.y = mpos.y;

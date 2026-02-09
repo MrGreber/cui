@@ -83,16 +83,18 @@ void flush_texture(const texture_t* tex, const color_t bg) {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void set_texture_pixel(const color_t color, const i32 x, const i32 y) {
+void set_texture_pixel(const texture_t* tex, const color_t color, const i32 x, const i32 y) {
+    bind_texture(tex);
     glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, &color);
 }
-void draw_texture_line(const color_t color, i32 x0, i32 y0, const i32 x1, const i32 y1) {
+void draw_texture_line(const texture_t* tex, const color_t color, i32 x0, i32 y0, const i32 x1, const i32 y1) {
+    bind_texture(tex);
     const i32 dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
     const i32 dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
     i32 err = dx + dy;
 
     for (;;) {
-        set_texture_pixel(color, x0, y0);
+        set_texture_pixel(tex, color, x0, y0);
         if (x0 == x1 && y0 == y1) break;
         const i32 e2 = 2 * err;
         if (e2 >= dy) { err += dy; x0 += sx; }

@@ -45,10 +45,6 @@ button_t* new_button(void* parent, style_group_t* group, const bounding_box* box
     if (group->normal.init) memcpy(&button->styles.normal, &group->normal, sizeof(style_t));
     if (group->hover.init) memcpy(&button->styles.hover, &group->hover, sizeof(style_t));
 
-    // style_t* normal_style = NULL,* hover_style = NULL;
-    // if (group->normal.init) normal_style = &group->normal;
-    // if (group->hover.init) hover_style = &group->hover;
-
     button->sprite = new_sprite("__component__");
     if (!button->sprite) goto cleanup;
     if (!set_sprite_texture(button->sprite, box->width, box->height, &group->normal)) goto cleanup;
@@ -72,18 +68,16 @@ void bind_button(const button_t* button) {
     bind_sprite(button->sprite);
 }
 
-void update_button(button_t* button, const mat4* projection, const f32 angle) {
+void update_button(button_t* button, const mat4* projection) {
     if (!button) return;
 
     if (button->transform.init & 1) {
-        const mat4 rotation = m4_rotateZ(rad(angle));
         const mat4 scale = m4_scale((f32)button->header.box.width, (f32)button->header.box.height, 1.0f);
         const mat4 position = m4_transl((f32)button->header.box.x, (f32)button->header.box.y, 0.0f);
         const mat4 size = m4_transl((f32)button->header.box.width * 0.5f, (f32)button->header.box.height * 0.5f, 0.0f);
         const mat4 inv_size = m4_transl(-(f32)button->header.box.width * 0.5f, -(f32)button->header.box.height * 0.5f, 0.0f);
 
         button->transform.model = m4_mul(&position, &size);
-        button->transform.model = m4_mul(&button->transform.model, &rotation);
         button->transform.model = m4_mul(&button->transform.model, &inv_size);
         button->transform.model = m4_mul(&button->transform.model, &scale);
         button->transform.init ^= 1;

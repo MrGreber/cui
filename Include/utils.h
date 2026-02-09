@@ -59,6 +59,9 @@ typedef struct bounding_box {
 } bounding_box;
 
 typedef struct style {
+    u8 init;
+
+    u64 mode;
     struct {
         union {
             color_t color;
@@ -75,8 +78,6 @@ typedef struct style {
     struct {
         u32 left, right, top, bottom;
     } padding;
-
-    u8 init;
 } style_t;
 
 typedef struct style_group {

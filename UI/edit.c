@@ -213,7 +213,7 @@ static void __default_resize_callback(const resize_cb_param* param) {
 void unfocus_edit(edit_t* edit) {
     if (edit->mesh.count > 0) edit->mesh.count--;
 }
-void set_text(edit_t* edit, char_t* text, const u64 length) {
+void set_edit_text(edit_t* edit, char_t* text, const u64 length) {
     if (!assign_str(edit->text.buffer, text, length)) {
         logError("set_text - Failed to set edit, text.");
         return;
@@ -312,7 +312,7 @@ void bind_edit(const edit_t* edit) {
 }
 
 #define CLOCK_TIME 0.02
-void update_edit(edit_t* edit, const mat4* projection, const f32 angle, const f64 delta) {
+void update_edit(edit_t* edit, const mat4* projection, const f64 delta) {
     // static f64 clock = CLOCK_TIME;
     // static bool flag = true;
 
@@ -324,14 +324,12 @@ void update_edit(edit_t* edit, const mat4* projection, const f32 angle, const f6
     const vec2 dim = {(f32)edit->header.box.width, (f32)edit->header.box.height};
 
     if (edit->transform.init & 1) {
-        const mat4 rotation = m4_rotateZ(rad(angle));
         const mat4 scale = m4_scale((f32)edit->header.box.width, (f32)edit->header.box.height, 1.0f);
         const mat4 position = m4_transl((f32)edit->header.box.x, (f32)edit->header.box.y, 0.0f);
         const mat4 size = m4_transl((f32)edit->header.box.width * 0.5f, (f32)edit->header.box.height * 0.5f, 0.0f);
         const mat4 inv_size = m4_transl(-(f32)edit->header.box.width * 0.5f, -(f32)edit->header.box.height * 0.5f, 0.0f);
 
         edit->transform.model = m4_mul(&position, &size);
-        edit->transform.model = m4_mul(&edit->transform.model, &rotation);
         edit->transform.model = m4_mul(&edit->transform.model, &inv_size);
         edit->transform.model = m4_mul(&edit->transform.model, &scale);
         edit->transform.init ^= 1;
