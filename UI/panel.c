@@ -7,10 +7,33 @@
 #include <memory.h>
 #include <glad.h>
 
+#include "glfw3.h"
+
 static void __default_mouse_callback(const mouse_cb_param* param) {
     panel_t* panel = param->instance;
     frame_t* frame = ((comp_node_t*)panel->header.components)->root->component.data;
-    printf("panel=%p\n", panel);
+
+    if (
+        glfwGetMouseButton(frame->ctx, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS &&
+        ((panel->styles.normal.mode & CAPTION) && !(panel->styles.normal.mode & STATIC_POPUP))
+    ) {
+        if (panel->drag.prev.x > 0 || panel->drag.prev.y > 0) {
+            const i32 dx = (i32)param->x - (i32)panel->drag.prev.x;
+            const i32 dy = (i32)param->y - (i32)panel->drag.prev.y;
+            panel->header.box.x += dx;
+            panel->header.box.y += dy;
+        }
+        panel->drag.prev.x = param->x;
+        panel->drag.prev.y = param->y;
+        panel->drag.state = true;
+
+        panel->transform.init |= 1;
+    }
+    if (glfwGetMouseButton(frame->ctx, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE) {
+        panel->drag.prev.x = 0;
+        panel->drag.prev.y = 0;
+        panel->drag.state = false;
+    }
 }
 static void __default_resize_callback(const resize_cb_param* param) {
     panel_t* panel = param->instance;
@@ -40,10 +63,6 @@ panel_t* new_panel(void* parent, style_group_t* group, const bounding_box* box) 
     panel->parent = parent;
     if (group->normal.init) memcpy(&panel->styles.normal, &group->normal, sizeof(style_t));
     if (group->hover.init) memcpy(&panel->styles.hover, &group->hover, sizeof(style_t));
-
-    // style_t* normal_style = NULL,* hover_style = NULL;
-    // if (group->normal.init) normal_style = &group->normal;
-    // if (group->hover.init) hover_style = &group->hover;
 
     panel->sprite = new_sprite("__component__");
     if (!panel->sprite) goto cleanup;

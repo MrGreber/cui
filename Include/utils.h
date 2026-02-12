@@ -54,7 +54,7 @@ typedef enum background_type {
 } bg_type_t;
 
 typedef struct bounding_box {
-    u32 x, y;
+    i32 x, y;
     u32 width, height;
 } bounding_box;
 

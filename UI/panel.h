@@ -7,7 +7,8 @@
 
 #define EMBEDDED_POPUP U64(0x1)
 #define WINDOW_POPUP (EMBEDDED_POPUP << 1)
-#define CAPTION (WINDOW_POPUP << 1)
+#define STATIC_POPUP (WINDOW_POPUP << 1)
+#define CAPTION (STATIC_POPUP << 1)
 #define CLOSE_BUTTON (CAPTION << 1)
 #define MINIMIZE_BUTTON (CLOSE_BUTTON << 1)
 
@@ -22,6 +23,12 @@ typedef struct panel {
     } transform;
 
     sprite_t* sprite;
+    struct {
+        bool state;
+        struct {
+            i32 x, y;
+        } prev;
+    } drag;
 } panel_t;
 
 
