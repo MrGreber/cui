@@ -340,6 +340,20 @@ void update_edit(edit_t* edit, const mat4* projection, const f64 delta) {
     set_float_uniform(edit->sprite->shader, "border.thickness", style->border.thickness);
     set_vec4_uniform(edit->sprite->shader, "border.color", border_color.e);
     set_vec2_uniform(edit->sprite->shader, "size", dim.e);
+
+    // if (frame->focused.data == button) color = (vec4){
+    //     (f32)button->styles.hover.background.mask.r / 255.0f,
+    //     (f32)button->styles.hover.background.mask.g / 255.0f,
+    //     (f32)button->styles.hover.background.mask.b / 255.0f,
+    //     (f32)button->styles.hover.background.mask.a / 255.0f
+    // };
+    // else color = (vec4){
+    //     (f32)button->styles.normal.background.mask.r / 255.0f,
+    //     (f32)button->styles.normal.background.mask.g / 255.0f,
+    //     (f32)button->styles.normal.background.mask.b / 255.0f,
+    //     (f32)button->styles.normal.background.mask.a / 255.0f
+    // };
+    set_vec4_uniform(edit->sprite->shader, "mask", ((vec4){1.0f, 1.0f, 1.0f, 1.0f}).e);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
     // todo: semi-working clock for the edit cursor

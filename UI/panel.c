@@ -113,6 +113,7 @@ void update_panel(panel_t* panel, const mat4* projection) {
     set_float_uniform(panel->sprite->shader, "border.thickness", style->border.thickness);
     set_vec4_uniform(panel->sprite->shader, "border.color", color.e);
     set_vec2_uniform(panel->sprite->shader, "size", dim.e);
+    set_vec4_uniform(panel->sprite->shader, "mask", ((vec4){1.0f, 1.0f, 1.0f, 1.0f}).e);
 
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }

@@ -69,6 +69,7 @@ typedef struct style {
             const char* image;
         };
         bg_type_t type;
+        color_t mask;
     } background;
     struct {
         color_t color;

@@ -136,7 +136,6 @@ void dispatch_event(const comp_node_t* node, event_t* event) {
             for (u64 i = 0; i < node->count; i++) {
                 const comp_header_t* header = get_header(node->nodes[i]->component.data);
 
-                // Todo make this work with rotation
                 if (bounded(param->x, param->y, header->box.x, header->box.y, header->box.width, header->box.height)) {
                     dispatch_event(node->nodes[i], event);
                     flag = true;

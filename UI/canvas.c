@@ -123,7 +123,6 @@ canvas_t* new_canvas(void* parent, const u32 width, const u32 height) {
     canvas->prev.x = -1;
     canvas->prev.y = -1;
 
-
     canvas->sprite = new_sprite("__canvas__");
     if (!canvas->sprite) goto cleanup;
     if (!set_sprite_texture(canvas->sprite, width, height, &(style_t){.background = {.type = BG_COLOR, .color = WHITE}})) goto cleanup;
@@ -162,9 +161,11 @@ void set_brush(canvas_t* canvas, const color_t color, const f32 size) {
 void update_canvas(canvas_t* canvas, const mat4* projection) {
     if (!canvas) return;
     const frame_t* frame = ((comp_node_t*)canvas->header.components)->root->component.data;
+    const comp_header_t* parent_header = (comp_header_t*)canvas->parent;
+
     if (canvas->transform.init == 3) {
         const mat4 rotation = m4_rotateZ(rad(canvas->camera->roll));
-        const mat4 position = m4_transl(canvas->camera->position.x + canvas->header.box.x, canvas->camera->position.y + canvas->header.box.y, 0.0f);
+        const mat4 position = m4_transl(canvas->camera->position.x + parent_header->box.x, canvas->camera->position.y + parent_header->box.y, 0.0f);
         const mat4 size = m4_transl((f32)canvas->dim.width * 0.5f, (f32)canvas->dim.height * 0.5f, 0.0f);
         const mat4 inv_size = m4_transl(-(f32)canvas->dim.width * 0.5f, -(f32)canvas->dim.height * 0.5f, 0.0f);
 
@@ -187,8 +188,8 @@ void update_canvas(canvas_t* canvas, const mat4* projection) {
 
     glEnable(GL_SCISSOR_TEST);
     glScissor(
-        canvas->header.box.x, frame->header.box.height - canvas->header.box.y - canvas->header.box.height,
-        canvas->header.box.width, canvas->header.box.height
+        parent_header->box.x, frame->header.box.height - parent_header->box.y - parent_header->box.height,
+        parent_header->box.width, parent_header->box.height
     );
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
     glDisable(GL_SCISSOR_TEST);
