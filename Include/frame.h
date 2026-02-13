@@ -27,6 +27,7 @@ typedef struct frame {
     byte flags;
 
     comp_t focused;
+    comp_t hovered;
 } frame_t;
 
 /**

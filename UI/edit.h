@@ -42,6 +42,5 @@ void del_edit(edit_t* edit);
 void bind_edit(const edit_t* edit);
 void set_edit_text(edit_t* edit, char_t* text, const u64 length);
 void update_edit(edit_t* edit, const mat4* projection, const f64 delta);
-void unfocus_edit(edit_t* edit);
 
 #endif //EDIT_H

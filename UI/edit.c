@@ -210,9 +210,7 @@ static void __default_resize_callback(const resize_cb_param* param) {
     // edit->header.box.height += param->height;
 }
 
-void unfocus_edit(edit_t* edit) {
-    if (edit->mesh.count > 0) edit->mesh.count--;
-}
+
 void set_edit_text(edit_t* edit, char_t* text, const u64 length) {
     if (!assign_str(edit->text.buffer, text, length)) {
         logError("set_text - Failed to set edit, text.");
@@ -398,6 +396,6 @@ void update_edit(edit_t* edit, const mat4* projection, const f64 delta) {
     set_mat4_uniform(edit->mesh.shader, "model", true, model.e);
     set_vec4_uniform(edit->mesh.shader, "font.bg", color_v4(font->bg).e);
     set_vec4_uniform(edit->mesh.shader, "font.fg", color_v4(font->fg).e);
-    glDrawArrays(GL_TRIANGLES, 0, 6 * edit->mesh.count);
+    glDrawArrays(GL_TRIANGLES, 0, 6 * (frame->focused.data == edit ? edit->mesh.count : edit->mesh.count - 1));
     glDisable(GL_SCISSOR_TEST);
 }

@@ -124,6 +124,8 @@ void dispatch_event(const comp_node_t* node, event_t* event) {
     if (!frame->focused.data) {
         frame->focused.data = frame;
         frame->focused.tag  = FRAME_COMPONENT;
+        frame->hovered.data = frame;
+        frame->hovered.tag  = FRAME_COMPONENT;
     }
 
     switch (event->tag) {
@@ -144,10 +146,11 @@ void dispatch_event(const comp_node_t* node, event_t* event) {
 
             }
             if (!flag) {
+                frame->hovered.data = node->component.data;
+                frame->hovered.tag = node->component.tag;
+
                 const comp_header_t* header = get_header(node->component.data);
                 if (triggered) {
-                    if (frame->focused.tag == EDIT_COMPONENT) unfocus_edit(frame->focused.data);
-
                     frame->focused.data = node->component.data;
                     frame->focused.tag = node->component.tag;
                 }
@@ -162,6 +165,7 @@ void dispatch_event(const comp_node_t* node, event_t* event) {
                 if (!header || !header->mouse) return;
                 param->instance = node->component.data;
                 ((callback)header->mouse)(param);
+
             }
             break;
         }

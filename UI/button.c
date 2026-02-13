@@ -100,7 +100,7 @@ void update_button(button_t* button, const mat4* projection) {
     set_float_uniform(button->sprite->shader, "border.thickness", style->border.thickness);
     set_vec4_uniform(button->sprite->shader, "border.color", color.e);
     set_vec2_uniform(button->sprite->shader, "size", dim.e);
-    if (frame->focused.data == button) color = (vec4){
+    if (frame->hovered.data == button) color = (vec4){
             (f32)button->styles.hover.background.mask.r / 255.0f,
             (f32)button->styles.hover.background.mask.g / 255.0f,
             (f32)button->styles.hover.background.mask.b / 255.0f,
