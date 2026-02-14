@@ -14,6 +14,7 @@ add_executable(cui
         ${SOURCE}
         ${UI}
         ${DS}
+        test.c
         entry.c
 )
 
