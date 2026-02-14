@@ -28,6 +28,7 @@ typedef struct frame {
 
     comp_t focused;
     comp_t hovered;
+    comp_t captured;
 } frame_t;
 
 /**

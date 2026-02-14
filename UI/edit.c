@@ -128,7 +128,7 @@ static void build_text_mesh(edit_t* edit, const void* text, f32 start_x, f32 sta
 
 static void __default_mouse_callback(const mouse_cb_param* param) {
     edit_t* edit = param->instance;
-    const frame_t* frame = ((comp_node_t*)edit->header.components)->root->component.data;
+    const frame_t* frame = ((comp_node_t*)edit->header.components)->root->component.inst;
 
     if (param->action == GLFW_PRESS) {
         build_text_mesh(edit, &edit->text, 0.0, 0.0);
@@ -136,7 +136,7 @@ static void __default_mouse_callback(const mouse_cb_param* param) {
 }
 static void __default_keyboard_callback(const keyboard_cb_param* param) {
     edit_t* edit = param->instance;
-    frame_t* frame = ((comp_node_t*)edit->header.components)->root->component.data;
+    frame_t* frame = ((comp_node_t*)edit->header.components)->root->component.inst;
 
     bounding_box* box = &edit->header.box;
     if (param->action == GLFW_PRESS || param->action == GLFW_REPEAT) {
@@ -317,7 +317,7 @@ void update_edit(edit_t* edit, const mat4* projection, const f64 delta) {
     // static bool flag = true;
 
     if (!edit) return;
-    const frame_t* frame = ((comp_node_t*)edit->header.components)->root->component.data;
+    const frame_t* frame = ((comp_node_t*)edit->header.components)->root->component.inst;
     const font_t* font = edit->font;
     const style_t* style = &edit->styles.normal;
     const vec4 border_color = {(f32)style->border.color.r / 255.0f, (f32)style->border.color.g / 255.0f, (f32)style->border.color.b / 255.0f, (f32)style->border.color.a / 255.0f};
@@ -398,6 +398,6 @@ void update_edit(edit_t* edit, const mat4* projection, const f64 delta) {
     set_mat4_uniform(edit->mesh.shader, "model", true, model.e);
     set_vec4_uniform(edit->mesh.shader, "font.bg", color_v4(font->bg).e);
     set_vec4_uniform(edit->mesh.shader, "font.fg", color_v4(font->fg).e);
-    glDrawArrays(GL_TRIANGLES, 0, 6 * (frame->focused.data == edit ? edit->mesh.count : edit->mesh.count - 1));
+    glDrawArrays(GL_TRIANGLES, 0, 6 * (frame->focused.inst == edit ? edit->mesh.count : edit->mesh.count - 1));
     glDisable(GL_SCISSOR_TEST);
 }

@@ -21,7 +21,7 @@ comp_node_t* new_comp_node(void* data, const comp_tag tag) {
     if (!new_buf(&buffer, true)) return NULL;
 
     comp_node_t* tree = buffer.ptr;
-    tree->component.data = data;
+    tree->component.inst = data;
     tree->component.tag = tag;
 
     tree->capacity = 4;
@@ -107,8 +107,8 @@ void print_comp_node(comp_node_t* root, u64 indent) {
         for (u64 i = 0; i < indent - 1; i++) putc('\t', stdout);
     }
 
-    if (root->component.tag == FRAME_COMPONENT) printf("%s[%p]\n", __components_strings__[root->component.tag], root->component.data);
-    else printf("|__%s[%p]\n", __components_strings__[root->component.tag], root->component.data);
+    if (root->component.tag == FRAME_COMPONENT) printf("%s[%p]\n", __components_strings__[root->component.tag], root->component.inst);
+    else printf("|__%s[%p]\n", __components_strings__[root->component.tag], root->component.inst);
 
     for (u64 i = 0; i < root->count; i++) {
         comp_node_t* node = root->nodes[i];
@@ -119,52 +119,60 @@ void print_comp_node(comp_node_t* root, u64 indent) {
 void dispatch_event(const comp_node_t* node, event_t* event) {
     if (!node) return;
 
-    frame_t* frame = node->root ? node->root->component.data : node->component.data;
-    if (!frame->focused.data) {
-        frame->focused.data = frame;
+    frame_t* frame = node->root ? node->root->component.inst : node->component.inst;
+    if (!frame->focused.inst) {
+        frame->focused.inst = frame;
         frame->focused.tag  = FRAME_COMPONENT;
-        frame->hovered.data = frame;
+        frame->hovered.inst = frame;
         frame->hovered.tag  = FRAME_COMPONENT;
     }
 
     switch (event->tag) {
         case __MOUSE_EVENT__: {
             mouse_cb_param* param = &event->param.mouse;
-            const bool triggered = param->action || param->button;
 
-            // set the current component to be the focus component and calls mouse component callback
-            bool flag = false;
-            for (u64 i = 0; i < node->count; i++) {
-                const comp_header_t* header = get_header(node->nodes[i]->component.data);
+            if (frame->captured.inst) {
+                const comp_header_t* header = get_header(frame->captured.inst);
 
-                if (bounded(param->x, param->y, header->box.x, header->box.y, header->box.width, header->box.height)) {
-                    dispatch_event(node->nodes[i], event);
-                    flag = true;
-                    break;
-                }
-
+                param->instance = frame->captured.inst;
+                if (header && header->mouse) ((callback)header->mouse)(param);
+                return;
             }
-            if (!flag) {
-                frame->hovered.data = node->component.data;
-                frame->hovered.tag = node->component.tag;
 
-                const comp_header_t* header = get_header(node->component.data);
-                if (triggered) {
-                    frame->focused.data = node->component.data;
-                    frame->focused.tag = node->component.tag;
-                }
+             const bool triggered = (param->action == GLFW_PRESS || param->action == GLFW_RELEASE);
 
-                // toggles between different cursors for each component
-                GLFWcursor* desired = __get_comp_cursor(node->component.tag);
-                if (frame->cursor != desired) {
-                    glfwSetCursor(frame->ctx, desired);
-                    frame->cursor = desired;
-                }
+             // set the current component to be the focus component and calls mouse component callback
+             bool flag = false;
+             for (u64 i = 0; i < node->count; i++) {
+                 const comp_header_t* header = get_header(node->nodes[i]->component.inst);
 
-                if (!header || !header->mouse) return;
-                param->instance = node->component.data;
-                ((callback)header->mouse)(param);
+                 if (bounded(param->x, param->y, header->box.x, header->box.y, header->box.width, header->box.height)) {
+                     dispatch_event(node->nodes[i], event);
+                     flag = true;
+                     break;
+                 }
 
+             }
+             if (!flag) {
+                 frame->hovered.inst = node->component.inst;
+                 frame->hovered.tag = node->component.tag;
+
+                 const comp_header_t* header = get_header(node->component.inst);
+                 if (triggered) {
+                     frame->focused.inst = node->component.inst;
+                     frame->focused.tag = node->component.tag;
+                 }
+
+                 // toggles between different cursors for each component
+                 GLFWcursor* desired = __get_comp_cursor(node->component.tag);
+                 if (frame->cursor != desired) {
+                     glfwSetCursor(frame->ctx, desired);
+                     frame->cursor = desired;
+                 }
+
+                 if (!header || !header->mouse) return;
+                 param->instance = node->component.inst;
+                 ((callback)header->mouse)(param);
             }
             break;
         }
@@ -172,10 +180,10 @@ void dispatch_event(const comp_node_t* node, event_t* event) {
             scroll_cb_param* param = &event->param.scroll;
             const comp_t* focused = &frame->focused;
 
-            if (!focused->data) return;
-            const comp_header_t* header = get_header(focused->data);
+            if (!focused->inst) return;
+            const comp_header_t* header = get_header(focused->inst);
 
-            param->instance = focused->data;
+            param->instance = focused->inst;
             if (header->scroll) ((callback)header->scroll)(param);
             break;
         }
@@ -183,20 +191,20 @@ void dispatch_event(const comp_node_t* node, event_t* event) {
             keyboard_cb_param* param = &event->param.keyboard;
             const comp_t* focused = &frame->focused;
 
-            if (!focused->data || focused->tag == FRAME_COMPONENT) return;
-            const comp_header_t* header = get_header(focused->data);
+            if (!focused->inst || focused->tag == FRAME_COMPONENT) return;
+            const comp_header_t* header = get_header(focused->inst);
 
-            param->instance = focused->data;
+            param->instance = focused->inst;
             if (header->keyboard) ((callback)header->keyboard)(param);
             break;
         }
         case __RESIZE_EVENT__: {
             resize_cb_param* param = &event->param.resize;
-            const comp_header_t* header = get_header(node->component.data);
+            const comp_header_t* header = get_header(node->component.inst);
             for (u64 i = 0; i < node->count; i++) dispatch_event(node->nodes[i], event);
 
             if (header && header->resize) {
-                param->instance = node->component.data;
+                param->instance = node->component.inst;
                 ((callback)header->resize)(param);
             }
             break;

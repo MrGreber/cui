@@ -10,7 +10,7 @@
 
 static void __default_mouse_callback(const mouse_cb_param* param) {
     canvas_t* canvas = param->instance;
-    const frame_t* frame = ((comp_node_t*)canvas->header.components)->root->component.data;
+    const frame_t* frame = ((comp_node_t*)canvas->header.components)->root->component.inst;
 
     if (glfwGetMouseButton(frame->ctx, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
         vec4 mpos = {param->x, param->y, 0.0f, 1.0f};
@@ -26,7 +26,7 @@ static void __default_mouse_callback(const mouse_cb_param* param) {
 }
 static void __default_keyboard_callback(const keyboard_cb_param* param) {
     canvas_t* canvas = param->instance;
-    const frame_t* frame = ((comp_node_t*)canvas->header.components)->root->component.data;
+    const frame_t* frame = ((comp_node_t*)canvas->header.components)->root->component.inst;
     camera_t* camera = canvas->camera;
 
     if (param->action == GLFW_PRESS || param->action == GLFW_REPEAT) {
@@ -80,7 +80,7 @@ static void __default_keyboard_callback(const keyboard_cb_param* param) {
 }
 static void __default_scroll_callback(const scroll_cb_param* param) {
     canvas_t* canvas = param->instance;
-    const frame_t* frame = ((comp_node_t*)canvas->header.components)->root->component.data;
+    const frame_t* frame = ((comp_node_t*)canvas->header.components)->root->component.inst;
     camera_t* camera = canvas->camera;
 
 #ifndef ZOOM_SPEED
@@ -162,7 +162,7 @@ void set_brush(canvas_t* canvas, const color_t color, const f32 size) {
 
 void update_canvas(canvas_t* canvas, const mat4* projection) {
     if (!canvas) return;
-    const frame_t* frame = ((comp_node_t*)canvas->header.components)->root->component.data;
+    const frame_t* frame = ((comp_node_t*)canvas->header.components)->root->component.inst;
     const comp_header_t* parent_header = (comp_header_t*)canvas->parent;
 
     if (canvas->transform.init == 3) {

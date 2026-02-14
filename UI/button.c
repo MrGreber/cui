@@ -10,7 +10,7 @@
 
 static void __default_mouse_callback(const mouse_cb_param* param) {
     button_t* button = param->instance;
-    frame_t* frame = ((comp_node_t*)button->header.components)->root->component.data;
+    frame_t* frame = ((comp_node_t*)button->header.components)->root->component.inst;
 
     if (param->action == GLFW_PRESS) {
         if (button->on_click) button->on_click(button);
@@ -71,7 +71,7 @@ void bind_button(const button_t* button) {
 
 void update_button(button_t* button, const mat4* projection) {
     if (!button) return;
-    frame_t* frame = ((comp_node_t*)button->header.components)->root->component.data;
+    frame_t* frame = ((comp_node_t*)button->header.components)->root->component.inst;
 
     if (button->transform.init & 1) {
         const mat4 scale = m4_scale((f32)button->header.box.width, (f32)button->header.box.height, 1.0f);
@@ -100,7 +100,7 @@ void update_button(button_t* button, const mat4* projection) {
     set_float_uniform(button->sprite->shader, "border.thickness", style->border.thickness);
     set_vec4_uniform(button->sprite->shader, "border.color", color.e);
     set_vec2_uniform(button->sprite->shader, "size", dim.e);
-    if (frame->hovered.data == button) color = (vec4){
+    if (frame->hovered.inst == button) color = (vec4){
             (f32)button->styles.hover.background.mask.r / 255.0f,
             (f32)button->styles.hover.background.mask.g / 255.0f,
             (f32)button->styles.hover.background.mask.b / 255.0f,

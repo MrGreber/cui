@@ -10,31 +10,65 @@
 
 static void __default_mouse_callback(const mouse_cb_param* param) {
     panel_t* panel = param->instance;
-    frame_t* frame = ((comp_node_t*)panel->header.components)->root->component.data;
+    frame_t* frame = ((comp_node_t*)panel->header.components)->root->component.inst;
 
-    if (
-        glfwGetMouseButton(frame->ctx, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS &&
-        ((panel->styles.normal.mode & CAPTION) && !(panel->styles.normal.mode & STATIC_POPUP))
-    ) {
-        if (panel->drag.prev.x > 0 || panel->drag.prev.y > 0) {
-            const i32 dx = (i32)param->x - (i32)panel->drag.prev.x;
-            const i32 dy = (i32)param->y - (i32)panel->drag.prev.y;
-            panel->header.box.x += dx;
-            panel->header.box.y += dy;
-            panel->header.content_box.x += dx;
-            panel->header.content_box.y += dy;
-        }
+    if (param->action == GLFW_PRESS &&
+        param->button == GLFW_MOUSE_BUTTON_LEFT &&
+        (panel->styles.normal.mode & CAPTION) &&
+        !(panel->styles.normal.mode & STATIC_POPUP))
+    {
+        panel->drag.state = true;
         panel->drag.prev.x = param->x;
         panel->drag.prev.y = param->y;
-        panel->drag.state = true;
+
+        frame->captured.inst = panel;
+        frame->captured.tag  = PANEL_COMPONENT;
+    }
+    if (panel->drag.state) {
+        const i32 dx = (i32)param->x - (i32)panel->drag.prev.x;
+        const i32 dy = (i32)param->y - (i32)panel->drag.prev.y;
+
+        panel->header.box.x += dx;
+        panel->header.box.y += dy;
+        panel->header.content_box.x += dx;
+        panel->header.content_box.y += dy;
+
+        panel->drag.prev.x = param->x;
+        panel->drag.prev.y = param->y;
 
         panel->transform.init |= 1;
     }
-    if (glfwGetMouseButton(frame->ctx, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE) {
-        panel->drag.prev.x = 0;
-        panel->drag.prev.y = 0;
+    if (param->action == GLFW_RELEASE && param->button == GLFW_MOUSE_BUTTON_LEFT) {
         panel->drag.state = false;
+        frame->captured.inst = NULL;
+        frame->captured.tag  = 0;
     }
+
+    // if (
+    //     param->action == GLFW_PRESS &&
+    //     param->button == GLFW_MOUSE_BUTTON_LEFT &&
+    //     (panel->styles.normal.mode & CAPTION) &&
+    //     !(panel->styles.normal.mode & STATIC_POPUP)
+    // ) {
+    //     if (panel->drag.prev.x > 0 || panel->drag.prev.y > 0) {
+    //         const i32 dx = (i32)param->x - (i32)panel->drag.prev.x;
+    //         const i32 dy = (i32)param->y - (i32)panel->drag.prev.y;
+    //         panel->header.box.x += dx;
+    //         panel->header.box.y += dy;
+    //         panel->header.content_box.x += dx;
+    //         panel->header.content_box.y += dy;
+    //     }
+    //     panel->drag.prev.x = param->x;
+    //     panel->drag.prev.y = param->y;
+    //     panel->drag.state = true;
+    //
+    //     panel->transform.init |= 1;
+    // }
+    // if (glfwGetMouseButton(frame->ctx, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE) {
+    //     panel->drag.prev.x = 0;
+    //     panel->drag.prev.y = 0;
+    //     panel->drag.state = false;
+    // }
 }
 static void __default_resize_callback(const resize_cb_param* param) {
     panel_t* panel = param->instance;
@@ -64,7 +98,7 @@ panel_t* new_panel(void* parent, style_group_t* group, const bounding_box* box) 
     panel->header.box.width = box->width;
     panel->header.box.height = box->height;
 
-    const i32 caption_height = (panel->styles.normal.mode & CAPTION) ? CAPTION_HEIGHT : 0;
+    const i32 caption_height = (group->normal.mode & CAPTION) ? CAPTION_HEIGHT : 0;
     panel->header.content_box.x = box->x + parent_header->box.x;
     panel->header.content_box.y = box->y + parent_header->box.y + caption_height;
     panel->header.content_box.width = box->width;

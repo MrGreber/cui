@@ -54,7 +54,7 @@ void __keyboard_callback(GLFWwindow* window, const i32 key, const i32 sc, const 
 }
 void __mouse_movement_callback(GLFWwindow* window, const f64 mouse_x, const f64 mouse_y) {
     event_t event = {
-        .param.mouse = {.x = mouse_x, .y = mouse_y},
+        .param.mouse = {.x = mouse_x, .y = mouse_y, .action = -1, .button = -1},
         .tag = __MOUSE_EVENT__
     };
     const frame_t* frame = glfwGetWindowUserPointer(window);

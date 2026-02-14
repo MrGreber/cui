@@ -10,7 +10,6 @@
 #define STATIC_POPUP (WINDOW_POPUP << 1)
 #define CAPTION (STATIC_POPUP << 1)
 #define CLOSE_BUTTON (CAPTION << 1)
-#define MINIMIZE_BUTTON (CLOSE_BUTTON << 1)
 
 typedef struct panel {
     comp_header_t header;

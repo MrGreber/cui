@@ -96,7 +96,7 @@ typedef struct component_header {
 } comp_header_t;
 
 typedef struct component {
-    void* data;
+    void* inst;
     comp_tag tag;
 } comp_t;
 
