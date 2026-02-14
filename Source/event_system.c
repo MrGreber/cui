@@ -118,7 +118,6 @@ void print_comp_node(comp_node_t* root, u64 indent) {
 }
 void dispatch_event(const comp_node_t* node, event_t* event) {
     if (!node) return;
-    static bool curser_state = true;
 
     frame_t* frame = node->root ? node->root->component.data : node->component.data;
     if (!frame->focused.data) {

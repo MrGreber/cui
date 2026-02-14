@@ -6,8 +6,7 @@
 
 #include <memory.h>
 #include <glad.h>
-
-#include "glfw3.h"
+#include <glfw3.h>
 
 static void __default_mouse_callback(const mouse_cb_param* param) {
     panel_t* panel = param->instance;
@@ -22,6 +21,8 @@ static void __default_mouse_callback(const mouse_cb_param* param) {
             const i32 dy = (i32)param->y - (i32)panel->drag.prev.y;
             panel->header.box.x += dx;
             panel->header.box.y += dy;
+            panel->header.content_box.x += dx;
+            panel->header.content_box.y += dy;
         }
         panel->drag.prev.x = param->x;
         panel->drag.prev.y = param->y;
@@ -45,6 +46,8 @@ static void __default_resize_callback(const resize_cb_param* param) {
 
 }
 
+
+#define CAPTION_HEIGHT 30
 panel_t* new_panel(void* parent, style_group_t* group, const bounding_box* box) {
     buf_t buffer = {
         .size = sizeof(panel_t),
@@ -60,6 +63,13 @@ panel_t* new_panel(void* parent, style_group_t* group, const bounding_box* box) 
     panel->header.box.y = box->y + parent_header->box.y;
     panel->header.box.width = box->width;
     panel->header.box.height = box->height;
+
+    const i32 caption_height = (panel->styles.normal.mode & CAPTION) ? CAPTION_HEIGHT : 0;
+    panel->header.content_box.x = box->x + parent_header->box.x;
+    panel->header.content_box.y = box->y + parent_header->box.y + caption_height;
+    panel->header.content_box.width = box->width;
+    panel->header.content_box.height = box->height - caption_height;
+
     panel->parent = parent;
     if (group->normal.init) memcpy(&panel->styles.normal, &group->normal, sizeof(style_t));
     if (group->hover.init) memcpy(&panel->styles.hover, &group->hover, sizeof(style_t));

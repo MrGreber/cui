@@ -115,10 +115,12 @@ canvas_t* new_canvas(void* parent, const u32 width, const u32 height) {
     canvas->transform.init = 3;
     canvas->dim.width = width;
     canvas->dim.height = height;
-    canvas->header.box.x = parent_header->box.x;
-    canvas->header.box.y = parent_header->box.y;
-    canvas->header.box.width = parent_header->box.width;
-    canvas->header.box.height = parent_header->box.height;
+
+    canvas->header.box.x = parent_header->content_box.x;
+    canvas->header.box.y = parent_header->content_box.y;
+    canvas->header.box.width = parent_header->content_box.width;
+    canvas->header.box.height = parent_header->content_box.height;
+
     canvas->parent = parent;
     canvas->prev.x = -1;
     canvas->prev.y = -1;
@@ -165,7 +167,7 @@ void update_canvas(canvas_t* canvas, const mat4* projection) {
 
     if (canvas->transform.init == 3) {
         const mat4 rotation = m4_rotateZ(rad(canvas->camera->roll));
-        const mat4 position = m4_transl(canvas->camera->position.x + parent_header->box.x, canvas->camera->position.y + parent_header->box.y, 0.0f);
+        const mat4 position = m4_transl(canvas->camera->position.x + parent_header->content_box.x, canvas->camera->position.y + parent_header->content_box.y, 0.0f);
         const mat4 size = m4_transl((f32)canvas->dim.width * 0.5f, (f32)canvas->dim.height * 0.5f, 0.0f);
         const mat4 inv_size = m4_transl(-(f32)canvas->dim.width * 0.5f, -(f32)canvas->dim.height * 0.5f, 0.0f);
 
@@ -188,10 +190,15 @@ void update_canvas(canvas_t* canvas, const mat4* projection) {
 
     glEnable(GL_SCISSOR_TEST);
     glScissor(
-        parent_header->box.x, frame->header.box.height - parent_header->box.y - parent_header->box.height,
-        parent_header->box.width, parent_header->box.height
+        parent_header->content_box.x, frame->header.box.height - parent_header->content_box.y - parent_header->content_box.height,
+        parent_header->content_box.width, parent_header->content_box.height
     );
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
     glDisable(GL_SCISSOR_TEST);
+
+    canvas->header.box.x = parent_header->content_box.x;
+    canvas->header.box.y = parent_header->content_box.y;
+    canvas->header.box.width = parent_header->content_box.width;
+    canvas->header.box.height = parent_header->content_box.height;
 }
 

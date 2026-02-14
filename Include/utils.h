@@ -1,13 +1,10 @@
 #pragma once
-#include <defines.h>
-#include <math-utils.h>
-
-#include <stddef.h>
-
 
 #ifndef UTILS_H
 #define UTILS_H
-
+#include <defines.h>
+#include <math-utils.h>
+#include <stddef.h>
 
 typedef enum callback_type {
     MOUSE_CALLBACK,
@@ -89,6 +86,7 @@ typedef struct style_group {
 typedef struct component_header {
     u8 focus;
     bounding_box box;
+    bounding_box content_box;
 
     callback keyboard;
     callback mouse;

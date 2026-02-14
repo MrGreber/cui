@@ -230,10 +230,12 @@ edit_t* new_edit(void* parent, const style_group_t* group, const bounding_box* b
 
     edit_t* edit = buffer.ptr;
     edit->transform.init = 1;
-    edit->header.box.x = box->x + parent_header->box.x;
-    edit->header.box.y = box->y + parent_header->box.y;
+
+    edit->header.box.x = box->x + parent_header->content_box.x;
+    edit->header.box.y = box->y + parent_header->content_box.y;
     edit->header.box.width = box->width;
     edit->header.box.height = box->height;
+
     edit->parent = parent;
     if (group->normal.init) memcpy(&edit->styles.normal, &group->normal, sizeof(style_t));
     if (group->hover.init) memcpy(&edit->styles.hover, &group->hover, sizeof(style_t));

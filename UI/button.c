@@ -37,8 +37,8 @@ button_t* new_button(void* parent, style_group_t* group, const bounding_box* box
 
     button_t* button = buffer.ptr;
     button->transform.init = 1;
-    button->header.box.x = box->x + parent_header->box.x;
-    button->header.box.y = box->y + parent_header->box.y;
+    button->header.box.x = box->x + parent_header->content_box.x;
+    button->header.box.y = box->y + parent_header->content_box.y;
     button->header.box.width = box->width;
     button->header.box.height = box->height;
     button->parent = parent;

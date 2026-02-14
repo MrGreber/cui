@@ -29,7 +29,7 @@ static void __init(app_t* app) {
                 .thickness = 1,
                 .radius = 0
             },
-            .mode = CAPTION | EMBEDDED_POPUP
+            .mode = EMBEDDED_POPUP
         },
         .hover = {
             .init = true,
@@ -39,8 +39,8 @@ static void __init(app_t* app) {
         }
     };
     panel_t* panel = new_panel(frame, &group, &(bounding_box){200, 100, 600, 600});
-    //canvas_t* canvas = new_canvas(panel, 400, 600);
-    //set_brush(canvas, RED, 1);
+    canvas_t* canvas = new_canvas(panel, 400, 600);
+    set_brush(canvas, RED, 1);
 
     group.normal.background.color = WHITE;
     edit_t* edit = new_edit(frame, &group, &(bounding_box){0, 0, 200, 100});
@@ -51,7 +51,7 @@ static void __init(app_t* app) {
 
     app->frame = frame;
     push_app_var(app, edit);
-    //push_app_var(app, canvas);
+    push_app_var(app, canvas);
     push_app_var(app, panel);
     push_app_var(app, button);
     print_comp_node(frame->header.components, 0);
@@ -61,9 +61,9 @@ static void __loop(app_t* app) {
     //static f32 angle = 0.0;
     frame_t* frame = app->frame;
     edit_t* edit = get_app_var(app, 0);
-    //canvas_t* canvas = get_app_var(app, 1);
-    panel_t* panel = get_app_var(app, 1);
-    button_t* button = get_app_var(app, 2);
+    canvas_t* canvas = get_app_var(app, 1);
+    panel_t* panel = get_app_var(app, 2);
+    button_t* button = get_app_var(app, 3);
 
     const mat4 projection = m4_ortho(0.0f, (f32)frame->header.box.width, (f32)frame->header.box.height, 0.0f, -1.0f, 1.0f);
     const f64 dt = update_frame(frame);
@@ -77,8 +77,8 @@ static void __loop(app_t* app) {
     update_button(button, &projection);
     bind_panel(panel);
     update_panel(panel, &projection);
-    //bind_canvas(canvas);
-    //update_canvas(canvas, &projection);
+    bind_canvas(canvas);
+    update_canvas(canvas, &projection);
 
     if (flag) {
         flag = false;
@@ -87,13 +87,13 @@ static void __loop(app_t* app) {
 static void __exit(app_t* app) {
     frame_t* frame = app->frame;
     edit_t* edit = get_app_var(app, 0);
-    //canvas_t* canvas = get_app_var(app, 1);
-    panel_t* panel = get_app_var(app, 1);
-    button_t* button = get_app_var(app, 2);
+    canvas_t* canvas = get_app_var(app, 1);
+    panel_t* panel = get_app_var(app, 2);
+    button_t* button = get_app_var(app, 3);
 
     del_edit(edit);
     del_panel(panel);
-    //del_canvas(canvas);
+    del_canvas(canvas);
     del_button(button);
     del_frame(frame);
 }

@@ -79,6 +79,10 @@ frame_t* new_frame(const color_t bg, const u32 width, const u32 height, const ch
 
     frame->header.box.width = width;
     frame->header.box.height = height;
+
+    frame->header.content_box.width = width;
+    frame->header.content_box.height = height;
+
     frame->bg = bg;
     frame->title = (char*)title;
     frame->flags = FLAG_DEFAULT_STATE;
