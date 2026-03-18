@@ -8,6 +8,40 @@
 #include <glfw3.h>
 #include <glfw3native.h>
 
+#define CAM_KEY_W (1 << 0)
+#define CAM_KEY_S (1 << 1)
+#define CAM_KEY_A (1 << 2)
+#define CAM_KEY_D (1 << 3)
+#define CAM_KEY_Q (1 << 4)
+#define CAM_KEY_E (1 << 5)
+#define CAM_KEY_R (1 << 6)
+
+static void __default_camera_handler(canvas_t* canvas) {
+    camera_t* camera = canvas->camera;
+#ifndef SPEED
+#define SPEED 10.0f
+    if (!camera->keys) return;
+
+    if (camera->keys & CAM_KEY_W) camera->position.y -= SPEED;
+    if (camera->keys & CAM_KEY_S) camera->position.y += SPEED;
+    if (camera->keys & CAM_KEY_A) camera->position.x -= SPEED;
+    if (camera->keys & CAM_KEY_D) camera->position.x += SPEED;
+    if (camera->keys & CAM_KEY_Q) {
+        camera->roll -= 2.0f;
+        if (camera->roll < 0.0f) camera->roll += 360.0f;
+    }
+    if (camera->keys & CAM_KEY_E) {
+        camera->roll += 2.0f;
+        if (camera->roll > 360.0f) camera->roll -= 360.0f;
+    }
+    if (camera->keys & CAM_KEY_R) reset_camera(camera);
+    canvas->transform.init |= 3;
+#undef SPEED
+#else
+#error For some reason your dumbass decided to define a global macro named SPEED, what the fuck if you try to compiler me again I will send assassins after your ass
+#endif
+}
+
 static void __default_mouse_callback(const mouse_cb_param* param) {
     canvas_t* canvas = param->instance;
     const frame_t* frame = ((comp_node_t*)canvas->header.components)->root->component.inst;
@@ -29,54 +63,23 @@ static void __default_keyboard_callback(const keyboard_cb_param* param) {
     const frame_t* frame = ((comp_node_t*)canvas->header.components)->root->component.inst;
     camera_t* camera = canvas->camera;
 
-    if (param->action == GLFW_PRESS || param->action == GLFW_REPEAT) {
-#ifndef SPEED
-#define SPEED 10.0f
-        switch (param->key) {
-            case GLFW_KEY_Q: {
-                camera->roll -= 2.0f;
-                if (camera->roll < 0.0f) camera->roll += 360.0f;
-                break;
-            }
-            case GLFW_KEY_E: {
-                camera->roll += 2.0f;
-                if (camera->roll > 360.0f) camera->roll -= 360.0f;
-                break;
-            }
-            case GLFW_KEY_W: {
-                camera->position.y -= SPEED;
-                break;
-            }
-            case GLFW_KEY_S: {
-                camera->position.y += SPEED;
-                break;
-            }
-            case GLFW_KEY_A: {
-                camera->position.x -= SPEED;
-                break;
-            }
-            case GLFW_KEY_D: {
-                camera->position.x += SPEED;
-                break;
-            }
-            case GLFW_KEY_SPACE: {
-                flush_texture(canvas->sprite->tex, WHITE);
-                break;
-            }
-            case GLFW_KEY_R: {
-                reset_camera(camera);
-                break;
-            }
-            default: break;
-        }
-
-        canvas->transform.init |= 3;
-#undef SPEED
-#else
-#error For some reason your dumbass decided to define a global macro named SPEED, what the fuck if you try to compiler me again I will send assassins after your ass
-#endif
+    u16 bit = 0;
+    switch (param->key) {
+        case GLFW_KEY_W: bit = CAM_KEY_W; break;
+        case GLFW_KEY_S: bit = CAM_KEY_S; break;
+        case GLFW_KEY_A: bit = CAM_KEY_A; break;
+        case GLFW_KEY_D: bit = CAM_KEY_D; break;
+        case GLFW_KEY_Q: bit = CAM_KEY_Q; break;
+        case GLFW_KEY_E: bit = CAM_KEY_E; break;
+        case GLFW_KEY_R: bit = CAM_KEY_R; break;
+        case GLFW_KEY_SPACE:
+            if (param->action == GLFW_PRESS) flush_texture(canvas->sprite->tex, WHITE);
+            return;
+        default: return;
     }
 
+    if (param->action == GLFW_PRESS || param->action == GLFW_REPEAT) camera->keys |= bit;
+    else if (param->action == GLFW_RELEASE) camera->keys &= ~bit;
 }
 static void __default_scroll_callback(const scroll_cb_param* param) {
     canvas_t* canvas = param->instance;
@@ -165,6 +168,7 @@ void update_canvas(canvas_t* canvas, const mat4* projection) {
     const frame_t* frame = ((comp_node_t*)canvas->header.components)->root->component.inst;
     const comp_header_t* parent_header = (comp_header_t*)canvas->parent;
 
+    __default_camera_handler(canvas);
     if (canvas->transform.init == 3) {
         const mat4 rotation = m4_rotateZ(rad(canvas->camera->roll));
         const mat4 position = m4_transl(canvas->camera->position.x + parent_header->content_box.x, canvas->camera->position.y + parent_header->content_box.y, 0.0f);

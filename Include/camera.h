@@ -17,6 +17,7 @@ typedef struct camera {
     vec2 position; /**< Camera position in 2D space */
     f32 zoom;      /**< Zoom level (scale factor) */
     f32 roll;      /**< Rotation angle in radians */
+    u16 keys;
 } camera_t;
 
 /**
