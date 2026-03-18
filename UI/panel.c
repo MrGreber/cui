@@ -43,32 +43,6 @@ static void __default_mouse_callback(const mouse_cb_param* param) {
         frame->captured.inst = NULL;
         frame->captured.tag  = 0;
     }
-
-    // if (
-    //     param->action == GLFW_PRESS &&
-    //     param->button == GLFW_MOUSE_BUTTON_LEFT &&
-    //     (panel->styles.normal.mode & CAPTION) &&
-    //     !(panel->styles.normal.mode & STATIC_POPUP)
-    // ) {
-    //     if (panel->drag.prev.x > 0 || panel->drag.prev.y > 0) {
-    //         const i32 dx = (i32)param->x - (i32)panel->drag.prev.x;
-    //         const i32 dy = (i32)param->y - (i32)panel->drag.prev.y;
-    //         panel->header.box.x += dx;
-    //         panel->header.box.y += dy;
-    //         panel->header.content_box.x += dx;
-    //         panel->header.content_box.y += dy;
-    //     }
-    //     panel->drag.prev.x = param->x;
-    //     panel->drag.prev.y = param->y;
-    //     panel->drag.state = true;
-    //
-    //     panel->transform.init |= 1;
-    // }
-    // if (glfwGetMouseButton(frame->ctx, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE) {
-    //     panel->drag.prev.x = 0;
-    //     panel->drag.prev.y = 0;
-    //     panel->drag.state = false;
-    // }
 }
 static void __default_resize_callback(const resize_cb_param* param) {
     panel_t* panel = param->instance;
@@ -77,7 +51,6 @@ static void __default_resize_callback(const resize_cb_param* param) {
 
     // panel->header.box.width += param->width;
     // panel->header.box.height += param->height;
-
 }
 
 

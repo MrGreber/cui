@@ -31,7 +31,6 @@ set_target_properties(cui PROPERTIES
 
 target_compile_definitions(cui PRIVATE
         GLFW_STATIC
-        PROJECT_NAME=\"cui-\"
         UNICODE _UNICODE
         __DIR__="${CMAKE_CURRENT_SOURCE_DIR}"
 )

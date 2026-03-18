@@ -7,9 +7,6 @@
 #include <glfw3.h>
 #include <glfw3native.h>
 
-#include "edit.h"
-
-
 static GLFWcursor* __cursors[__COMPONENT_TAG_COUNT__] = { 0 };
 #define __get_comp_cursor(tag) __cursors[tag]
 
