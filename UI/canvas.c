@@ -168,7 +168,8 @@ void update_canvas(canvas_t* canvas, const mat4* projection) {
     const frame_t* frame = ((comp_node_t*)canvas->header.components)->root->component.inst;
     const comp_header_t* parent_header = (comp_header_t*)canvas->parent;
 
-    __default_camera_handler(canvas);
+    if (frame->focused.inst == canvas) __default_camera_handler(canvas);
+    else canvas->camera->keys = 0;
     if (canvas->transform.init == 3) {
         const mat4 rotation = m4_rotateZ(rad(canvas->camera->roll));
         const mat4 position = m4_transl(canvas->camera->position.x + parent_header->content_box.x, canvas->camera->position.y + parent_header->content_box.y, 0.0f);
