@@ -14,22 +14,6 @@ void __gl_clear_error(void) {
     while (glGetError() != GL_NO_ERROR);
 }
 
-
-f64 get_deltaTime(void) {
-    static f64 last = 0.0f;
-    const f64 current = glfwGetTime();
-
-    if (last == 0.0) {
-        last = current;
-        return 0.0f;
-    }
-
-    const f64 dt = current - last;
-    last = current;
-    return dt;
-}
-
-
 bool read_file(const char* path, char** out, u64* size) {
     FILE* stream = NULL;
 

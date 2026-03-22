@@ -1,10 +1,11 @@
 #pragma once
-#include <defines.h>
-#include <utils.h>
-#include <event_system.h>
 
 #ifndef FRAME_H
 #define FRAME_H
+#include <defines.h>
+#include <utils.h>
+#include <stopwatch.h>
+#include <event_system.h>
 
 typedef enum frame_flag{
     HIDE_FLAG
@@ -24,11 +25,12 @@ typedef struct frame {
     color_t bg;
     void* ctx;        /**< GLFW window/context pointer */
     void* cursor;
-    byte flags;
+    stopwatch_t stopwatch;
 
     comp_t focused;
     comp_t hovered;
     comp_t captured;
+    byte flags;
 } frame_t;
 
 /**
@@ -51,7 +53,7 @@ void del_frame(frame_t* frame);
  * @brief Update the frame (swap buffers, poll events, etc.)
  * @param frame Pointer to the frame to update
  */
-f64 update_frame(const frame_t* frame);
+f64 update_frame(frame_t* frame);
 
 void set_frame_position(frame_t* frame, const u16 x, const u16 y);
 void set_frame_flag(frame_t* frame, const frame_flag field);

@@ -107,20 +107,20 @@ void del_frame(frame_t* frame) {
     glfwTerminate();
 }
 
-f64 update_frame(const frame_t* frame) {
+f64 update_frame(frame_t* frame) {
     if (!frame) return 0.0;
 
     static char caption[64] = { 0 };
     static u32 frame_count = 0;
     static f64 acc = 0.0;
-    const f64 dt = get_deltaTime();
-    acc += dt;
+    update_stopwatch(&frame->stopwatch);
+    acc += frame->stopwatch.delta;
     frame_count++;
 
     if (acc >= 1.0f) {
-        const f64 fps = frame_count / acc;
+        const f64 fps = (f64)frame_count / acc;
         sprintf_s(caption, sizeof(caption), "%s-FPS: %.2f", frame->title, fps);
-        acc = 0.0f;
+        acc = 0.0;
         frame_count = 0;
     }
     glfwSetWindowTitle(frame->ctx, caption);
@@ -135,7 +135,7 @@ f64 update_frame(const frame_t* frame) {
         byte_to_float(bg.a)
     );
     glClear(GL_COLOR_BUFFER_BIT);
-    return dt;
+    return frame->stopwatch.delta;
 }
 void set_frame_position(frame_t* frame, const u16 x, const u16 y) {
     if (!frame) return;
