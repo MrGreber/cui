@@ -81,7 +81,7 @@ panel_t* new_panel(void* parent, style_group_t* group, const bounding_box* box) 
     if (group->normal.init) memcpy(&panel->styles.normal, &group->normal, sizeof(style_t));
     if (group->hover.init) memcpy(&panel->styles.hover, &group->hover, sizeof(style_t));
 
-    panel->sprite = new_sprite("__component__");
+    panel->sprite = new_sprite(RECT_SHADER);
     if (!panel->sprite) goto cleanup;
     if (!set_sprite_texture(panel->sprite, box->width, box->height, &group->normal)) goto cleanup;
 

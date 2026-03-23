@@ -27,6 +27,12 @@ typedef struct uniform_map {
     } collisions;
 } unimap_t;
 
+typedef enum shader_tag{
+    RECT_SHADER,
+    TEXT_SHADER,
+    CANVAS_SHADER,
+    __SHADER_TAG_COUNT__
+} shader_tag_t;
 
 /**
  * @struct shader
@@ -43,13 +49,8 @@ typedef struct shader {
  * @brief Create a new shader program.
  * @return Pointer to the allocated shader_t, or NULL on failure
  */
-shader_t* new_shader(const char* name);
-
-/**
- * @brief Delete a shader program and free its resources.
- * @param shad Pointer to the shader to delete
- */
-void del_shader(shader_t* shad);
+shader_t* new_shader(const shader_tag_t tag);
+void del_shader_cache(void);
 
 /**
  * @brief Set an array of 4x4 matrix uniforms in a shader.

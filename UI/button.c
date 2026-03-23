@@ -46,7 +46,7 @@ button_t* new_button(void* parent, style_group_t* group, const bounding_box* box
     if (group->hover.init) memcpy(&button->styles.hover, &group->hover, sizeof(style_t));
 
 
-    button->sprite = new_sprite("__component__");
+    button->sprite = new_sprite(RECT_SHADER);
     if (!button->sprite) goto cleanup;
     if (!set_sprite_texture(button->sprite, box->width, box->height, &group->normal)) goto cleanup;
 

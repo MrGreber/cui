@@ -128,7 +128,7 @@ canvas_t* new_canvas(void* parent, const u32 width, const u32 height) {
     canvas->prev.x = -1;
     canvas->prev.y = -1;
 
-    canvas->sprite = new_sprite("__canvas__");
+    canvas->sprite = new_sprite(CANVAS_SHADER);
     if (!canvas->sprite) goto cleanup;
     if (!set_sprite_texture(canvas->sprite, width, height, &(style_t){.background = {.type = BG_COLOR, .color = WHITE}})) goto cleanup;
 

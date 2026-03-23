@@ -2,12 +2,14 @@
 #include <memio.h>
 #include <log.h>
 #include <camera.h>
+#include <shader.h>
 
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <glad.h>
 #include <glfw3.h>
 #include <glfw3native.h>
 #include <stdio.h>
+
 
 static bool __init_glfw(void) {
     static bool flag = false;
@@ -103,6 +105,7 @@ cleanup:
 void del_frame(frame_t* frame) {
     if (!frame) return;
     if (frame->header.components) del_comp_node(frame->header.components);
+    del_shader_cache();
     del_buf(&(buf_t){.size = sizeof(frame_t), .tag = MEMTAG_FRAME, .ptr = frame});
     glfwTerminate();
 }

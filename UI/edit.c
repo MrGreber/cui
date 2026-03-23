@@ -240,7 +240,7 @@ edit_t* new_edit(void* parent, const style_group_t* group, const bounding_box* b
     if (group->normal.init) memcpy(&edit->styles.normal, &group->normal, sizeof(style_t));
     if (group->hover.init) memcpy(&edit->styles.hover, &group->hover, sizeof(style_t));
 
-    edit->sprite = new_sprite("__component__");
+    edit->sprite = new_sprite(RECT_SHADER);
     if (!edit->sprite) goto cleanup;
     if (!set_sprite_texture(edit->sprite, box->width, box->height, (style_t*)&group->normal)) goto cleanup;
 
@@ -271,7 +271,7 @@ edit_t* new_edit(void* parent, const style_group_t* group, const bounding_box* b
     push_f32(edit->mesh.va, 2);
     push_buf(edit->mesh.va, edit->mesh.vb);
 
-    edit->mesh.shader = new_shader("__text__");
+    edit->mesh.shader = new_shader(TEXT_SHADER);
     if (!edit->mesh.shader) goto cleanup;
 
     edit->text.buffer = new_str("", 0);
@@ -287,7 +287,6 @@ edit_t* new_edit(void* parent, const style_group_t* group, const bounding_box* b
 cleanup:
     if (edit->mesh.va) del_vertex_array(edit->mesh.va);
     if (edit->mesh.vb) del_vertex_buffer(edit->mesh.vb);
-    if (edit->mesh.shader) del_shader(edit->mesh.shader);
     if (edit->mesh.vertices) del_buf(&(buf_t){.ptr = edit->mesh.vertices, .size = QUAD_SIZE * DEFAULT_CAPACITY, .tag = MEMTAG_VECTOR});
     if (edit->sprite) del_sprite(edit->sprite);
     if (edit->text.buffer) del_str(edit->text.buffer);
@@ -299,7 +298,6 @@ void del_edit(edit_t* edit) {
     if (!edit) return;
     del_vertex_array(edit->mesh.va);
     del_vertex_buffer(edit->mesh.vb);
-    del_shader(edit->mesh.shader);
     del_buf(&(buf_t){.ptr = edit->mesh.vertices, .size = QUAD_SIZE * edit->mesh.capacity, .tag = MEMTAG_VECTOR});
     del_sprite(edit->sprite);
     del_str(edit->text.buffer);

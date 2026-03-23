@@ -20,13 +20,7 @@ typedef struct sprite {
     shader_t* shader; /**< Pointer to the shader used for rendering */
 } sprite_t;
 
-
-/**
- * @brief Create a rectangle object for 2D rendering.
- * @param shader_name
- * @return Pointer to the allocated rectangle object
- */
-sprite_t* new_sprite(const char* shader_name);
+sprite_t* new_sprite(const shader_tag_t tag);
 
 /**
  * @brief Delete an object and free its resources.

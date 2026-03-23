@@ -17,7 +17,7 @@ const static f32 vertices[] = {
     1.0f, 1.0f, 1.0f, 1.0f
 };
 
-sprite_t* new_sprite(const char* shader_name) {
+sprite_t* new_sprite(const shader_tag_t tag) {
     buf_t buffer = {
         .size = sizeof(sprite_t),
         .tag = MEMTAG_SPRITE,
@@ -38,13 +38,12 @@ sprite_t* new_sprite(const char* shader_name) {
     push_f32(sprite->va, 2);
     push_buf(sprite->va, sprite->vb);
 
-    sprite->shader = new_shader(shader_name);
+    sprite->shader = new_shader(tag);
     sprite->tex = NULL;
 
     if (!sprite->shader) goto cleanup;
     return sprite;
 cleanup:
-    if (sprite->shader) del_shader(sprite->shader);
     if (sprite->va) del_vertex_array(sprite->va);
     if (sprite->vb) del_vertex_buffer(sprite->vb);
     if (sprite->eb) del_element_buffer(sprite->eb);
@@ -54,7 +53,6 @@ cleanup:
 void del_sprite(sprite_t* sprite) {
     if (!sprite) return;
     if (sprite->tex) del_texture(sprite->tex);
-    if (sprite->shader) del_shader(sprite->shader);
     if (sprite->va) del_vertex_array(sprite->va);
     if (sprite->vb) del_vertex_buffer(sprite->vb);
     if (sprite->eb) del_element_buffer(sprite->eb);

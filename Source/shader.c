@@ -65,8 +65,6 @@ cleanup:
     return false;
 }
 
-
-
 #define UNIMAP_END UINT32_MAX
 #define DEFAULT_CAPACITY 16
 static u64 __unimap_hash_function(const char* var, const u8 length) {
@@ -175,14 +173,12 @@ static i32 __search_unimap(unimap_t* map, const char* name, const u8 length) {
     if (cur->name[0] != name[0] || memcmp(cur->name, name, min) != 0) return -1;
     else return cur->location;
 }
-
 static void __del_unimap(unimap_t* map) {
     if (!map) return;
     del_buf(&(buf_t){.ptr = map->elem, .size = sizeof(uniform_t) * DEFAULT_CAPACITY, .tag = MEMTAG_KEY_VALUE_PAIR});
     del_buf(&(buf_t){.ptr = map->collisions.elem, .size = sizeof(uniform_t) * DEFAULT_CAPACITY, .tag = MEMTAG_KEY_VALUE_PAIR});
     del_buf(&(buf_t){.ptr = map, .size = sizeof(unimap_t), .tag = MEMTAG_HASHMAP});
 }
-
 static void __print_unimap(unimap_t* map) {
     if (!map) return;
 
@@ -197,44 +193,56 @@ static void __print_unimap(unimap_t* map) {
 }
 
 #define SHADER_DIR __DIR__"\\Shader\\"
-shader_t* new_shader(const char* name) {
-    buf_t buffer = {
-        .size = sizeof(shader_t),
-        .tag = MEMTAG_SHADER,
-    };
-    if (!new_buf(&buffer, false)) return NULL;
-
-    shader_t* shad = buffer.ptr;
-
-    char vertex_path[256] = { 0 };
-    char fragment_path[256] = { 0 };
-    sprintf_s(vertex_path, 256, SHADER_DIR"%s.vert", name);
-    sprintf_s(fragment_path, 256, SHADER_DIR"%s.frag", name);
-    if (!__new_uniform_map(shad)) {
-        del_buf(&buffer);
-        return NULL;
+static shader_t __shaders_cache[__SHADER_TAG_COUNT__] = { 0 };
+shader_t* new_shader(const shader_tag_t tag) {
+    if (__shaders_cache[tag].map == NULL) {
+        char* vertex_path;
+        char* fragment_path;
+        shader_t* shad = &__shaders_cache[tag];
+        switch (tag) {
+            case RECT_SHADER: {
+                vertex_path = SHADER_DIR"__rect__.vert";
+                fragment_path = SHADER_DIR"__rect__.frag";
+                break;
+            }
+            case TEXT_SHADER: {
+                vertex_path = SHADER_DIR"__text__.vert";
+                fragment_path = SHADER_DIR"__text__.frag";
+                break;
+            }
+            case CANVAS_SHADER: {
+                vertex_path = SHADER_DIR"__canvas__.vert";
+                fragment_path = SHADER_DIR"__canvas__.frag";
+                break;
+            }
+            default: return NULL;
+        }
+        if (!__new_uniform_map(shad)) return NULL;
+        if (!__link_shader_program(
+            vertex_path,
+            fragment_path,
+            &shad->id
+        )) {
+            logFatal("new_shader - Failed to compile shader.");
+            __del_unimap(shad->map);
+            return NULL;
+        }
+        glUseProgram(shad->id);
     }
 
-    if (!__link_shader_program(
-        vertex_path,
-        fragment_path,
-        &shad->id
-    )) {
-        logFatal("new_shader - Failed to compile shader.");
-        del_buf(&buffer);
-        __del_unimap(shad->map);
-        return NULL;
-    }
-    glUseProgram(shad->id);
+    shader_t* shad = &__shaders_cache[tag];
     return shad;
 }
-void del_shader(shader_t* shad) {
+static void __del_shader(shader_t* shad) {
     if (!shad) return;
     glDeleteProgram(shad->id);
     __del_unimap(shad->map);
-    del_buf(&(buf_t){.size = sizeof(shader_t), .tag = MEMTAG_SHADER, .ptr = shad});
 }
-
+void del_shader_cache(void) {
+    for (u8 i = 0; i < __SHADER_TAG_COUNT__; i++) {
+        __del_shader(&__shaders_cache[i]);
+    }
+}
 
 static i32 __get_uniform_location(unimap_t* map, const u32 id, const char* name) {
     const u64 length = strlen(name);
