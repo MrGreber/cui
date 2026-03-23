@@ -147,15 +147,15 @@ bool read_file(const char* path, char** out, u64* size) {
         .tag = MEMTAG_BYTE
     };
     if (!new_buf(&buffer, true)) goto cleanup;
-    if (fread(buffer.ptr, 1, pos, stream) != pos) goto cleanup;
+    if ((i64)fread(buffer.ptr, 1, pos, stream) != pos) goto cleanup;
 
     *out = buffer.ptr;
     *size = pos;
 
     fclose(stream);
     return true;
-    cleanup:
-        if (stream) fclose(stream);
+cleanup:
+    if (stream) fclose(stream);
     if (buffer.ptr) del_buf(&buffer);
     return false;
 }

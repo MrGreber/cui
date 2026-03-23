@@ -3,6 +3,14 @@ project(cui C)
 
 set(CMAKE_C_STANDARD 23)
 
+if(MSVC)
+    set(COMMON_FLAGS /O2;/utf-8;/arch:AVX2)
+else()
+    set(COMMON_FLAGS -O3;-mavx2;-mfma;-msse4.2)
+endif()
+
+add_compile_options(${COMMON_FLAGS})
+
 file(GLOB SOURCE "Source/*.c")
 file(GLOB UI "UI/*.c")
 file(GLOB DS "Data-Structures/*.c")
