@@ -1,5 +1,5 @@
 #include <texture.h>
-#include <mem.h>
+#include <memio.h>
 #include <utils.h>
 #include <log.h>
 
@@ -74,10 +74,10 @@ void flush_texture(const texture_t* tex, const color_t bg) {
     glBindFramebuffer(GL_FRAMEBUFFER, tex->fb_id);
     // glViewport(0, 0, width, height);
     glClearColor(
-        bg.r / 255.0f,
-        bg.g / 255.0f,
-        bg.b / 255.0f,
-        bg.a / 255.0f
+        byte_to_float(bg.r),
+        byte_to_float(bg.g),
+        byte_to_float(bg.b),
+        byte_to_float(bg.a)
     );
     glClear(GL_COLOR_BUFFER_BIT);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -111,8 +111,6 @@ color_t* load_texture(const char* path, u32* width, u32* height) {
         logError("load_texture - Failed to load image:\n\t%s", stbi_failure_reason());
         return NULL;
     }
-
-
 
     buf_t buffer = {
         .size = (resize ? *width * *height : _width * _height) * sizeof(color_t),

@@ -1,6 +1,6 @@
 #include <utils.h>
 #include <log.h>
-#include <mem.h>
+#include <memio.h>
 #include <texture.h>
 
 #include <glad.h>
@@ -14,36 +14,6 @@ void __gl_clear_error(void) {
     while (glGetError() != GL_NO_ERROR);
 }
 
-bool read_file(const char* path, char** out, u64* size) {
-    FILE* stream = NULL;
-
-    if (fopen_s(&stream, path, "rb") != 0) {
-        logError("read - Failed to open file: %s.", path);
-        return false;
-    }
-
-    _fseeki64(stream, 0, SEEK_END);
-    const i64 pos = _ftelli64(stream);
-    if (pos == -1) goto cleanup;
-    _fseeki64(stream, 0, SEEK_SET);
-
-    buf_t buffer = {
-        .size = pos,
-        .tag = MEMTAG_BYTE
-    };
-    if (!new_buf(&buffer, true)) goto cleanup;
-    if (fread(buffer.ptr, 1, pos, stream) != pos) goto cleanup;
-
-    *out = buffer.ptr;
-    *size = pos;
-
-    fclose(stream);
-    return true;
-cleanup:
-    if (stream) fclose(stream);
-    if (buffer.ptr) del_buf(&buffer);
-    return false;
-}
 
 color_t hsv_to_rgb(const f32 h, const f32 s, const f32 v) {
     const f32 c = v * s;

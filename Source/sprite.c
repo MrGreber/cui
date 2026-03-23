@@ -1,5 +1,5 @@
 #include <sprite.h>
-#include <mem.h>
+#include <memio.h>
 #include <utils.h>
 #include <log.h>
 

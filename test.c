@@ -17,8 +17,8 @@ static void __init(app_t* app) {
         .normal = {
             .init = true,
             .background = {
-                .type = BG_COLOR,
-                .color = TRANSP,
+                .type = BG_IMAGE,
+                .image = __DIR__"\\Resources\\heisenberg.jpg",
                 .mask = WHITE
             },
             .border = {
@@ -36,6 +36,8 @@ static void __init(app_t* app) {
         }
     };
     panel_t* panel = new_panel(frame, &group, &(bounding_box){200, 100, 600, 600});
+    group.normal.background.type = BG_COLOR;
+    group.normal.background.color = WHITE;
     canvas_t* canvas = new_canvas(panel, 400, 600);
     set_brush(canvas, RED, 1);
 

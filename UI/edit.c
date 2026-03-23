@@ -1,5 +1,5 @@
 #include <edit.h>
-#include <mem.h>
+#include <memio.h>
 #include <event_system.h>
 #include <math-utils.h>
 #include <frame.h>
@@ -338,7 +338,7 @@ void update_edit(edit_t* edit, const mat4* projection, const f64 delta) {
     set_mat4_uniform(edit->sprite->shader, "model", true, edit->transform.model.e);
     set_float_uniform(edit->sprite->shader, "border.radius", style->border.radius);
     set_float_uniform(edit->sprite->shader, "border.thickness", style->border.thickness);
-    set_vec4_uniform(edit->sprite->shader, "border.color", border_color.e);
+    set_vec4_uniform(edit->sprite->shader, "border.color", &border_color.x);
     set_vec2_uniform(edit->sprite->shader, "size", dim.e);
 
     // if (frame->focused.data == button) color = (vec4){
@@ -353,7 +353,7 @@ void update_edit(edit_t* edit, const mat4* projection, const f64 delta) {
     //     (f32)button->styles.normal.background.mask.b / 255.0f,
     //     (f32)button->styles.normal.background.mask.a / 255.0f
     // };
-    set_vec4_uniform(edit->sprite->shader, "mask", ((vec4){1.0f, 1.0f, 1.0f, 1.0f}).e);
+    set_vec4_uniform(edit->sprite->shader, "mask", &((vec4){.x = 1.0f, .y = 1.0f, .z = 1.0f, .w = 1.0f}).x);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
     // todo: semi-working clock for the edit cursor

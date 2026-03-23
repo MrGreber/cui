@@ -1,5 +1,5 @@
 #include <button.h>
-#include <mem.h>
+#include <memio.h>
 #include <event_system.h>
 #include <frame.h>
 #include <math-utils.h>
@@ -90,29 +90,29 @@ void update_button(button_t* button, const mat4* projection) {
     const style_t* style = &button->styles.normal;
     const color_t border_color = style->border.color;
     vec4 color = {
-        (f32)border_color.r / 255.0f,
-        (f32)border_color.g / 255.0f,
-        (f32)border_color.b / 255.0f,
-        (f32)border_color.a / 255.0f
+        byte_to_float(border_color.r),
+        byte_to_float(border_color.g),
+        byte_to_float(border_color.b),
+        byte_to_float(border_color.a)
     };
     const vec2 dim = {(f32)button->header.box.width, (f32)button->header.box.height};
     set_float_uniform(button->sprite->shader, "border.radius", style->border.radius);
     set_float_uniform(button->sprite->shader, "border.thickness", style->border.thickness);
-    set_vec4_uniform(button->sprite->shader, "border.color", color.e);
+    set_vec4_uniform(button->sprite->shader, "border.color", &color.x);
     set_vec2_uniform(button->sprite->shader, "size", dim.e);
     if (frame->hovered.inst == button) color = (vec4){
-            (f32)button->styles.hover.background.mask.r / 255.0f,
-            (f32)button->styles.hover.background.mask.g / 255.0f,
-            (f32)button->styles.hover.background.mask.b / 255.0f,
-            (f32)button->styles.hover.background.mask.a / 255.0f
+            byte_to_float(button->styles.hover.background.mask.r),
+            byte_to_float(button->styles.hover.background.mask.g),
+            byte_to_float(button->styles.hover.background.mask.b),
+            byte_to_float(button->styles.hover.background.mask.a)
         };
     else color = (vec4){
-        (f32)button->styles.normal.background.mask.r / 255.0f,
-        (f32)button->styles.normal.background.mask.g / 255.0f,
-        (f32)button->styles.normal.background.mask.b / 255.0f,
-        (f32)button->styles.normal.background.mask.a / 255.0f
+        byte_to_float(button->styles.normal.background.mask.r),
+        byte_to_float(button->styles.normal.background.mask.g),
+        byte_to_float(button->styles.normal.background.mask.b),
+        byte_to_float(button->styles.normal.background.mask.a)
     };
-    set_vec4_uniform(button->sprite->shader, "mask", color.e);
+    set_vec4_uniform(button->sprite->shader, "mask", &color.x);
 
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }

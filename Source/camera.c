@@ -1,6 +1,6 @@
 #include <camera.h>
 #include <utils.h>
-#include <mem.h>
+#include <memio.h>
 
 #include <stdio.h>
 

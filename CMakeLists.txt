@@ -30,6 +30,7 @@ set_target_properties(cui PROPERTIES
 )
 
 target_compile_definitions(cui PRIVATE
+        SIMD
         GLFW_STATIC
         UNICODE _UNICODE
         __DIR__="${CMAKE_CURRENT_SOURCE_DIR}"
