@@ -8,6 +8,7 @@
 #include <glad.h>
 #include <glfw3.h>
 
+// todo: create different callbacks for each case so if statements would not chock the callback pipeline
 static void __default_mouse_callback(const mouse_cb_param* param) {
     panel_t* panel = param->instance;
     frame_t* frame = ((comp_node_t*)panel->header.components)->root->component.inst;
@@ -81,7 +82,7 @@ panel_t* new_panel(void* parent, style_group_t* group, const bounding_box* box) 
     if (group->normal.init) memcpy(&panel->styles.normal, &group->normal, sizeof(style_t));
     if (group->hover.init) memcpy(&panel->styles.hover, &group->hover, sizeof(style_t));
 
-    panel->sprite = new_sprite(RECT_SHADER);
+    panel->sprite = new_sprite(COMP_SHADER);
     if (!panel->sprite) goto cleanup;
     if (!set_sprite_texture(panel->sprite, box->width, box->height, &group->normal)) goto cleanup;
 

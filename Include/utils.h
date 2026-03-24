@@ -4,19 +4,6 @@
 #define UTILS_H
 #include <defines.h>
 #include <math-utils.h>
-#include <stddef.h>
-
-typedef enum callback_type {
-    MOUSE_CALLBACK,
-    SCROLL_CALLBACK,
-    KEYBOARD_CALLBACK
-} callback_type;
-
-/**
- * @typedef callback
- * @brief Function pointer type for callbacks.
- */
-typedef void (*callback)(void*);
 
 /**
  * @union color
@@ -34,75 +21,6 @@ typedef union color {
     u32 hex; /**< Packed 32-bit representation (RGBA) */
 } color_t;
 
-typedef enum component_tag {
-    FRAME_COMPONENT,
-    PANEL_COMPONENT,
-    BUTTON_COMPONENT,
-    EDIT_COMPONENT,
-    CANVAS_COMPONENT,
-    __COMPONENT_TAG_COUNT__
-} comp_tag;
-
-typedef enum background_type {
-    BG_NONE,
-    BG_COLOR,
-    BG_IMAGE,
-    BG_GRADIENT
-} bg_type_t;
-
-typedef struct bounding_box {
-    i32 x, y;
-    u32 width, height;
-} bounding_box;
-
-typedef struct style {
-    u8 init;
-
-    u64 mode;
-    struct {
-        union {
-            color_t color;
-            struct texture* texture;
-            const char* image;
-        };
-        bg_type_t type;
-        color_t mask;
-    } background;
-    struct {
-        color_t color;
-        u32 thickness;
-        u32 radius;
-    } border;
-    struct {
-        u32 left, right, top, bottom;
-    } padding;
-} style_t;
-
-typedef struct style_group {
-    style_t normal;
-    style_t hover;
-} style_group_t;
-
-typedef struct component_header {
-    u8 focus;
-    bounding_box box;
-    bounding_box content_box;
-
-    callback keyboard;
-    callback mouse;
-    callback scroll;
-    callback resize;
-    void* components;
-} comp_header_t;
-
-typedef struct component {
-    void* inst;
-    comp_tag tag;
-} comp_t;
-
-#define get_header(COMP) ((comp_header_t*)(COMP))
-#define get_style(COMP, T) ((style_group_t*)((COMP) + offsetof(T, styles)))
-#define bounded(mx, my, x, y, w, h) (((mx) >= (x) && (mx) < ((x) + (w))) && ((my) >= (y) && (my) < ((y) + (h))))
 
 /**
  * @brief Convert HSV color values to RGB.
@@ -184,8 +102,6 @@ do { \
 #define foreach(X, ITER) for(byte* X = ITER; *X != 0; X += sizeof(*ITER))
 
 void aligned_memset(u32* buffer, const u32 val, const u64 size);
-
-bool gen_texture(struct texture** out, const bounding_box* box, const style_t* style);
 
 void* load_cursor(const char* path, const u16 width, const u16 height, const u16 hotx, const u16 hoty);
 

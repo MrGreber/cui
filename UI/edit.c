@@ -134,7 +134,7 @@ static void __default_mouse_callback(const mouse_cb_param* param) {
         build_text_mesh(edit, &edit->text, 0.0, 0.0);
     }
 }
-static void __default_keyboard_callback(const keyboard_cb_param* param) {
+static void __default_write_keyboard_callback(const keyboard_cb_param* param) {
     edit_t* edit = param->instance;
     frame_t* frame = ((comp_node_t*)edit->header.components)->root->component.inst;
 
@@ -202,6 +202,52 @@ rebuild_text_mesh:
         build_text_mesh(edit, &edit->text, 0.0, 0.0);
     }
 }
+static void __default_read_keyboard_callback(const keyboard_cb_param* param) {
+    edit_t* edit = param->instance;
+    frame_t* frame = ((comp_node_t*)edit->header.components)->root->component.inst;
+
+    bounding_box* box = &edit->header.box;
+    if (param->action == GLFW_PRESS || param->action == GLFW_REPEAT) {
+        switch (param->key) {
+            case GLFW_KEY_LEFT_CONTROL:
+            case GLFW_KEY_RIGHT_CONTROL:
+            case GLFW_KEY_ESCAPE:
+            case GLFW_KEY_LEFT_SHIFT:
+            case GLFW_KEY_RIGHT_SHIFT: return;
+            case GLFW_KEY_HOME: {
+                edit->text.index = rfind_char(edit->text.buffer, edit->text.index, '\n');
+                build_text_mesh(edit, &edit->text, 0.0, 0.0);
+                break;
+            }
+            case GLFW_KEY_END: {
+                edit->text.index = find_char(edit->text.buffer, edit->text.index, '\n');
+                build_text_mesh(edit, &edit->text, 0.0, 0.0);
+                break;
+            }
+            case GLFW_KEY_LEFT: {
+                if (edit->text.index) {
+                    edit->text.index--;
+                    build_text_mesh(edit, &edit->text, 0.0, 0.0);
+                }
+                break;
+            }
+            case GLFW_KEY_RIGHT: {
+                if (edit->text.index < edit->text.buffer->length) {
+                    edit->text.index++;
+                    build_text_mesh(edit, &edit->text, 0.0, 0.0);
+                }
+                break;
+            }
+            case GLFW_KEY_UP: {
+                break;
+            }
+            case GLFW_KEY_DOWN: {
+                break;
+            }
+            default: break;
+        }
+    }
+}
 static void __default_resize_callback(const resize_cb_param* param) {
     edit_t* edit = param->instance;
     edit->transform.init |= 1;
@@ -240,7 +286,7 @@ edit_t* new_edit(void* parent, const style_group_t* group, const bounding_box* b
     if (group->normal.init) memcpy(&edit->styles.normal, &group->normal, sizeof(style_t));
     if (group->hover.init) memcpy(&edit->styles.hover, &group->hover, sizeof(style_t));
 
-    edit->sprite = new_sprite(RECT_SHADER);
+    edit->sprite = new_sprite(COMP_SHADER);
     if (!edit->sprite) goto cleanup;
     if (!set_sprite_texture(edit->sprite, box->width, box->height, (style_t*)&group->normal)) goto cleanup;
 
@@ -278,7 +324,8 @@ edit_t* new_edit(void* parent, const style_group_t* group, const bounding_box* b
     if (!edit->text.buffer) goto cleanup;
 
     edit->header.mouse = (callback)__default_mouse_callback;
-    edit->header.keyboard = (callback)__default_keyboard_callback;
+    if (group->normal.mode) edit->header.keyboard = (callback)__default_write_keyboard_callback;
+    else edit->header.keyboard = (callback)__default_read_keyboard_callback;
     edit->header.resize = (callback)__default_resize_callback;
     push_comp_node(parent_header->components, edit, EDIT_COMPONENT);
 
@@ -310,7 +357,7 @@ void bind_edit(const edit_t* edit) {
 }
 
 #define CLOCK_TIME 0.02
-void update_edit(edit_t* edit, const mat4* projection, const f64 delta) {
+void update_edit(edit_t* edit, const mat4* projection) {
     // static f64 clock = CLOCK_TIME;
     // static bool flag = true;
 
@@ -386,7 +433,6 @@ void update_edit(edit_t* edit, const mat4* projection, const f64 delta) {
     bind_vertex_array(edit->mesh.va);
     glUseProgram(edit->mesh.shader->id);
     bind_font(edit->font);
-    // ToDO: change this to work for a rotated edit
     glEnable(GL_SCISSOR_TEST);
     glScissor(
         edit->header.box.x , frame->header.box.height - edit->header.box.y - edit->header.box.height + style->border.thickness,

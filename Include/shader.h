@@ -28,9 +28,9 @@ typedef struct uniform_map {
 } unimap_t;
 
 typedef enum shader_tag{
-    RECT_SHADER,
+    COMP_SHADER,
     TEXT_SHADER,
-    CANVAS_SHADER,
+    RECT_SHADER,
     __SHADER_TAG_COUNT__
 } shader_tag_t;
 

@@ -1,6 +1,7 @@
 #include <frame.h>
 #include <memio.h>
 #include <camera.h>
+#include <event_system.h>
 
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <glad.h>

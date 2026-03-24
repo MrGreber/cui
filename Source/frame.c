@@ -3,6 +3,7 @@
 #include <log.h>
 #include <camera.h>
 #include <shader.h>
+#include <event_system.h>
 
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <glad.h>
@@ -110,8 +111,8 @@ void del_frame(frame_t* frame) {
     glfwTerminate();
 }
 
-f64 update_frame(frame_t* frame) {
-    if (!frame) return 0.0;
+void update_frame(frame_t* frame) {
+    if (!frame) return;
 
     static char caption[64] = { 0 };
     static u32 frame_count = 0;
@@ -138,7 +139,6 @@ f64 update_frame(frame_t* frame) {
         byte_to_float(bg.a)
     );
     glClear(GL_COLOR_BUFFER_BIT);
-    return frame->stopwatch.delta;
 }
 void set_frame_position(frame_t* frame, const u16 x, const u16 y) {
     if (!frame) return;

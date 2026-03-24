@@ -4,13 +4,12 @@
 #define FRAME_H
 #include <defines.h>
 #include <utils.h>
-#include <stopwatch.h>
 #include <event_system.h>
+#include <stopwatch.h>
 
 typedef enum frame_flag{
     HIDE_FLAG
 } frame_flag;
-
 
 /**
  * @struct frame
@@ -30,6 +29,8 @@ typedef struct frame {
     comp_t focused;
     comp_t hovered;
     comp_t captured;
+
+    shader_t shader_cache[32];
     byte flags;
 } frame_t;
 
@@ -42,18 +43,9 @@ typedef struct frame {
  * @return Pointer to the newly allocated frame_t, or NULL on failure
  */
 frame_t* new_frame(const color_t bg, const u32 width, const u32 height, const char* title);
-
-/**
- * @brief Delete a frame and free its resources.
- * @param frame Pointer to the frame to delete
- */
 void del_frame(frame_t* frame);
 
-/**
- * @brief Update the frame (swap buffers, poll events, etc.)
- * @param frame Pointer to the frame to update
- */
-f64 update_frame(frame_t* frame);
+void update_frame(frame_t* frame);
 
 void set_frame_position(frame_t* frame, const u16 x, const u16 y);
 void set_frame_flag(frame_t* frame, const frame_flag field);

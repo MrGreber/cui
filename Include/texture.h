@@ -1,9 +1,10 @@
 #pragma once
-#include <defines.h>
-#include <utils.h>
 
 #ifndef TEXTURE_H
 #define TEXTURE_H
+#include <defines.h>
+#include <utils.h>
+#include <event_system.h>
 
 /**
  * @struct texture
@@ -40,6 +41,7 @@ void set_texture_pixel(const texture_t* tex, const color_t color, const i32 x, c
 void draw_texture_line(const texture_t* tex, const color_t color, i32 x0, i32 y0, const i32 x1, const i32 y1);
 
 color_t* load_texture(const char* path, u32* width, u32* height);
+bool gen_texture(struct texture** out, const bounding_box* box, const style_t* style);
 
 #endif // TEXTURE_H
 

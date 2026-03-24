@@ -67,13 +67,18 @@ cleanup:
 
 #define UNIMAP_END UINT32_MAX
 #define DEFAULT_CAPACITY 16
-static u64 __unimap_hash_function(const char* var, const u8 length) {
-    u64 hash = 1469598103934665603ULL;
-
-    for (u16 i = 0; i < length && i < 8; i++) {
-        hash ^= var[i];
-        hash *= 1099511628211ULL;
+#define FNV_PRIME 1099511628211ULL
+#define FNV_SEED 1469598103934665603ULL
+u64 private(fnv_1a)(const char* ptr, const u64 size) {
+    u64 hash = FNV_SEED;
+    u64 i = 0;
+    for (; i + 4 < (u64)size; i += 4) {
+        hash = (hash ^ ptr[i + 0]) * FNV_PRIME;
+        hash = (hash ^ ptr[i + 1]) * FNV_PRIME;
+        hash = (hash ^ ptr[i + 2]) * FNV_PRIME;
+        hash = (hash ^ ptr[i + 4]) * FNV_PRIME;
     }
+    for (; i < (u64)size; i++) hash = (hash ^ ptr[i]) * FNV_PRIME;
     return hash;
 }
 static bool __new_uniform_map(shader_t* shader) {
@@ -129,7 +134,7 @@ static bool __insert_unimap(unimap_t* map, const char* name, const u8 length, co
     if (map->collisions.count == map->collisions.capacity && !__resize_unimap(map)) return false;
 
     const u8 min = length > MAX_UNIFORM_NAME ? MAX_UNIFORM_NAME : length;
-    const u64 index = __unimap_hash_function(name, length) & (DEFAULT_CAPACITY - 1);
+    const u64 index = private(fnv_1a)(name, length) & (DEFAULT_CAPACITY - 1);
     uniform_t* dst = &map->elem[index];
 
     if (dst->name[0] == name[0] && !memcmp(dst->name, name, min)) dst->location = location;
@@ -160,7 +165,7 @@ static i32 __search_unimap(unimap_t* map, const char* name, const u8 length) {
     if (!map || !name || !length) return -1;
 
     const u8 min = length > MAX_UNIFORM_NAME ? MAX_UNIFORM_NAME : length;
-    const u64 index = __unimap_hash_function(name, length) & (map->collisions.capacity - 1);
+    const u64 index = private(fnv_1a)(name, length) & (map->collisions.capacity - 1);
 
     uniform_t* cur = &map->elem[index];
     if (!cur->name[0]) return -1;
@@ -192,6 +197,7 @@ static void __print_unimap(unimap_t* map) {
     }
 }
 
+// todo: Add neil github link to the message of compiling shaders, change the compiling shaders to jerking off to shaders.
 #define SHADER_DIR __DIR__"\\Shader\\"
 static shader_t __shaders_cache[__SHADER_TAG_COUNT__] = { 0 };
 shader_t* new_shader(const shader_tag_t tag) {
@@ -200,9 +206,9 @@ shader_t* new_shader(const shader_tag_t tag) {
         char* fragment_path;
         shader_t* shad = &__shaders_cache[tag];
         switch (tag) {
-            case RECT_SHADER: {
-                vertex_path = SHADER_DIR"__rect__.vert";
-                fragment_path = SHADER_DIR"__rect__.frag";
+            case COMP_SHADER: {
+                vertex_path = SHADER_DIR"__comp__.vert";
+                fragment_path = SHADER_DIR"__comp__.frag";
                 break;
             }
             case TEXT_SHADER: {
@@ -210,9 +216,9 @@ shader_t* new_shader(const shader_tag_t tag) {
                 fragment_path = SHADER_DIR"__text__.frag";
                 break;
             }
-            case CANVAS_SHADER: {
-                vertex_path = SHADER_DIR"__canvas__.vert";
-                fragment_path = SHADER_DIR"__canvas__.frag";
+            case RECT_SHADER: {
+                vertex_path = SHADER_DIR"__rect__.vert";
+                fragment_path = SHADER_DIR"__rect__.frag";
                 break;
             }
             default: return NULL;

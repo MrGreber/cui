@@ -17,21 +17,22 @@
 #define CAM_KEY_R (1 << 6)
 
 static void __default_camera_handler(canvas_t* canvas) {
+    const frame_t* frame = ((comp_node_t*)canvas->header.components)->root->component.inst;
+    const f32 delta = (f32)frame->stopwatch.delta;
     camera_t* camera = canvas->camera;
 #ifndef SPEED
-#define SPEED 10.0f
+#define SPEED 10000.0f
     if (!camera->keys) return;
-
-    if (camera->keys & CAM_KEY_W) camera->position.y -= SPEED;
-    if (camera->keys & CAM_KEY_S) camera->position.y += SPEED;
-    if (camera->keys & CAM_KEY_A) camera->position.x -= SPEED;
-    if (camera->keys & CAM_KEY_D) camera->position.x += SPEED;
+    if (camera->keys & CAM_KEY_W) camera->position.y -= SPEED * delta;
+    if (camera->keys & CAM_KEY_S) camera->position.y += SPEED * delta;
+    if (camera->keys & CAM_KEY_A) camera->position.x -= SPEED * delta;
+    if (camera->keys & CAM_KEY_D) camera->position.x += SPEED * delta;
     if (camera->keys & CAM_KEY_Q) {
-        camera->roll -= 2.0f;
+        camera->roll -= SPEED * delta;
         if (camera->roll < 0.0f) camera->roll += 360.0f;
     }
     if (camera->keys & CAM_KEY_E) {
-        camera->roll += 2.0f;
+        camera->roll += SPEED * delta;
         if (camera->roll > 360.0f) camera->roll -= 360.0f;
     }
     if (camera->keys & CAM_KEY_R) reset_camera(camera);
@@ -128,7 +129,7 @@ canvas_t* new_canvas(void* parent, const u32 width, const u32 height) {
     canvas->prev.x = -1;
     canvas->prev.y = -1;
 
-    canvas->sprite = new_sprite(CANVAS_SHADER);
+    canvas->sprite = new_sprite(RECT_SHADER);
     if (!canvas->sprite) goto cleanup;
     if (!set_sprite_texture(canvas->sprite, width, height, &(style_t){.background = {.type = BG_COLOR, .color = WHITE}})) goto cleanup;
 

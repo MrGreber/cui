@@ -5,6 +5,66 @@
 #include <defines.h>
 #include <utils.h>
 
+typedef enum callback_type {
+    MOUSE_CALLBACK,
+    SCROLL_CALLBACK,
+    KEYBOARD_CALLBACK
+} callback_type;
+
+typedef void (*callback)(void*);
+
+typedef enum component_tag {
+    FRAME_COMPONENT,
+    PANEL_COMPONENT,
+    BUTTON_COMPONENT,
+    EDIT_COMPONENT,
+    CANVAS_COMPONENT,
+    __COMPONENT_TAG_COUNT__
+} comp_tag;
+
+typedef enum background_type {
+    BG_NONE,
+    BG_COLOR,
+    BG_IMAGE,
+    BG_GRADIENT
+} bg_type_t;
+
+typedef struct bounding_box {
+    i32 x, y;
+    u32 width, height;
+} bounding_box;
+
+typedef struct style {
+    u8 init;
+
+    u64 mode;
+    struct {
+        union {
+            color_t color;
+            struct texture* texture;
+            const char* image;
+        };
+        bg_type_t type;
+        color_t mask;
+    } background;
+    struct {
+        color_t color;
+        u32 thickness;
+        u32 radius;
+    } border;
+    struct {
+        u32 left, right, top, bottom;
+    } padding;
+} style_t;
+
+typedef struct style_group {
+    style_t normal;
+    style_t hover;
+} style_group_t;
+
+
+
+
 typedef enum event_tag {
     __MOUSE_EVENT__,
     __SCROLL_EVENT__,
@@ -51,6 +111,23 @@ typedef struct event {
     event_tag tag;
 } event_t;
 
+typedef struct component_header {
+    u8 focus;
+    bounding_box box;
+    bounding_box content_box;
+
+    callback keyboard;
+    callback mouse;
+    callback scroll;
+    callback resize;
+    void* components;
+} comp_header_t;
+
+typedef struct component {
+    void* inst;
+    comp_tag tag;
+} comp_t;
+
 typedef struct component_node {
     struct component_node* root;
 
@@ -60,6 +137,13 @@ typedef struct component_node {
     u64 count;
     struct component_node** nodes;
 } comp_node_t;
+
+
+#define get_header(COMP) ((comp_header_t*)(COMP))
+#define bounded(mx, my, x, y, w, h) (((mx) >= (x) && (mx) < ((x) + (w))) && ((my) >= (y) && (my) < ((y) + (h))))
+__forceinline void* get_root(void* comp) {
+    return ((comp_node_t*)((comp_header_t*)comp)->components)->root->component.inst;
+}
 
 comp_node_t* new_comp_node(void* data, const comp_tag tag);
 void del_comp_node(comp_node_t* root);

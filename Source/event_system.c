@@ -91,24 +91,31 @@ cleanup:
 
 const char* __components_strings__[] = {
     "frame",
-    "canvas",
-    "button",
     "panel",
-    "edit"
+    "button",
+    "edit",
+    "canvas"
 };
 
 void print_comp_node(comp_node_t* root, u64 indent) {
     if (!root) return;
 
-    if (indent) {
-        for (u64 i = 0; i < indent - 1; i++) putc('\t', stdout);
-    }
+    // if (indent) {
+    //     for (u64 i = 0; i < indent - 1; i++) {
+    //         if (root->count > 0) putchar('|');
+    //         putchar('\t');
+    //     }
+    // }
 
     if (root->component.tag == FRAME_COMPONENT) printf("%s[%p]\n", __components_strings__[root->component.tag], root->component.inst);
     else printf("|__%s[%p]\n", __components_strings__[root->component.tag], root->component.inst);
 
     for (u64 i = 0; i < root->count; i++) {
         comp_node_t* node = root->nodes[i];
+        for (u64 j = 0; j < indent; j++) {
+            if (root->count > 0) putchar('|');
+            putchar('\t');
+        }
         print_comp_node(node, indent + 1);
 
     }

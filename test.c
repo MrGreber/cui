@@ -6,6 +6,7 @@
 #include <edit.h>
 #include <button.h>
 #include <canvas.h>
+#include <event_system.h>
 
 #define WIDTH 800
 #define HEIGHT 800
@@ -42,6 +43,7 @@ static void __init(app_t* app) {
     set_brush(canvas, RED, 1);
 
     group.normal.background.color = WHITE;
+    group.normal.mode = 0;
     edit_t* edit = new_edit(frame, &group, &(bounding_box){0, 0, 200, 100});
     set_font(edit->font, __DIR__"\\Resources\\vcr_osd_mono.fnt", BLUE, TRANSP);
     set_edit_text(edit, "shit", 4);
@@ -65,13 +67,13 @@ static void __loop(app_t* app) {
     //button_t* button = get_app_var(app, 3);
 
     const mat4 projection = m4_ortho(0.0f, (f32)frame->header.box.width, (f32)frame->header.box.height, 0.0f, -1.0f, 1.0f);
-    const f64 dt = update_frame(frame);
+    update_frame(frame);
 
     // angle += 0.5f;
     // if (angle >= 360.0f) angle -= 360.0f;
 
     bind_edit(edit);
-    update_edit(edit, &projection, dt);
+    update_edit(edit, &projection);
     // bind_button(button);
     // update_button(button, &projection);
     bind_panel(panel);

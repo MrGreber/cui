@@ -59,47 +59,6 @@ void aligned_memset(u32* buffer, const u32 val, const u64 size) {
     }
 }
 
-bool gen_texture(texture_t** out, const bounding_box* box, const style_t* style) {
-    if (!out || !style) return false;
-    switch (style->background.type) {
-        case BG_COLOR: {
-            if (!box) {
-                logError("gen_comp_texture - Invalid parameter, box address %p.\n", NULL);
-                return false;
-            }
-
-            *out = new_texture(NULL, box->width, box->height);
-            if (!*out) goto cleanup;
-            flush_texture(*out, style->background.color);
-            break;
-        }
-        case BG_IMAGE: {
-            u32 width = 0;
-            u32 height = 0;
-            if (box) {
-                width = box->width;
-                height = box->height;
-            }
-
-            const color_t* data = load_texture(style->background.image, &width, &height);
-            if (!data) {
-                logError("gen_comp_texture - Failed to load texture.");
-                goto cleanup;
-            }
-            *out = new_texture(data, width, height);
-            del_buf(&(buf_t){.ptr = (void*)data, .size = width * height * sizeof(color_t), .tag = MEMTAG_COLOR});
-            if (!*out) goto cleanup;
-            break;
-        }
-        default: return false;
-    }
-
-    return true;
-cleanup:
-    logError("gen_comp_texture - Failed to generate component texture.");
-    return false;
-}
-
 void* load_cursor(const char* path, const u16 width, const u16 height, const u16 hotx, const u16 hoty) {
     GLFWimage img = { .width = width, .height = height };
     img.pixels = (byte*)load_texture(path, (u32*)&img.width, (u32*)&img.height);
