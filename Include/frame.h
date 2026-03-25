@@ -6,6 +6,7 @@
 #include <utils.h>
 #include <event_system.h>
 #include <stopwatch.h>
+#include <shader/types.h>
 
 typedef enum frame_flag{
     HIDE_FLAG
@@ -30,7 +31,10 @@ typedef struct frame {
     comp_t hovered;
     comp_t captured;
 
-    shader_t shader_cache[32];
+    struct {
+        uniform_hashmap_t uniforms;
+        shader_t cache[__SHADER_TAG_COUNT__];
+    } shaders;
     byte flags;
 } frame_t;
 

@@ -129,7 +129,7 @@ void print_memtable(void) {
     }
 }
 
-bool read_file(const char* path, char** out, u64* size) {
+bool read_file(const char* path, buf_t* buffer) {
     FILE* stream = NULL;
 
     if (fopen_s(&stream, path, "rb") != 0) {
@@ -142,20 +142,15 @@ bool read_file(const char* path, char** out, u64* size) {
     if (pos == -1) goto cleanup;
     _fseeki64(stream, 0, SEEK_SET);
 
-    buf_t buffer = {
-        .size = pos,
-        .tag = MEMTAG_BYTE
-    };
-    if (!new_buf(&buffer, true)) goto cleanup;
-    if ((i64)fread(buffer.ptr, 1, pos, stream) != pos) goto cleanup;
-
-    *out = buffer.ptr;
-    *size = pos;
+    buffer->size = pos;
+    buffer->tag = MEMTAG_BYTE;
+    if (!new_buf(buffer, true)) goto cleanup;
+    if ((i64)fread(buffer->ptr, 1, pos, stream) != pos) goto cleanup;
 
     fclose(stream);
     return true;
 cleanup:
     if (stream) fclose(stream);
-    if (buffer.ptr) del_buf(&buffer);
+    if (buffer->ptr) del_buf(buffer);
     return false;
 }

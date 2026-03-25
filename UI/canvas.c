@@ -2,6 +2,7 @@
 #include <memio.h>
 #include <event_system.h>
 #include <frame.h>
+#include <shader/ops.h>
 
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <glad.h>
@@ -129,7 +130,8 @@ canvas_t* new_canvas(void* parent, const u32 width, const u32 height) {
     canvas->prev.x = -1;
     canvas->prev.y = -1;
 
-    canvas->sprite = new_sprite(RECT_SHADER);
+    frame_t* frame = get_root(parent);
+    canvas->sprite = new_sprite(frame, RECT_SHADER);
     if (!canvas->sprite) goto cleanup;
     if (!set_sprite_texture(canvas->sprite, width, height, &(style_t){.background = {.type = BG_COLOR, .color = WHITE}})) goto cleanup;
 
@@ -191,8 +193,8 @@ void update_canvas(canvas_t* canvas, const mat4* projection) {
         canvas->transform.init ^= 3;
     }
 
-    set_mat4_uniform(canvas->sprite->shader, "projection", true, projection->e);
-    set_mat4_uniform(canvas->sprite->shader, "model", true, canvas->transform.model.e);
+    Shader(set_mat4)(canvas->sprite->shader, "projection", true, projection->e);
+    Shader(set_mat4)(canvas->sprite->shader, "model", true, canvas->transform.model.e);
 
     glEnable(GL_SCISSOR_TEST);
     glScissor(

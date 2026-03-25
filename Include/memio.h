@@ -74,6 +74,6 @@ void del_buf(buf_t* buffer);
  */
 void print_memtable(void);
 
-bool read_file(const char* path, char** out, u64* size);
+bool read_file(const char* path, buf_t* buffer);
 
 #endif //MEMORY_H

@@ -51,9 +51,9 @@ static void __init(app_t* app) {
     //button_t* button = new_button(frame, &group, &(bounding_box){0, 700, 100, 100});
 
     app->frame = frame;
+    push_app_var(app, panel);
     push_app_var(app, edit);
     push_app_var(app, canvas);
-    push_app_var(app, panel);
     //push_app_var(app, button);
     print_comp_node(frame->header.components, 0);
 }
@@ -61,9 +61,9 @@ static bool flag = true;
 static void __loop(app_t* app) {
     //static f32 angle = 0.0;
     frame_t* frame = app->frame;
-    edit_t* edit = get_app_var(app, 0);
-    canvas_t* canvas = get_app_var(app, 1);
-    panel_t* panel = get_app_var(app, 2);
+    panel_t* panel = get_app_var(app, 0);
+    edit_t* edit = get_app_var(app, 1);
+    canvas_t* canvas = get_app_var(app, 2);
     //button_t* button = get_app_var(app, 3);
 
     const mat4 projection = m4_ortho(0.0f, (f32)frame->header.box.width, (f32)frame->header.box.height, 0.0f, -1.0f, 1.0f);
@@ -87,13 +87,13 @@ static void __loop(app_t* app) {
 }
 static void __exit(app_t* app) {
     frame_t* frame = app->frame;
-    edit_t* edit = get_app_var(app, 0);
-    canvas_t* canvas = get_app_var(app, 1);
-    panel_t* panel = get_app_var(app, 2);
+    panel_t* panel = get_app_var(app, 0);
+    edit_t* edit = get_app_var(app, 1);
+    canvas_t* canvas = get_app_var(app, 2);
     //button_t* button = get_app_var(app, 3);
 
-    del_edit(edit);
     del_panel(panel);
+    del_edit(edit);
     del_canvas(canvas);
     //del_button(button);
     del_frame(frame);
