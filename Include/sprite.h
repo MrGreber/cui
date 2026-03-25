@@ -3,8 +3,9 @@
 #ifndef OBJECT_H
 #define OBJECT_H
 #include <geometry.h>
-#include <shader.h>
+#include <shader/types.h>
 #include <texture.h>
+#include <frame.h>
 
 /**
  * @struct sprite
@@ -20,7 +21,7 @@ typedef struct sprite {
     shader_t* shader; /**< Pointer to the shader used for rendering */
 } sprite_t;
 
-sprite_t* new_sprite(const shader_tag_t tag);
+sprite_t* new_sprite(frame_t* frame, const shader_tag_t tag);
 
 /**
  * @brief Delete an object and free its resources.

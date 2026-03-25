@@ -69,5 +69,5 @@
 #define uptr uintptr_t
 #define iptr intptr_t
 
-#define private(func) __private##func
+#define private(func) __private_##func
 #endif // H_DEFINES

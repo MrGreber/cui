@@ -1,72 +1,62 @@
-#include <shader.h>
-#include <memio.h>
+#include <shader/ops.h>
 #include <log.h>
-#include <utils.h>
+#include <memio.h>
 
 #include <glad.h>
-#include <stdio.h>
-#include <memory.h>
 #include <string.h>
 
-static bool __compile_shader(const u32 type, const char* path, u32* id) {
-    char* source = NULL;
-    u64 size = 0;
-    if (!read_file(path, &source, &size)) {
-        logFatal("__compile_shader - Failed to read shader.");
+static u32 private(compile_shader)(const u32 type, const char* path) {
+    buf_t buffer = { 0 };
+    if (!read_file(path, &buffer)) {
+        logFatal("private(compile_shader) - Failed to read shader glsl file.");
         return false;
     }
-
-    const u32 _id = glCreateShader(type);
-    if (!_id) goto cleanup;
-    glcall(glShaderSource(_id, 1, (const GLchar**)&source, NULL), cleanup, "__compile_shader - Failed to build shader: %s.", path);
-    glcall(glCompileShader(_id), cleanup, "__compile_shader - Failed to compile shader: %s.", path);
+    const u32 id = glCreateShader(type);
+    if (!id) goto cleanup;
+    glcall(glShaderSource(id, 1, (const GLchar**)&buffer.ptr, NULL), cleanup, "private(compile_shader) - Failed to build shader: %s.", path);
+    glcall(glCompileShader(id), cleanup, "private(compile_shader) - Failed to compile shader: %s.", path);
 
     i32 success = 0;
-    glcall(glGetShaderiv(_id, GL_COMPILE_STATUS, &success), cleanup, "__compile_shader - Failed to get shader: %s iv.", path);
+    glcall(glGetShaderiv(id, GL_COMPILE_STATUS, &success), cleanup, "private(compile_shader) - Failed to get shader: %s iv.", path);
     if (!success) {
         char msg[512] = { 0 };
-        glGetShaderInfoLog(_id, 512, NULL, msg);
-        logError("__compile_shader - shader compilation error:\n%s", msg);
+        glGetShaderInfoLog(id, 512, NULL, msg);
+        logError("private(compile_shader) - shader compilation error:\n%s", msg);
         goto cleanup;
     }
-
-    *id = _id;
-    del_buf(&(buf_t){.size = size, .tag = MEMTAG_BYTE, .ptr = source});
-    return true;
+    del_buf(&buffer);
+    return id;
 cleanup:
-    if (source) del_buf(&(buf_t){.size = size, .tag = MEMTAG_BYTE, .ptr = source});
-    return false;
+    if (buffer.ptr) del_buf(&buffer);
+    return 0;
 }
-static u32 __link_shader_program(const char* vertex_path, const char* fragment_path, u32* id) {
-    u32 vert_id = 0;
-    u32 frag_id = 0;
-    if (!__compile_shader(GL_VERTEX_SHADER, vertex_path, &vert_id) || !__compile_shader(GL_FRAGMENT_SHADER, fragment_path, &frag_id)) {
-        logFatal("Failed to compile vertex/fragment shader.");
+static u32 private(link_shaders)(const char* vertex_path, const char* fragment_path) {
+    const u32 vert_id = private(compile_shader)(GL_VERTEX_SHADER, vertex_path);
+    const u32 frag_id = private(compile_shader)(GL_FRAGMENT_SHADER, fragment_path);
+    if (vert_id == 0 || frag_id == 0) {
+        logFatal("private(link_shader) - Failed to compile vertex/fragment shaders.");
         goto cleanup;
     }
 
-    const u32 _id = glCreateProgram();
-    if (!_id) goto cleanup;
-    glcall(glAttachShader(_id, vert_id), cleanup, "__create_shader_program - Failed to attach vertex shader.");
-    glcall(glAttachShader(_id, frag_id), cleanup, "__create_shader_program - Failed to attach fragment shader.");
-    glcall(glLinkProgram(_id), cleanup, "__create_shader_program - Failed to link shader.");
+    const u32 id = glCreateProgram();
+    if (!id) goto cleanup;
+    glcall(glAttachShader(id, vert_id), cleanup, "private(link_shader) - Failed to attach vertex shader.");
+    glcall(glAttachShader(id, frag_id), cleanup, "private(link_shader) - Failed to attach fragment shader.");
+    glcall(glLinkProgram(id), cleanup, "private(link_shader) - Failed to link shader.");
 
     i32 success = 0;
-    glcall(glGetProgramiv(_id, GL_LINK_STATUS, &success), cleanup, "__compile_shader - Failed to get shader iv.");
+    glcall(glGetProgramiv(id, GL_LINK_STATUS, &success), cleanup, "private(link_shader) - Failed to get shader iv.");
 
-    *id = _id;
     glDeleteShader(vert_id);
     glDeleteShader(frag_id);
-    return true;
+    return id;
 cleanup:
     glDeleteShader(vert_id);
     glDeleteShader(frag_id);
-    glDeleteProgram(_id);
-    return false;
+    glDeleteProgram(id);
+    return 0;
 }
 
-#define UNIMAP_END UINT32_MAX
-#define DEFAULT_CAPACITY 16
 #define FNV_PRIME 1099511628211ULL
 #define FNV_SEED 1469598103934665603ULL
 u64 private(fnv_1a)(const char* ptr, const u64 size) {
@@ -81,130 +71,139 @@ u64 private(fnv_1a)(const char* ptr, const u64 size) {
     for (; i < (u64)size; i++) hash = (hash ^ ptr[i]) * FNV_PRIME;
     return hash;
 }
-static bool __new_uniform_map(shader_t* shader) {
+#define LOAD_FACTOR 0.75
+#define DEFAULT_CAPACITY 32
+static bool private(new_uniform_hashmap)(uniform_hashmap_t* map) {
     buf_t buffer = {
-        .size = sizeof(unimap_t),
-        .tag = MEMTAG_HASHMAP
+        .size = sizeof(entry_t) * DEFAULT_CAPACITY,
+        .tag = MEMTAG_SHADER
     };
-    if (!new_buf(&buffer, true)) goto cleanup;
-    shader->map = buffer.ptr;
-
-    buffer = (buf_t){
-        .size = sizeof(uniform_t) * DEFAULT_CAPACITY,
-        .tag = MEMTAG_KEY_VALUE_PAIR
-    };
-    if (!new_buf(&buffer, true)) goto cleanup;
-    shader->map->elem = buffer.ptr;
-
-    buffer = (buf_t){
-        .size = sizeof(uniform_t) * DEFAULT_CAPACITY,
-        .tag = MEMTAG_KEY_VALUE_PAIR
-    };
-    if (!new_buf(&buffer, true)) goto cleanup;
-    shader->map->collisions.elem = buffer.ptr;
-
-    shader->map->collisions.capacity = DEFAULT_CAPACITY;
-    return true;
-cleanup:
-    if (shader->map->elem) del_buf(&(buf_t){.ptr = shader->map->elem, .size = sizeof(uniform_t) * DEFAULT_CAPACITY, .tag = MEMTAG_KEY_VALUE_PAIR});
-    if (shader->map->collisions.elem) del_buf(&(buf_t){.ptr = shader->map->collisions.elem, .size = sizeof(uniform_t) * DEFAULT_CAPACITY, .tag = MEMTAG_KEY_VALUE_PAIR});
-    if (shader->map) del_buf(&(buf_t){.ptr = shader->map, .size = sizeof(unimap_t), .tag = MEMTAG_HASHMAP});
-    return false;
-}
-static bool __resize_unimap(unimap_t* map) {
-    if (map->collisions.capacity >= UINT64_MAX) {
-        logError("__resize_unimap - Failed to resize uniform map, uniform map collision array reached max size %d.", UINT64_MAX);
-        return false;
-    }
-
-    const u64 new_capacity = map->collisions.capacity << 1;
-    buf_t buffer = {
-        .ptr = map->collisions.elem,
-        .size = map->collisions.capacity * sizeof(uniform_t),
-        .tag = MEMTAG_KEY_VALUE_PAIR
-    };
-    if (!renew_buf(&buffer, new_capacity * sizeof(uniform_t))) return false;
-    map->collisions.elem =  buffer.ptr;
-    map->collisions.capacity = new_capacity;
-
+    if (!new_buf(&buffer, true)) return false;
+    map->entries = buffer.ptr;
+    map->capacity = DEFAULT_CAPACITY;
+    map->count = 0;
     return true;
 }
+static void private(del_uniform_hashmap)(uniform_hashmap_t* map) {
+    if (map->entries) del_buf(&(buf_t){ .ptr = map->entries, .size = sizeof(entry_t) * map->capacity, .tag = MEMTAG_SHADER});
+}
+static bool private(resize_uniform_hashmap)(uniform_hashmap_t* map) {
+    u32 tmp = 0;
+    const u64 new_capacity = map->capacity << 1;
+    const u64 module = new_capacity - 1;
 
-static bool __insert_unimap(unimap_t* map, const char* name, const u8 length, const i32 location) {
-    if (map->collisions.count == map->collisions.capacity && !__resize_unimap(map)) return false;
+    buf_t buffer = {
+        .size = new_capacity * sizeof(uniform_t),
+        .tag = MEMTAG_SHADER
+    };
+    if (!new_buf(&buffer, true)) return false;
 
-    const u8 min = length > MAX_UNIFORM_NAME ? MAX_UNIFORM_NAME : length;
-    const u64 index = private(fnv_1a)(name, length) & (DEFAULT_CAPACITY - 1);
-    uniform_t* dst = &map->elem[index];
+    entry_t* new_entries = (entry_t*)buffer.ptr;
+    for (u64 i = 0; i < map->capacity; i++) {
+        const entry_t* old = &map->entries[i];
+        if (!old->uniform.address) continue;
 
-    if (dst->name[0] == name[0] && !memcmp(dst->name, name, min)) dst->location = location;
-    else if (!dst->name[0]) {
-        memcpy(dst->name, name, min);
-        dst->location = location;
-        dst->next_index = UNIMAP_END;
-    }
-    else {
-        uniform_t* cur = dst;
-        while (
-            cur->next_index != UNIMAP_END && // checks for initialization of the next node
-            (cur->name[0] != name[0] || memcmp(cur->name, name, min) != 0)
-        ) cur = &map->collisions.elem[cur->next_index];
+        uniform_t uniform = old->uniform;
 
-        if (cur->name[0] != name[0] || memcmp(cur->name, name, min) != 0) {
-            cur->next_index = map->collisions.count;
-            uniform_t* next = &map->collisions.elem[map->collisions.count++];
-            memcpy(next->name, name, min);
-            next->location = location;
-            next->next_index = UNIMAP_END;
+        u32 probe = 0;
+        u64 index = uniform.hash & module;
+        while (new_entries[index].uniform.address) {
+            entry_t* entry = &new_entries[index];
+            if (probe > entry->psl) {
+                uniform_t tmp_uniform = entry->uniform;
+                entry->uniform = uniform;
+                uniform = tmp_uniform;
+
+                tmp = entry->psl;
+                entry->psl = probe;
+                probe = tmp;
+            }
+
+            index = (index + 1) & module;
+            probe++;
+            if (probe >= new_capacity) {
+                del_buf(&(buf_t){ .ptr = new_entries, .size = sizeof(entry_t) * new_capacity, .tag = MEMTAG_SHADER});
+                return false;
+            }
         }
-        else cur->location = location;
+
+        new_entries[index].uniform = uniform;
+        new_entries[index].psl  = probe;
     }
+    del_buf(&(buf_t){ .ptr = map->entries, .size = sizeof(entry_t) * map->capacity, .tag = MEMTAG_SHADER});
+    map->entries  = new_entries;
+    map->capacity = new_capacity;
     return true;
 }
-static i32 __search_unimap(unimap_t* map, const char* name, const u8 length) {
-    if (!map || !name || !length) return -1;
+static bool private(push_uniform_hashmap)(shader_t* shader, const char* name, const u8 length, const i32 location) {
+    if (shader->uniforms->count >= (u64)((f64)shader->uniforms->capacity * LOAD_FACTOR) && !private(resize_uniform_hashmap)(shader->uniforms)) return false;
 
-    const u8 min = length > MAX_UNIFORM_NAME ? MAX_UNIFORM_NAME : length;
-    const u64 index = private(fnv_1a)(name, length) & (map->collisions.capacity - 1);
+    u32 tmp = 0;
+    const u64 module = shader->uniforms->capacity - 1; // truncates redundant reuse of sub instruction
 
-    uniform_t* cur = &map->elem[index];
-    if (!cur->name[0]) return -1;
+    uniform_t uniform = {
+        .hash = private(fnv_1a)(name, length),
+        .location = location,
+        .address = (uptr)shader
+    };
 
-    while (
-        cur->next_index != UNIMAP_END && // checks for initialization of the next node
-        (cur->name[0] != name[0] || memcmp(cur->name, name, min) != 0)
-    ) cur = &map->collisions.elem[cur->next_index];
+    u32 probe = 0;
+    u64 index = uniform.hash & module;
 
-    if (cur->name[0] != name[0] || memcmp(cur->name, name, min) != 0) return -1;
-    else return cur->location;
-}
-static void __del_unimap(unimap_t* map) {
-    if (!map) return;
-    del_buf(&(buf_t){.ptr = map->elem, .size = sizeof(uniform_t) * DEFAULT_CAPACITY, .tag = MEMTAG_KEY_VALUE_PAIR});
-    del_buf(&(buf_t){.ptr = map->collisions.elem, .size = sizeof(uniform_t) * DEFAULT_CAPACITY, .tag = MEMTAG_KEY_VALUE_PAIR});
-    del_buf(&(buf_t){.ptr = map, .size = sizeof(unimap_t), .tag = MEMTAG_HASHMAP});
-}
-static void __print_unimap(unimap_t* map) {
-    if (!map) return;
+    entry_t* entry = &shader->uniforms->entries[index];
+    while (entry->uniform.address) {
+        if (probe > entry->psl) {
+            uniform_t tmp_uniform = entry->uniform;
+            entry->uniform = uniform;
+            uniform = tmp_uniform;
 
-    for (u64 i = 0; i < DEFAULT_CAPACITY; i++) {
-        const uniform_t* uniform = &map->elem[i];
-        if (uniform->name[0]) printf("\t%.32s: %d\n", uniform->name, uniform->location);
+            tmp = entry->psl;
+            entry->psl = probe;
+            probe = tmp;
+        }
+
+        index = (index + 1) & module;
+        entry = &shader->uniforms->entries[index];
+        probe++;
+        if (probe >= shader->uniforms->capacity) return false;
     }
-    for (u64 i = 0; i < map->collisions.count; i++) {
-        const uniform_t* uniform = &map->collisions.elem[i];
-        if (uniform->name[0]) printf("\t[coll]%-.32s: %d\n", uniform->name, uniform->location);
+    entry->uniform = uniform;
+    entry->psl = probe;
+    shader->uniforms->count++;
+    return true;
+}
+uniform_t* private(search_uniform_hashmap)(shader_t* shader, const char* name, const i32 length) {
+    const u64 module = shader->uniforms->capacity - 1; // truncates redundant reuse of sub instruction
+    const u64 hash = private(fnv_1a)(name, length);
+    u64 probe = 0;
+    u64 index = hash & module;
+
+    entry_t* entry = &shader->uniforms->entries[index];
+    while (entry->uniform.address) {
+        if (probe > entry->psl) break;
+
+        uniform_t* uniform = &entry->uniform;
+        if (
+            uniform->hash == hash &&
+            uniform->address == (uptr)shader
+        ) return uniform;
+
+        index = (index + 1) & module;
+        entry = &shader->uniforms->entries[index];
+        probe++;
+        if (probe >= shader->uniforms->capacity) break;
     }
+
+    return NULL;
 }
 
-// todo: Add neil github link to the message of compiling shaders, change the compiling shaders to jerking off to shaders.
+
 #define SHADER_DIR __DIR__"\\Shader\\"
-static shader_t __shaders_cache[__SHADER_TAG_COUNT__] = { 0 };
-shader_t* new_shader(const shader_tag_t tag) {
-    if (__shaders_cache[tag].map == NULL) {
+shader_t* Shader(new)(frame_t* frame, const shader_tag_t tag) {
+    if (frame->shaders.cache[tag].id == 0) {
         char* vertex_path;
         char* fragment_path;
-        shader_t* shad = &__shaders_cache[tag];
+        shader_t* shader = &frame->shaders.cache[tag];
         switch (tag) {
             case COMP_SHADER: {
                 vertex_path = SHADER_DIR"__comp__.vert";
@@ -223,90 +222,80 @@ shader_t* new_shader(const shader_tag_t tag) {
             }
             default: return NULL;
         }
-        if (!__new_uniform_map(shad)) return NULL;
-        if (!__link_shader_program(
-            vertex_path,
-            fragment_path,
-            &shad->id
-        )) {
-            logFatal("new_shader - Failed to compile shader.");
-            __del_unimap(shad->map);
+        if (frame->shaders.uniforms.entries == NULL && !private(new_uniform_hashmap)(&frame->shaders.uniforms)) return NULL;
+        shader->id = private(link_shaders)(vertex_path, fragment_path);
+        if (shader->id == 0) {
+            private(del_uniform_hashmap)(&frame->shaders.uniforms);
+            logFatal("Shader(new) - Failed to compile shader.");
             return NULL;
         }
-        glUseProgram(shad->id);
+        glUseProgram(shader->id);
+        shader->uniforms = &frame->shaders.uniforms;
     }
 
-    shader_t* shad = &__shaders_cache[tag];
-    return shad;
+    shader_t* shader = &frame->shaders.cache[tag];
+    return shader;
 }
-static void __del_shader(shader_t* shad) {
-    if (!shad) return;
-    glDeleteProgram(shad->id);
-    __del_unimap(shad->map);
-}
-void del_shader_cache(void) {
+void Shader(del_cache)(frame_t* frame) {
+    private(del_uniform_hashmap)(&frame->shaders.uniforms);
     for (u8 i = 0; i < __SHADER_TAG_COUNT__; i++) {
-        __del_shader(&__shaders_cache[i]);
+        const u32 id = frame->shaders.cache[i].id;
+        if (id) glDeleteProgram(id);
     }
 }
-
-static i32 __get_uniform_location(unimap_t* map, const u32 id, const char* name) {
+static i32 private(get_uniform)(shader_t* shader, const char* name) {
     const u64 length = strlen(name);
-    i32 location = __search_unimap(map, name, length);
+    uniform_t* uniform = private(search_uniform_hashmap)(shader, name, length);
 
-    if (map && location == -1) {
-        location = glGetUniformLocation(id, name);
+    i32 location = 0;
+    if (uniform == NULL) {
+        location = glGetUniformLocation(shader->id, name);
         if (location == -1) {
-            logFatal("__get_uniform_location - Failed to find uniform: %s.", name);
+            logFatal("private(get_uniform) - Failed to find uniform: %s.", name);
             return -1;
         }
 
-        if (!__insert_unimap(map, name, length, location)) return -1;
+        if (!private(push_uniform_hashmap)(shader, name, length, location)) return -1;
     }
-
+    else location = uniform->location;
     return location;
 }
-bool set_mat4_uniform_array(const shader_t* shad, const char* name, const u32 count, const bool transpose, const f32* elements) {
-    const i32 location = __get_uniform_location(shad->map, shad->id, name);
+bool Shader(set_mat4_array)(shader_t* shader, const char* name, const u32 count, const bool transpose, const f32* elements) {
+    const i32 location = private(get_uniform)(shader, name);
     if (location == -1) return false;
 
-    glcall(glUniformMatrix4fv(location, count, transpose, elements), cleanup, "set_mat4_uniform_array - Failed to set matrix uniform.");
-    return true;
-cleanup:
-    return false;
-}
-bool set_float_uniform(const shader_t* shad, const char* name, const f32 v) {
-    const i32 location = __get_uniform_location(shad->map, shad->id, name);
-    if (location == -1) return false;
-
-    glcall(glUniform1f(location, v), cleanup, "set_float_uniform - Failed to set float uniform.");
+    glcall(glUniformMatrix4fv(location, count, transpose, elements), cleanup, "Shader(set_mat4_array) - Failed to set matrix uniform.");
     return true;
 cleanup:
     return false;
 }
 
-bool set_vec2_uniform_array(const shader_t* shad, const char* name, const u32 count, const f32* elements) {
-    const i32 location = __get_uniform_location(shad->map, shad->id, name);
+bool Shader(set_float)(shader_t* shader, const char* name, const f32 value) {
+    const i32 location = private(get_uniform)(shader, name);
     if (location == -1) return false;
 
-    glcall(glUniform2fv(location, count, elements), cleanup, "set_vec2_uniform_array - Failed to set float uniform.");
+    glcall(glUniform1f(location, value), cleanup, "Shader(set_float) - Failed to set float uniform.");
     return true;
 cleanup:
     return false;
 }
 
-bool set_vec4_uniform_array(const shader_t* shad, const char* name, const u32 count, const f32* elements) {
-    const i32 location = __get_uniform_location(shad->map, shad->id, name);
+bool Shader(set_vec2_array)(shader_t* shader, const char* name, const u32 count, const f32* elements) {
+    const i32 location = private(get_uniform)(shader, name);
     if (location == -1) return false;
 
-    glcall(glUniform4fv(location, count, elements), cleanup, "set_vec4_uniform_array - Failed to set float uniform.");
+    glcall(glUniform2fv(location, count, elements), cleanup, "Shader(set_vec2_array) - Failed to set vector uniform.");
     return true;
 cleanup:
     return false;
 }
 
-void print_shader(shader_t* shad) {
-    if (!shad) return;
-    printf("shader[%d]:\n", shad->id);
-    __print_unimap(shad->map);
+bool Shader(set_vec4_array)(shader_t* shader, const char* name, const u32 count, const f32* elements) {
+    const i32 location = private(get_uniform)(shader, name);
+    if (location == -1) return false;
+
+    glcall(glUniform4fv(location, count, elements), cleanup, "Shader(set_vec2_array) - Failed to set vector uniform.");
+    return true;
+cleanup:
+    return false;
 }

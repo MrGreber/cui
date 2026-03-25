@@ -1,9 +1,9 @@
-#include <frame.h>
-#include <memio.h>
-#include <log.h>
 #include <camera.h>
-#include <shader.h>
 #include <event_system.h>
+#include <frame.h>
+#include <log.h>
+#include <memio.h>
+#include <shader/ops.h>
 
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <glad.h>
@@ -106,7 +106,7 @@ cleanup:
 void del_frame(frame_t* frame) {
     if (!frame) return;
     if (frame->header.components) del_comp_node(frame->header.components);
-    del_shader_cache();
+    Shader(del_cache)(frame);
     del_buf(&(buf_t){.size = sizeof(frame_t), .tag = MEMTAG_FRAME, .ptr = frame});
     glfwTerminate();
 }

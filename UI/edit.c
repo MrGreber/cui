@@ -4,6 +4,7 @@
 #include <math-utils.h>
 #include <frame.h>
 #include <log.h>
+#include <shader/ops.h>
 
 #include <string.h>
 #include <stdlib.h>
@@ -286,7 +287,8 @@ edit_t* new_edit(void* parent, const style_group_t* group, const bounding_box* b
     if (group->normal.init) memcpy(&edit->styles.normal, &group->normal, sizeof(style_t));
     if (group->hover.init) memcpy(&edit->styles.hover, &group->hover, sizeof(style_t));
 
-    edit->sprite = new_sprite(COMP_SHADER);
+    frame_t* frame = get_root(parent);
+    edit->sprite = new_sprite(frame, COMP_SHADER);
     if (!edit->sprite) goto cleanup;
     if (!set_sprite_texture(edit->sprite, box->width, box->height, (style_t*)&group->normal)) goto cleanup;
 
@@ -317,7 +319,7 @@ edit_t* new_edit(void* parent, const style_group_t* group, const bounding_box* b
     push_f32(edit->mesh.va, 2);
     push_buf(edit->mesh.va, edit->mesh.vb);
 
-    edit->mesh.shader = new_shader(TEXT_SHADER);
+    edit->mesh.shader = Shader(new)(frame, TEXT_SHADER);
     if (!edit->mesh.shader) goto cleanup;
 
     edit->text.buffer = new_str("", 0);
@@ -379,12 +381,12 @@ void update_edit(edit_t* edit, const mat4* projection) {
         edit->transform.model = m4_mul(&edit->transform.model, &scale);
         edit->transform.init ^= 1;
     }
-    set_mat4_uniform(edit->sprite->shader, "projection", true, projection->e);
-    set_mat4_uniform(edit->sprite->shader, "model", true, edit->transform.model.e);
-    set_float_uniform(edit->sprite->shader, "border.radius", style->border.radius);
-    set_float_uniform(edit->sprite->shader, "border.thickness", style->border.thickness);
-    set_vec4_uniform(edit->sprite->shader, "border.color", &border_color.x);
-    set_vec2_uniform(edit->sprite->shader, "size", dim.e);
+    Shader(set_mat4)(edit->sprite->shader, "projection", true, projection->e);
+    Shader(set_mat4)(edit->sprite->shader, "model", true, edit->transform.model.e);
+    Shader(set_float)(edit->sprite->shader, "border.radius", style->border.radius);
+    Shader(set_float)(edit->sprite->shader, "border.thickness", style->border.thickness);
+    Shader(set_vec4)(edit->sprite->shader, "border.color", &border_color.x);
+    Shader(set_vec2)(edit->sprite->shader, "size", dim.e);
 
     // if (frame->focused.data == button) color = (vec4){
     //     (f32)button->styles.hover.background.mask.r / 255.0f,
@@ -398,7 +400,7 @@ void update_edit(edit_t* edit, const mat4* projection) {
     //     (f32)button->styles.normal.background.mask.b / 255.0f,
     //     (f32)button->styles.normal.background.mask.a / 255.0f
     // };
-    set_vec4_uniform(edit->sprite->shader, "mask", &((vec4){.x = 1.0f, .y = 1.0f, .z = 1.0f, .w = 1.0f}).x);
+    Shader(set_vec4)(edit->sprite->shader, "mask", &((vec4){.x = 1.0f, .y = 1.0f, .z = 1.0f, .w = 1.0f}).x);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
     // todo: semi-working clock for the edit cursor
@@ -438,10 +440,10 @@ void update_edit(edit_t* edit, const mat4* projection) {
         edit->header.box.x , frame->header.box.height - edit->header.box.y - edit->header.box.height + style->border.thickness,
         edit->header.box.width - style->border.thickness, edit->header.box.height - style->border.thickness
     );
-    set_mat4_uniform(edit->mesh.shader, "projection", true, projection->e);
-    set_mat4_uniform(edit->mesh.shader, "model", true, model.e);
-    set_vec4_uniform(edit->mesh.shader, "font.bg", color_v4(font->bg).e);
-    set_vec4_uniform(edit->mesh.shader, "font.fg", color_v4(font->fg).e);
+    Shader(set_mat4)(edit->mesh.shader, "projection", true, projection->e);
+    Shader(set_mat4)(edit->mesh.shader, "model", true, model.e);
+    Shader(set_vec4)(edit->mesh.shader, "font.bg", color_v4(font->bg).e);
+    Shader(set_vec4)(edit->mesh.shader, "font.fg", color_v4(font->fg).e);
     glDrawArrays(GL_TRIANGLES, 0, 6 * (frame->focused.inst == edit ? edit->mesh.count : edit->mesh.count - 1));
     glDisable(GL_SCISSOR_TEST);
 }

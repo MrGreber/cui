@@ -3,6 +3,7 @@
 #include <event_system.h>
 #include <frame.h>
 #include <math-utils.h>
+#include <shader/ops.h>
 
 #include <memory.h>
 #include <glad.h>
@@ -45,8 +46,8 @@ button_t* new_button(void* parent, style_group_t* group, const bounding_box* box
     if (group->normal.init) memcpy(&button->styles.normal, &group->normal, sizeof(style_t));
     if (group->hover.init) memcpy(&button->styles.hover, &group->hover, sizeof(style_t));
 
-
-    button->sprite = new_sprite(COMP_SHADER);
+    frame_t* frame = get_root(parent);
+    button->sprite = new_sprite(frame, COMP_SHADER);
     if (!button->sprite) goto cleanup;
     if (!set_sprite_texture(button->sprite, box->width, box->height, &group->normal)) goto cleanup;
 
@@ -84,8 +85,8 @@ void update_button(button_t* button, const mat4* projection) {
         button->transform.model = m4_mul(&button->transform.model, &scale);
         button->transform.init ^= 1;
     }
-    set_mat4_uniform(button->sprite->shader, "projection", true, projection->e);
-    set_mat4_uniform(button->sprite->shader, "model", true, button->transform.model.e);
+    Shader(set_mat4)(button->sprite->shader, "projection", true, projection->e);
+    Shader(set_mat4)(button->sprite->shader, "model", true, button->transform.model.e);
 
     const style_t* style = &button->styles.normal;
     const color_t border_color = style->border.color;
@@ -96,10 +97,10 @@ void update_button(button_t* button, const mat4* projection) {
         byte_to_float(border_color.a)
     };
     const vec2 dim = {(f32)button->header.box.width, (f32)button->header.box.height};
-    set_float_uniform(button->sprite->shader, "border.radius", style->border.radius);
-    set_float_uniform(button->sprite->shader, "border.thickness", style->border.thickness);
-    set_vec4_uniform(button->sprite->shader, "border.color", &color.x);
-    set_vec2_uniform(button->sprite->shader, "size", dim.e);
+    Shader(set_float)(button->sprite->shader, "border.radius", style->border.radius);
+    Shader(set_float)(button->sprite->shader, "border.thickness", style->border.thickness);
+    Shader(set_vec4)(button->sprite->shader, "border.color", &color.x);
+    Shader(set_vec2)(button->sprite->shader, "size", dim.e);
     if (frame->hovered.inst == button) color = (vec4){
             byte_to_float(button->styles.hover.background.mask.r),
             byte_to_float(button->styles.hover.background.mask.g),
@@ -112,7 +113,7 @@ void update_button(button_t* button, const mat4* projection) {
         byte_to_float(button->styles.normal.background.mask.b),
         byte_to_float(button->styles.normal.background.mask.a)
     };
-    set_vec4_uniform(button->sprite->shader, "mask", &color.x);
+    Shader(set_vec4)(button->sprite->shader, "mask", &color.x);
 
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }

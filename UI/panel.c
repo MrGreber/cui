@@ -3,6 +3,7 @@
 #include <event_system.h>
 #include <frame.h>
 #include <math-utils.h>
+#include <shader/ops.h>
 
 #include <memory.h>
 #include <glad.h>
@@ -82,7 +83,8 @@ panel_t* new_panel(void* parent, style_group_t* group, const bounding_box* box) 
     if (group->normal.init) memcpy(&panel->styles.normal, &group->normal, sizeof(style_t));
     if (group->hover.init) memcpy(&panel->styles.hover, &group->hover, sizeof(style_t));
 
-    panel->sprite = new_sprite(COMP_SHADER);
+    frame_t* frame = get_root(parent);
+    panel->sprite = new_sprite(frame, COMP_SHADER);
     if (!panel->sprite) goto cleanup;
     if (!set_sprite_texture(panel->sprite, box->width, box->height, &group->normal)) goto cleanup;
 
@@ -120,18 +122,18 @@ void update_panel(panel_t* panel, const mat4* projection) {
         panel->transform.init ^= 1;
     }
 
-    set_mat4_uniform(panel->sprite->shader, "projection", true, projection->e);
-    set_mat4_uniform(panel->sprite->shader, "model", true, panel->transform.model.e);
+    Shader(set_mat4)(panel->sprite->shader, "projection", true, projection->e);
+    Shader(set_mat4)(panel->sprite->shader, "model", true, panel->transform.model.e);
 
     const style_t* style = &panel->styles.normal;
     const color_t border_color = style->border.color;
     const vec4 color = {(f32)border_color.r / 255.0f, (f32)border_color.g / 255.0f, (f32)border_color.b / 255.0f, (f32)border_color.a / 255.0f};
     const vec2 dim = {(f32)panel->header.box.width, (f32)panel->header.box.height};
-    set_float_uniform(panel->sprite->shader, "border.radius", style->border.radius);
-    set_float_uniform(panel->sprite->shader, "border.thickness", style->border.thickness);
-    set_vec4_uniform(panel->sprite->shader, "border.color", color.e);
-    set_vec2_uniform(panel->sprite->shader, "size", dim.e);
-    set_vec4_uniform(panel->sprite->shader, "mask", ((vec4){.x = 1.0f, .y = 1.0f, .z = 1.0f, .w = 1.0f}).e);
+    Shader(set_float)(panel->sprite->shader, "border.radius", style->border.radius);
+    Shader(set_float)(panel->sprite->shader, "border.thickness", style->border.thickness);
+    Shader(set_vec4)(panel->sprite->shader, "border.color", color.e);
+    Shader(set_vec2)(panel->sprite->shader, "size", dim.e);
+    Shader(set_vec4)(panel->sprite->shader, "mask", ((vec4){.x = 1.0f, .y = 1.0f, .z = 1.0f, .w = 1.0f}).e);
 
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
