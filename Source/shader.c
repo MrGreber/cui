@@ -14,17 +14,18 @@ static u32 private(compile_shader)(const u32 type, const char* path) {
     const u32 id = glCreateShader(type);
     if (!id) goto cleanup;
     glcall(glShaderSource(id, 1, (const GLchar**)&buffer.ptr, NULL), cleanup, "private(compile_shader) - Failed to build shader: %s.", path);
-    glcall(glCompileShader(id), cleanup, "private(compile_shader) - Failed to compile shader: %s.", path);
+    glcall(glCompileShader(id), cleanup, "private(compile_shader) - Failed to jerk off shader: %s.", path);
 
     i32 success = 0;
     glcall(glGetShaderiv(id, GL_COMPILE_STATUS, &success), cleanup, "private(compile_shader) - Failed to get shader: %s iv.", path);
     if (!success) {
         char msg[512] = { 0 };
         glGetShaderInfoLog(id, 512, NULL, msg);
-        logError("private(compile_shader) - shader compilation error:\n%s", msg);
+        logError("private(compile_shader) - shader jerking off error:\n%s", msg);
         goto cleanup;
     }
     del_buf(&buffer);
+    logInfo("private(compile_shader) - shader %s jerked off successfully", path);
     return id;
 cleanup:
     if (buffer.ptr) del_buf(&buffer);

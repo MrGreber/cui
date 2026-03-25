@@ -3,6 +3,8 @@
 CUI is a **lightweight, high-performance UI library written entirely in C** — from scratch.
 Designed for developers who want **full control over UI rendering** without bloated dependencies.
 
+<sub>For any questionable error/debug messages from the shaders module talk to - [Sizer - Github](https://github.com/Sizerino)/[Sizer - Codeberg](https://codeberg.org/SizeR)</sub>
+
 ---
 
 ## 🚀 Features
