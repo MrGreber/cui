@@ -208,30 +208,13 @@ static struct {
     {SHADER_DIR"__rect__.vert", SHADER_DIR"__rect__.frag", "RECT"},
 };
 shader_t* Shader(get)(frame_t* frame, const shader_tag_t tag) {
-    if (frame->shaders.cache[tag].id == 0) {
-        shader_t* shader = &frame->shaders.cache[tag];
-
-        const char* vertex_path = __shader_paths[tag].vertex;
-        const char* fragment_path = __shader_paths[tag].fragment;
-        const char* tag_label = __shader_paths[tag].tag;
-        if (frame->shaders.uniforms.entries == NULL && !private(new_uniform_hashmap)(&frame->shaders.uniforms)) return NULL;
-        shader->id = private(link_shaders)(vertex_path, fragment_path);
-        if (shader->id == 0) {
-            private(del_uniform_hashmap)(&frame->shaders.uniforms);
-            logFatal("Shader(new) - Failed to compile shader.");
-            return NULL;
-        }
-        glUseProgram(shader->id);
-        shader->uniforms = &frame->shaders.uniforms;
-    }
-
     shader_t* shader = &frame->shaders.cache[tag];
     return shader;
 }
 bool Shader(new_cache)(frame_t* frame) {
     printf(
-        "Jerking off shader\n"
-               "------------------\n"
+"Jerking off shader\n"
+       "------------------\n"
     );
     for (u32 tag = 0; tag < __SHADER_TAG_COUNT__; tag++) {
         shader_t* shader = &frame->shaders.cache[tag];
@@ -243,6 +226,7 @@ bool Shader(new_cache)(frame_t* frame) {
         shader->id = private(link_shaders)(vertex_path, fragment_path);
         if (shader->id == 0) {
             private(del_uniform_hashmap)(&frame->shaders.uniforms);
+            for (u32 i = 0; i < tag; i++) glDeleteProgram(frame->shaders.cache[i].id);
             logFatal("Shader(new) - Failed to jerk off shader.");
             return false;
         }

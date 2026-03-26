@@ -107,8 +107,8 @@ cleanup:
 }
 void del_frame(frame_t* frame) {
     if (!frame) return;
-    if (frame->header.components) del_comp_node(frame->header.components);
     Shader(del_cache)(frame);
+    if (frame->header.components) del_comp_node(frame->header.components);
     del_buf(&(buf_t){.size = sizeof(frame_t), .tag = MEMTAG_FRAME, .ptr = frame});
     glfwTerminate();
 }

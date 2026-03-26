@@ -4,7 +4,7 @@
 #define APP_H
 #include <frame.h>
 
-typedef void (*app_init_t)(struct app*);
+typedef bool (*app_init_t)(struct app*);
 typedef void (*app_loop_t)(struct app*);
 typedef void (*app_exit_t)(struct app*);
 

@@ -11,8 +11,9 @@
 #define WIDTH 800
 #define HEIGHT 800
 
-static void __init(app_t* app) {
+static bool __init(app_t* app) {
     frame_t* frame = new_frame(DARK_GRAY, WIDTH, HEIGHT, "Frame");
+    if (!frame) return false;
 
     style_group_t group = {
         .normal = {
@@ -56,6 +57,7 @@ static void __init(app_t* app) {
     push_app_var(app, canvas);
     //push_app_var(app, button);
     print_comp_node(frame->header.components, 0);
+    return true;
 }
 static bool flag = true;
 static void __loop(app_t* app) {
@@ -105,8 +107,10 @@ void test(void) {
     set_exitFlag(false);
 
     app_t* app = new_app((app_init_t)__init, (app_loop_t)__loop, (app_exit_t)__exit);
-    start_app(app);
-    exit_app(app);
+    if (app) {
+        start_app(app);
+        exit_app(app);
+    }
 
     set_exitFlag(true);
     close_logging();

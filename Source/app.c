@@ -30,7 +30,11 @@ app_t* new_app(const app_init_t init, const app_loop_t loop, const app_exit_t ex
     }
     app->vars = buffer.ptr;
 
-    init((void*)app);
+    if (!init((void*)app)) {
+        del_buf(&buffer);
+        del_buf(&(buf_t){.ptr = app, .size = sizeof(app_t), .tag = MEMTAG_APP});
+        return NULL;
+    }
     return app;
 }
 void start_app(app_t* app) {
