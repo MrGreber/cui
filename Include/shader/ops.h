@@ -7,7 +7,8 @@
 
 #define Shader(func) __shader_##func
 
-shader_t* Shader(new)(frame_t* frame, const shader_tag_t tag);
+shader_t* Shader(get)(frame_t* frame, const shader_tag_t tag);
+bool Shader(new_cache)(frame_t* frame);
 void Shader(del_cache)(frame_t* frame);
 
 bool Shader(set_mat4_array)(shader_t* shader, const char* name, const u32 count, const bool transpose, const f32* elements);

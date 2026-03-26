@@ -77,6 +77,11 @@ frame_t* new_frame(const color_t bg, const u32 width, const u32 height, const ch
 
     glfwMakeContextCurrent(frame->ctx);
     glfwSetFramebufferSizeCallback(frame->ctx, __resize_callback);
+    glfwSetKeyCallback(frame->ctx, __keyboard_callback);
+    glfwSetCursorPosCallback(frame->ctx, __mouse_movement_callback);
+    glfwSetMouseButtonCallback(frame->ctx, __mouse_button_callback);
+    glfwSetScrollCallback(frame->ctx, __scroll_callback);
+    glfwSetWindowUserPointer(frame->ctx, frame);
 
     if (!__init_glad()) goto cleanup;
 
@@ -89,13 +94,10 @@ frame_t* new_frame(const color_t bg, const u32 width, const u32 height, const ch
     frame->bg = bg;
     frame->title = (char*)title;
     frame->flags = FLAG_DEFAULT_STATE;
-
-    glfwSetKeyCallback(frame->ctx, __keyboard_callback);
-    glfwSetCursorPosCallback(frame->ctx, __mouse_movement_callback);
-    glfwSetMouseButtonCallback(frame->ctx, __mouse_button_callback);
-    glfwSetScrollCallback(frame->ctx, __scroll_callback);
-
-    glfwSetWindowUserPointer(frame->ctx, frame);
+    if (!Shader(new_cache)(frame)) {
+        logError("new_frame - Failed to create shader cache.");
+        goto cleanup;
+    }
     return frame;
 cleanup:
     if (frame->header.components) del_comp_node(frame->header.components);

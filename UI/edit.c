@@ -319,7 +319,7 @@ edit_t* new_edit(void* parent, const style_group_t* group, const bounding_box* b
     push_f32(edit->mesh.va, 2);
     push_buf(edit->mesh.va, edit->mesh.vb);
 
-    edit->mesh.shader = Shader(new)(frame, TEXT_SHADER);
+    edit->mesh.shader = Shader(get)(frame, TEXT_SHADER);
     if (!edit->mesh.shader) goto cleanup;
 
     edit->text.buffer = new_str("", 0);

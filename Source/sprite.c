@@ -39,7 +39,7 @@ sprite_t* new_sprite(frame_t* frame, const shader_tag_t tag) {
     push_f32(sprite->va, 2);
     push_buf(sprite->va, sprite->vb);
 
-    sprite->shader = Shader(new)(frame, tag);
+    sprite->shader = Shader(get)(frame, tag);
     sprite->tex = NULL;
 
     if (!sprite->shader) goto cleanup;
