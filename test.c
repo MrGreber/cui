@@ -44,7 +44,7 @@ static bool __init(app_t* app) {
     set_brush(canvas, RED, 1);
 
     group.normal.background.color = WHITE;
-    group.normal.mode = 0;
+    group.normal.mode = WRITABLE;
     edit_t* edit = new_edit(frame, &group, &(bounding_box){0, 0, 200, 100});
     set_font(edit->font, __DIR__"\\Resources\\vcr_osd_mono.fnt", BLUE, TRANSP);
     set_edit_text(edit, "shit", 4);

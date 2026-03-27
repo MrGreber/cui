@@ -27,17 +27,17 @@ sprite_t* new_sprite(frame_t* frame, const shader_tag_t tag) {
 
     sprite_t* sprite = buffer.ptr;
 
-    sprite->va = new_vertex_array(2);
-    sprite->vb = new_vertex_buffer(vertices, sizeof(vertices), STATIC_BUFFER);
-    sprite->eb = new_element_buffer(indices, sizeof(indices));
+    sprite->va = VertexArray(new)(2);
+    sprite->vb = VertexBuffer(new)(vertices, sizeof(vertices), false);
+    sprite->eb = ElementBuffer(new)(indices, sizeof(indices));
     if (!sprite->va || !sprite->vb || !sprite->eb) goto cleanup;
-    bind_vertex_array(sprite->va);
-    bind_vertex_buffer(sprite->vb);
-    bind_element_buffer(sprite->eb);
+    VertexArray(bind)(sprite->va);
+    VertexBuffer(bind)(sprite->vb);
+    ElementBuffer(bind)(sprite->eb);
 
-    push_f32(sprite->va, 2);
-    push_f32(sprite->va, 2);
-    push_buf(sprite->va, sprite->vb);
+    VertexArray(push_f32)(sprite->va, 2);
+    VertexArray(push_f32)(sprite->va, 2);
+    VertexArray(push_buffer)(sprite->va, sprite->vb);
 
     sprite->shader = Shader(get)(frame, tag);
     sprite->tex = NULL;
@@ -45,30 +45,30 @@ sprite_t* new_sprite(frame_t* frame, const shader_tag_t tag) {
     if (!sprite->shader) goto cleanup;
     return sprite;
 cleanup:
-    if (sprite->va) del_vertex_array(sprite->va);
-    if (sprite->vb) del_vertex_buffer(sprite->vb);
-    if (sprite->eb) del_element_buffer(sprite->eb);
+    if (sprite->va) VertexArray(del)(sprite->va);
+    if (sprite->vb) VertexBuffer(del)(sprite->vb);
+    if (sprite->eb) ElementBuffer(del)(sprite->eb);
     return NULL;
 }
 
 void del_sprite(sprite_t* sprite) {
     if (!sprite) return;
     if (sprite->tex) del_texture(sprite->tex);
-    if (sprite->va) del_vertex_array(sprite->va);
-    if (sprite->vb) del_vertex_buffer(sprite->vb);
-    if (sprite->eb) del_element_buffer(sprite->eb);
+    if (sprite->va) VertexArray(del)(sprite->va);
+    if (sprite->vb) VertexBuffer(del)(sprite->vb);
+    if (sprite->eb) ElementBuffer(del)(sprite->eb);
 
     del_buf(&(buf_t){.size = sizeof(sprite_t), .tag = MEMTAG_SPRITE, .ptr = sprite});
 }
 
 void bind_sprite(const sprite_t* sprite) {
-    bind_vertex_array(sprite->va);
+    VertexArray(bind)(sprite->va);
     glUseProgram(sprite->shader->id);
     if (sprite->tex) bind_texture(sprite->tex);
 }
 
 void unbind_sprite(void) {
-    unbind_vertex_array();
+    VertexArray(unbind)();
 }
 
 bool set_sprite_texture(sprite_t* sprite, const u32 width, const u32 height, style_t* style) {

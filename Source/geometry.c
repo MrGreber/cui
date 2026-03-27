@@ -1,38 +1,26 @@
 #include <geometry.h>
-#include <memio.h>
 #include <log.h>
+#include <memio.h>
 #include <utils.h>
 
-#include <glad.h>
-
-
-static u32 __gl_sizeof(const u32 type) {
-    switch (type) {
-        case GL_FLOAT:
-        case GL_UNSIGNED_INT: return 4;
-        case GL_UNSIGNED_BYTE: return 1;
-        default: return 0;
-    }
-}
-
-vert_buf* new_vertex_buffer(const void* data, const u32 size, const u8 type) {
+vert_buf_t* VertexBuffer(new)(const void* data, const u32 size, const bool dynamic) {
     if (!size) return NULL;
-    if (!data && type == STATIC_BUFFER) {
-        logWarn("new_vertex_buffer - Invalid data address NULL.");
+    if (!data && !dynamic) {
+        logWarn("VertexBuffer(new) - Invalid data address 0x%p.", NULL);
         return NULL;
     }
 
     buf_t buffer = {
-        .size = sizeof(vert_buf),
+        .size = sizeof(vert_buf_t),
         .tag = MEMTAG_VERTEX_BUFFER
     };
     if (!new_buf(&buffer, false)) return NULL;
 
-    vert_buf* vb = buffer.ptr;
-    vb->type = type;
-    glcall(glGenBuffers(1, &vb->id), cleanup, "new_vertex_buffer - Failed to allocate vertex buffer.");
+    vert_buf_t* vb = buffer.ptr;
+    vb->dynamic = dynamic;
+    glcall(glGenBuffers(1, &vb->id), cleanup, "VertexBuffer(new) - Failed to allocate vertex buffer.");
     glBindBuffer(GL_ARRAY_BUFFER, vb->id);
-    glcall(glBufferData(GL_ARRAY_BUFFER, size, data, type ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW), cleanup, "new_vertex_buffer - Failed to copy vertex buffer data.");
+    glcall(glBufferData(GL_ARRAY_BUFFER, size, data, dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW), cleanup, "VertexBuffer(new) - Failed to copy vertex buffer data.");
 
     return vb;
 cleanup:
@@ -41,42 +29,30 @@ cleanup:
     del_buf(&buffer);
     return NULL;
 }
-void del_vertex_buffer(vert_buf* vb) {
+void VertexBuffer(del)(vert_buf_t* vb) {
     if (!vb) return;
 
     glDeleteBuffers(1, &vb->id);
-
-    buf_t buffer = {
-        .size = sizeof(vert_buf),
-        .tag = MEMTAG_VERTEX_BUFFER,
-        .ptr = vb
-    };
-    del_buf(&buffer);
-}
-void bind_vertex_buffer(const vert_buf* vb) {
-    glBindBuffer(GL_ARRAY_BUFFER, vb->id);
-}
-void unbind_vertex_buffer() {
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    del_buf(&(buf_t){.size = sizeof(vert_buf_t), .tag = MEMTAG_VERTEX_BUFFER, .ptr = vb});
 }
 
-elem_buf* new_element_buffer(const u32* data, const u32 count) {
+elem_buf_t* ElementBuffer(new)(const u32* data, const u32 count) {
     if (!count) return NULL;
     if (data == NULL) {
-        logWarn("new_vertex_buffer - Invalid data address NULL.");
+        logWarn("ElementBuffer(new) - Invalid data address 0x%p.", NULL);
         return NULL;
     }
 
     buf_t buffer = {
-        .size = sizeof(elem_buf),
+        .size = sizeof(elem_buf_t),
         .tag = MEMTAG_ELEMENT_BUFFER
     };
     if (!new_buf(&buffer, false)) return NULL;
 
-    elem_buf* eb = buffer.ptr;
-    glcall(glGenBuffers(1, &eb->id), cleanup, "new_element_buffer - Failed to allocate element buffer.");
+    elem_buf_t* eb = buffer.ptr;
+    glcall(glGenBuffers(1, &eb->id), cleanup, "ElementBuffer(new) - Failed to allocate element buffer.");
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eb->id);
-    glcall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, count * sizeof(u32), data, GL_STATIC_DRAW), cleanup, "new_element_buffer - Failed to copy element buffer data.");
+    glcall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, count * sizeof(u32), data, GL_STATIC_DRAW), cleanup, "ElementBuffer(new) - Failed to copy element buffer data.");
 
     eb->count = count;
     return eb;
@@ -86,124 +62,96 @@ cleanup:
     del_buf(&buffer);
     return NULL;
 }
-void del_element_buffer(elem_buf* eb) {
+void ElementBuffer(del)(elem_buf_t* eb) {
     if (!eb) return;
 
     glDeleteBuffers(1, &eb->id);
-    buf_t buffer = {
-        .size = sizeof(elem_buf),
-        .tag = MEMTAG_ELEMENT_BUFFER,
-        .ptr = eb
-    };
-
-    del_buf(&buffer);
-}
-void bind_element_buffer(const elem_buf* vb) {
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vb->id);
-}
-void unbind_element_buffer() {
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    del_buf(&(buf_t){.size = sizeof(elem_buf_t), .tag = MEMTAG_ELEMENT_BUFFER, .ptr = eb});
 }
 
-vert_array* new_vertex_array(const u64 capacity) {
+vert_array_t* VertexArray(new)(u64 capacity) {
     if (!capacity) return NULL;
 
     buf_t buffer = {
-        .size = sizeof(vert_array),
+        .size = sizeof(vert_array_t),
         .tag = MEMTAG_VERTEX_ARRAY
     };
     if (!new_buf(&buffer, false)) return NULL;
 
-    const u64 cap = __closest_pow2(capacity);
-    vert_array* va = buffer.ptr;
+    capacity = __closest_pow2(capacity);
+    vert_array_t* va = buffer.ptr;
     va->elem = 0;
-    glcall(glGenVertexArrays(1, &va->id), cleanup, "new_vertex_array - Failed to allocate vertex array.");
+    glcall(glGenVertexArrays(1, &va->id), cleanup, "VertexArray(new) - Failed to allocate vertex array.");
 
     buffer = (buf_t){
-        .size = cap * sizeof(vert_elem),
+        .size = capacity * sizeof(vert_elem_t),
         .tag = MEMTAG_VERTEX_ARRAY_ELEMENT,
     };
     if (!new_buf(&buffer, false)) goto cleanup;
 
     va->stride = 0;
     va->count = 0;
-    va->capacity = cap;
+    va->capacity = capacity;
     va->elem = buffer.ptr;
 
     return va;
 cleanup:
     glDeleteVertexArrays(1, &va->id);
-    if (va->elem) del_buf(&(buf_t){.size = sizeof(vert_elem), .tag = MEMTAG_VERTEX_ARRAY_ELEMENT, .ptr = va->elem});
-    del_buf(&(buf_t){.size = sizeof(vert_array), .tag = MEMTAG_VERTEX_ARRAY, .ptr = va});
+    if (va->elem) del_buf(&(buf_t){.size = capacity * sizeof(vert_elem_t), .tag = MEMTAG_VERTEX_ARRAY_ELEMENT, .ptr = va->elem});
+    del_buf(&(buf_t){.size = sizeof(vert_array_t), .tag = MEMTAG_VERTEX_ARRAY, .ptr = va});
     return NULL;
 }
-void del_vertex_array(vert_array* va) {
+void VertexArray(del)(vert_array_t* va) {
     if (!va) return;
 
     glDeleteVertexArrays(1, &va->id);
     glBindVertexArray(0);
 
-    del_buf(&(buf_t){
-        .size = va->capacity * sizeof(vert_elem),
-        .tag = MEMTAG_VERTEX_ARRAY_ELEMENT,
-        .ptr = va->elem
-    });
-
-    del_buf(&(buf_t){
-        .size = sizeof(vert_array),
-        .tag = MEMTAG_VERTEX_ARRAY,
-        .ptr = va
-    });
-}
-void bind_vertex_array(const vert_array* va) {
-    glBindVertexArray(va->id);
-}
-void unbind_vertex_array() {
-    glBindVertexArray(0);
+    del_buf(&(buf_t){.size = va->capacity * sizeof(vert_elem_t), .tag = MEMTAG_VERTEX_ARRAY_ELEMENT, .ptr = va->elem});
+    del_buf(&(buf_t){.size = sizeof(vert_array_t), .tag = MEMTAG_VERTEX_ARRAY, .ptr = va});
 }
 
-static bool __realloc_vertex_elements(vert_array* va) {
-    if (va->count == va->capacity) {
-        const u32 new_cap = va->capacity << 1;
-
+static bool private(resize_vertex_array)(vert_array_t* va) {
+    if (va->count >= va->capacity) {
+        const u32 new_capacity = va->capacity << 1;
         buf_t buffer = {
-            .size = va->capacity * sizeof(vert_elem),
+            .size = va->capacity * sizeof(vert_elem_t),
             .tag = MEMTAG_VERTEX_ARRAY_ELEMENT,
             .ptr = va->elem
         };
-        if (!renew_buf(&buffer, new_cap * sizeof(vert_elem))) return false;
+        if (!renew_buf(&buffer, new_capacity * sizeof(vert_elem_t))) return false;
 
         va->elem = buffer.ptr;
-        va->capacity = new_cap;
+        va->capacity = new_capacity;
     }
     return true;
 }
-void push_f32(vert_array* va, const u32 count) {
+void VertexArray(push_f32)(vert_array_t* va, const u32 count) {
     if (!va || !count) return;
-    if (!__realloc_vertex_elements(va)) return;
-    vert_elem* elem = &va->elem[va->count];
+    if (!private(resize_vertex_array)(va)) return;
+    vert_elem_t* elem = &va->elem[va->count];
     elem->count = count;
     elem->type = GL_FLOAT;
     elem->normalized = false;
     va->count++;
     va->stride += sizeof(f32) * count;
 }
-void push_u32(vert_array* va, const u32 count) {
+void VertexArray(push_u32)(vert_array_t* va, const u32 count) {
     if (!va || !count) return;
-    if (__realloc_vertex_elements(va)) return;
+    if (private(resize_vertex_array)(va)) return;
 
-    vert_elem* elem = &va->elem[va->count];
+    vert_elem_t* elem = &va->elem[va->count];
     elem->count = count;
     elem->type = GL_UNSIGNED_INT;
     elem->normalized = false;
     va->count++;
     va->stride += sizeof(u32) * count;
 }
-void push_u8(vert_array* va, const u32 count) {
+void VertexArray(push_u8)(vert_array_t* va, const u32 count) {
     if (!va || !count) return;
-    if (__realloc_vertex_elements(va)) return;
+    if (private(resize_vertex_array)(va)) return;
 
-    vert_elem* elem = &va->elem[va->count];
+    vert_elem_t* elem = &va->elem[va->count];
     elem->count = count;
     elem->type = GL_UNSIGNED_BYTE;
     elem->normalized = false;
@@ -211,16 +159,24 @@ void push_u8(vert_array* va, const u32 count) {
     va->stride += sizeof(u8) * count;
 }
 
-void push_buf(vert_array* va, vert_buf* vb) {
+static u32 private(gl_sizeof)(const u32 type) {
+    switch (type) {
+        case GL_FLOAT:
+        case GL_UNSIGNED_INT: return 4;
+        case GL_UNSIGNED_BYTE: return 1;
+        default: return 0;
+    }
+}
+void VertexArray(push_buffer)(vert_array_t* va, vert_buf_t* vb) {
     if (!va || !vb) return;
 
-    bind_vertex_array(va);
-    bind_vertex_buffer(vb);
+    VertexArray(bind)(va);
+    VertexBuffer(bind)(vb);
 
-    const vert_elem* elements = va->elem;
+    const vert_elem_t* elements = va->elem;
     u32 offset = 0;
     for (u32 i = 0; i < va->count; i++) {
-        const vert_elem* elem = &elements[i];
+        const vert_elem_t* elem = &elements[i];
         glEnableVertexAttribArray(i);
         glVertexAttribPointer(
             i,
@@ -230,6 +186,6 @@ void push_buf(vert_array* va, vert_buf* vb) {
             va->stride,
             (const void*)(u64)offset
         );
-        offset += elem->count * __gl_sizeof(elem->type);
+        offset += elem->count * private(gl_sizeof)(elem->type);
     }
 }

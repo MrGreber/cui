@@ -28,8 +28,8 @@ typedef struct edit {
         u64 capacity;
         vec4* vertices;
 
-        vert_array* va;
-        vert_buf* vb;
+        vert_array_t* va;
+        vert_buf_t* vb;
         shader_t* shader;
     } mesh;
 

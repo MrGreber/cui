@@ -7,7 +7,6 @@
 #include <shader/ops.h>
 
 #include <string.h>
-#include <stdlib.h>
 #include <glad.h>
 #include <glfw3.h>
 
@@ -55,18 +54,14 @@ static void push_glyph_quad(edit_t* edit, const glyph_t* g, const f32 pen_x, con
 cleanup:
     logError("push_quad - Failed to resize text mesh.");
 }
-static void build_text_mesh(edit_t* edit, const void* text, f32 start_x, f32 start_y) {
+static void build_text_mesh(edit_t* edit, f32 start_x, f32 start_y) {
     // TODO: optimize this function,
     // every AI I know of is dumb enough to not understand how to do it even though
     // the optimization is hella simple I mean I tried to do it myself for 2 times in a row
     // however it failed but I got close since I was able to render the text mesh semi correct and I know how to optimize
     // so i will try again sometime
 
-    const struct {
-        str_t* buffer;
-        u64 index;
-    }* edit_text = text;
-    const str_t* buffer = edit_text->buffer;
+    const str_t* buffer = edit->text.buffer;
 
     struct {
         vec2 pos;
@@ -81,9 +76,7 @@ static void build_text_mesh(edit_t* edit, const void* text, f32 start_x, f32 sta
         start_y
     };
 
-    bind_vertex_array(edit->mesh.va);
-    glUseProgram(edit->mesh.shader->id);
-    bind_font(edit->font);
+
     const f32 space_x = edit->font->glyphs[edit->font->amap(' ')].x_advance;
     for (u64 i = 0; i < buffer->length; i++) {
         const char c = buffer->data[i];
@@ -91,21 +84,21 @@ static void build_text_mesh(edit_t* edit, const void* text, f32 start_x, f32 sta
         if (c == '\n') {
             pen.x = start_x;
             pen.y += edit->font->line_height;
-            if (edit_text->index == i + 1) {
+            if (edit->text.index == i + 1) {
                 caret.pos = pen;
             }
             continue;
         }
         if (c == ' ') {
             pen.x += space_x;
-            if (edit_text->index == i + 1) {
+            if (edit->text.index == i + 1) {
                 caret.pos = pen;
             }
             continue;
         }
         if (c == '\t') {
             pen.x += 4.0f * space_x;
-            if (edit_text->index == i + 1) {
+            if (edit->text.index == i + 1) {
                 caret.pos = pen;
             }
             continue;
@@ -117,27 +110,76 @@ static void build_text_mesh(edit_t* edit, const void* text, f32 start_x, f32 sta
         push_glyph_quad(edit, g, pen.x, pen.y);
         pen.x += g->x_advance;
 
-        if (edit_text->index == i + 1) {
+        if (edit->text.index == i + 1) {
             caret.pos = pen;
         }
     }
     push_glyph_quad(edit, caret.glyph, caret.pos.x - (f32)caret.glyph->offset.x, caret.pos.y);
 
+    VertexArray(bind)(edit->mesh.va);
+    glUseProgram(edit->mesh.shader->id);
+    bind_font(edit->font);
     glBindBuffer(GL_ARRAY_BUFFER, edit->mesh.vb->id);
     glBufferSubData(GL_ARRAY_BUFFER, 0, edit->mesh.count * QUAD_SIZE, edit->mesh.vertices);
+}
+static void private(set_caret_position)(edit_t* edit, const f64 mouse_x, const f64 mouse_y) {
+    const str_t* buffer = edit->text.buffer;
+
+    glyph_t* caret_glyph = &edit->font->glyphs[edit->font->amap('|')];
+    edit->mesh.count--;
+
+    vec2 pen = { 0 };
+    const f32 space_x = edit->font->glyphs[edit->font->amap(' ')].x_advance;
+
+    for (u64 i = 0; i < buffer->length; i++) {
+        const char c = buffer->data[i];
+        const bool flag = (mouse_y >= pen.y && mouse_y < pen.y + edit->font->line_height);
+
+        if (c == '\n') {
+            if (!flag) {
+                pen.x = 0.0f;
+                pen.y += edit->font->line_height;
+                edit->text.index = i + 1;
+            }
+            else break;
+            continue;
+        }
+
+        f32 advance;
+        switch (c) {
+            case ' ': advance = space_x; break;
+            case '\t': advance = 4.0f * space_x; break;
+            default: advance = edit->font->glyphs[edit->font->amap(c)].x_advance; break;
+        }
+        if (!flag) continue;
+
+        if (pen.x + advance < mouse_x) {
+            pen.x += advance;
+            edit->text.index = i + 1;
+        }
+        else break;
+    }
+
+    push_glyph_quad(edit, caret_glyph, pen.x - (f32)caret_glyph->offset.x, pen.y);
+
+    VertexArray(bind)(edit->mesh.va);
+    glUseProgram(edit->mesh.shader->id);
+    bind_font(edit->font);
+    glBindBuffer(GL_ARRAY_BUFFER, edit->mesh.vb->id);
+    glBufferSubData(GL_ARRAY_BUFFER, (edit->mesh.count - 1) * QUAD_SIZE, QUAD_SIZE, edit->mesh.vertices + 6 * (edit->mesh.count - 1));
 }
 
 static void __default_mouse_callback(const mouse_cb_param* param) {
     edit_t* edit = param->instance;
-    const frame_t* frame = ((comp_node_t*)edit->header.components)->root->component.inst;
+    const frame_t* frame = get_root(edit);
 
     if (param->action == GLFW_PRESS) {
-        build_text_mesh(edit, &edit->text, 0.0, 0.0);
+        private(set_caret_position)(edit, param->x, param->y);
     }
 }
 static void __default_write_keyboard_callback(const keyboard_cb_param* param) {
     edit_t* edit = param->instance;
-    frame_t* frame = ((comp_node_t*)edit->header.components)->root->component.inst;
+    frame_t* frame = get_root(edit);
 
     bounding_box* box = &edit->header.box;
     if (param->action == GLFW_PRESS || param->action == GLFW_REPEAT) {
@@ -200,12 +242,12 @@ static void __default_write_keyboard_callback(const keyboard_cb_param* param) {
 
 rebuild_text_mesh:
     if (edit->font) {
-        build_text_mesh(edit, &edit->text, 0.0, 0.0);
+        build_text_mesh(edit, 0.0, 0.0);
     }
 }
 static void __default_read_keyboard_callback(const keyboard_cb_param* param) {
     edit_t* edit = param->instance;
-    frame_t* frame = ((comp_node_t*)edit->header.components)->root->component.inst;
+    frame_t* frame = get_root(edit);
 
     bounding_box* box = &edit->header.box;
     if (param->action == GLFW_PRESS || param->action == GLFW_REPEAT) {
@@ -217,25 +259,25 @@ static void __default_read_keyboard_callback(const keyboard_cb_param* param) {
             case GLFW_KEY_RIGHT_SHIFT: return;
             case GLFW_KEY_HOME: {
                 edit->text.index = rfind_char(edit->text.buffer, edit->text.index, '\n');
-                build_text_mesh(edit, &edit->text, 0.0, 0.0);
+                build_text_mesh(edit, 0.0, 0.0);
                 break;
             }
             case GLFW_KEY_END: {
                 edit->text.index = find_char(edit->text.buffer, edit->text.index, '\n');
-                build_text_mesh(edit, &edit->text, 0.0, 0.0);
+                build_text_mesh(edit, 0.0, 0.0);
                 break;
             }
             case GLFW_KEY_LEFT: {
                 if (edit->text.index) {
                     edit->text.index--;
-                    build_text_mesh(edit, &edit->text, 0.0, 0.0);
+                    build_text_mesh(edit, 0.0, 0.0);
                 }
                 break;
             }
             case GLFW_KEY_RIGHT: {
                 if (edit->text.index < edit->text.buffer->length) {
                     edit->text.index++;
-                    build_text_mesh(edit, &edit->text, 0.0, 0.0);
+                    build_text_mesh(edit, 0.0, 0.0);
                 }
                 break;
             }
@@ -263,7 +305,7 @@ void set_edit_text(edit_t* edit, char_t* text, const u64 length) {
         logError("set_text - Failed to set edit, text.");
         return;
     }
-    build_text_mesh(edit, &edit->text, 0.0, 0.0);
+    build_text_mesh(edit, 0.0, 0.0);
 }
 
 edit_t* new_edit(void* parent, const style_group_t* group, const bounding_box* box) {
@@ -309,15 +351,15 @@ edit_t* new_edit(void* parent, const style_group_t* group, const bounding_box* b
     edit->mesh.capacity = DEFAULT_CAPACITY;
     edit->mesh.count = 0;
 
-    edit->mesh.va = new_vertex_array(2);
-    edit->mesh.vb = new_vertex_buffer(NULL, QUAD_SIZE * DEFAULT_CAPACITY, DYNAMIC_BUFFER);
+    edit->mesh.va = VertexArray(new)(2);
+    edit->mesh.vb = VertexBuffer(new)(NULL, QUAD_SIZE * DEFAULT_CAPACITY, true);
     if (!edit->mesh.va || !edit->mesh.vb) goto cleanup;
-    bind_vertex_array(edit->mesh.va);
-    bind_vertex_buffer(edit->mesh.vb);
+    VertexArray(bind)(edit->mesh.va);
+    VertexBuffer(bind)(edit->mesh.vb);
 
-    push_f32(edit->mesh.va, 2);
-    push_f32(edit->mesh.va, 2);
-    push_buf(edit->mesh.va, edit->mesh.vb);
+    VertexArray(push_f32)(edit->mesh.va, 2);
+    VertexArray(push_f32)(edit->mesh.va, 2);
+    VertexArray(push_buffer)(edit->mesh.va, edit->mesh.vb);
 
     edit->mesh.shader = Shader(get)(frame, TEXT_SHADER);
     if (!edit->mesh.shader) goto cleanup;
@@ -331,11 +373,11 @@ edit_t* new_edit(void* parent, const style_group_t* group, const bounding_box* b
     edit->header.resize = (callback)__default_resize_callback;
     push_comp_node(parent_header->components, edit, EDIT_COMPONENT);
 
-    build_text_mesh(edit, &edit->text, 0.0, 0.0);
+    build_text_mesh(edit, 0.0, 0.0);
     return edit;
 cleanup:
-    if (edit->mesh.va) del_vertex_array(edit->mesh.va);
-    if (edit->mesh.vb) del_vertex_buffer(edit->mesh.vb);
+    if (edit->mesh.va) VertexArray(del)(edit->mesh.va);
+    if (edit->mesh.vb) VertexBuffer(del)(edit->mesh.vb);
     if (edit->mesh.vertices) del_buf(&(buf_t){.ptr = edit->mesh.vertices, .size = QUAD_SIZE * DEFAULT_CAPACITY, .tag = MEMTAG_VECTOR});
     if (edit->sprite) del_sprite(edit->sprite);
     if (edit->text.buffer) del_str(edit->text.buffer);
@@ -345,8 +387,8 @@ cleanup:
 }
 void del_edit(edit_t* edit) {
     if (!edit) return;
-    del_vertex_array(edit->mesh.va);
-    del_vertex_buffer(edit->mesh.vb);
+    VertexArray(del)(edit->mesh.va);
+    VertexBuffer(del)(edit->mesh.vb);
     del_buf(&(buf_t){.ptr = edit->mesh.vertices, .size = QUAD_SIZE * edit->mesh.capacity, .tag = MEMTAG_VECTOR});
     del_sprite(edit->sprite);
     del_str(edit->text.buffer);
@@ -360,11 +402,8 @@ void bind_edit(const edit_t* edit) {
 
 #define CLOCK_TIME 0.02
 void update_edit(edit_t* edit, const mat4* projection) {
-    // static f64 clock = CLOCK_TIME;
-    // static bool flag = true;
-
     if (!edit) return;
-    const frame_t* frame = ((comp_node_t*)edit->header.components)->root->component.inst;
+    const frame_t* frame = get_root(edit);
     const font_t* font = edit->font;
     const style_t* style = &edit->styles.normal;
     const vec4 border_color = {(f32)style->border.color.r / 255.0f, (f32)style->border.color.g / 255.0f, (f32)style->border.color.b / 255.0f, (f32)style->border.color.a / 255.0f};
@@ -388,31 +427,34 @@ void update_edit(edit_t* edit, const mat4* projection) {
     Shader(set_vec4)(edit->sprite->shader, "border.color", &border_color.x);
     Shader(set_vec2)(edit->sprite->shader, "size", dim.e);
 
-    // if (frame->focused.data == button) color = (vec4){
-    //     (f32)button->styles.hover.background.mask.r / 255.0f,
-    //     (f32)button->styles.hover.background.mask.g / 255.0f,
-    //     (f32)button->styles.hover.background.mask.b / 255.0f,
-    //     (f32)button->styles.hover.background.mask.a / 255.0f
+    // if (frame->focused.data == edit) color = (vec4){
+    //     (f32)edit->styles.hover.background.mask.r / 255.0f,
+    //     (f32)edit->styles.hover.background.mask.g / 255.0f,
+    //     (f32)edit->styles.hover.background.mask.b / 255.0f,
+    //     (f32)edit->styles.hover.background.mask.a / 255.0f
     // };
     // else color = (vec4){
-    //     (f32)button->styles.normal.background.mask.r / 255.0f,
-    //     (f32)button->styles.normal.background.mask.g / 255.0f,
-    //     (f32)button->styles.normal.background.mask.b / 255.0f,
-    //     (f32)button->styles.normal.background.mask.a / 255.0f
+    //     (f32)edit->styles.normal.background.mask.r / 255.0f,
+    //     (f32)edit->styles.normal.background.mask.g / 255.0f,
+    //     (f32)edit->styles.normal.background.mask.b / 255.0f,
+    //     (f32)edit->styles.normal.background.mask.a / 255.0f
     // };
     Shader(set_vec4)(edit->sprite->shader, "mask", &((vec4){.x = 1.0f, .y = 1.0f, .z = 1.0f, .w = 1.0f}).x);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
     // todo: semi-working clock for the edit cursor
-    // if (frame->focused.data == edit) {
+    // static f64 clock = CLOCK_TIME;
+    // static bool flag = true;
+    // const f32 delta = (f32)frame->stopwatch.delta;
+    // if (frame->focused.inst == edit) {
     //     if (0.0 >= clock) {
     //         if (flag) {
-    //             if (edit->font->mesh.count > 0)
-    //                 edit->font->mesh.count--;
+    //             if (edit->mesh.count > 0)
+    //                 edit->mesh.count--;
     //             flag = false;
     //         }
     //         else {
-    //             edit->font->mesh.count++;
+    //             edit->mesh.count++;
     //             flag = true;
     //         }
     //         clock = CLOCK_TIME;
@@ -422,8 +464,8 @@ void update_edit(edit_t* edit, const mat4* projection) {
     //     }
     // }
     // else {
-    //     if (edit->font->mesh.count > 0 && flag) {
-    //         edit->font->mesh.count--;
+    //     if (edit->mesh.count > 0 && flag) {
+    //         edit->mesh.count--;
     //         flag = false;
     //     }
     // }
@@ -432,7 +474,7 @@ void update_edit(edit_t* edit, const mat4* projection) {
     const mat4 position = m4_transl((f32)edit->header.box.x + style->border.thickness, (f32)edit->header.box.y + style->border.thickness, 0.0f);
     const mat4 size = m4_scale(1.0f, 1.0f, 1.0f);
     const mat4 model = m4_mul(&position, &size);
-    bind_vertex_array(edit->mesh.va);
+    VertexArray(bind)(edit->mesh.va);
     glUseProgram(edit->mesh.shader->id);
     bind_font(edit->font);
     glEnable(GL_SCISSOR_TEST);

@@ -18,7 +18,7 @@
 #define CAM_KEY_R (1 << 6)
 
 static void __default_camera_handler(canvas_t* canvas) {
-    const frame_t* frame = ((comp_node_t*)canvas->header.components)->root->component.inst;
+    const frame_t* frame = get_root(canvas);
     const f32 delta = (f32)frame->stopwatch.delta;
     camera_t* camera = canvas->camera;
 #ifndef SPEED
@@ -30,11 +30,11 @@ static void __default_camera_handler(canvas_t* canvas) {
     if (camera->keys & CAM_KEY_D) camera->position.x += SPEED * delta;
     if (camera->keys & CAM_KEY_Q) {
         camera->roll -= SPEED * delta;
-        if (camera->roll < 0.0f) camera->roll += 360.0f;
+        if (camera->roll <= 0.0f) camera->roll += 360.0f;
     }
     if (camera->keys & CAM_KEY_E) {
         camera->roll += SPEED * delta;
-        if (camera->roll > 360.0f) camera->roll -= 360.0f;
+        if (camera->roll >= 360.0f) camera->roll -= 360.0f;
     }
     if (camera->keys & CAM_KEY_R) reset_camera(camera);
     canvas->transform.init |= 3;
@@ -46,7 +46,7 @@ static void __default_camera_handler(canvas_t* canvas) {
 
 static void __default_mouse_callback(const mouse_cb_param* param) {
     canvas_t* canvas = param->instance;
-    const frame_t* frame = ((comp_node_t*)canvas->header.components)->root->component.inst;
+    const frame_t* frame = get_root(canvas);
 
     if (glfwGetMouseButton(frame->ctx, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
         vec4 mpos = {param->x, param->y, 0.0f, 1.0f};
@@ -62,7 +62,7 @@ static void __default_mouse_callback(const mouse_cb_param* param) {
 }
 static void __default_keyboard_callback(const keyboard_cb_param* param) {
     canvas_t* canvas = param->instance;
-    const frame_t* frame = ((comp_node_t*)canvas->header.components)->root->component.inst;
+    const frame_t* frame = get_root(canvas);
     camera_t* camera = canvas->camera;
 
     u16 bit = 0;
@@ -85,7 +85,8 @@ static void __default_keyboard_callback(const keyboard_cb_param* param) {
 }
 static void __default_scroll_callback(const scroll_cb_param* param) {
     canvas_t* canvas = param->instance;
-    const frame_t* frame = ((comp_node_t*)canvas->header.components)->root->component.inst;
+    const frame_t* frame = get_root(canvas);
+    const comp_header_t* parent_header = (comp_header_t*)canvas->parent;
     camera_t* camera = canvas->camera;
 
 #ifndef ZOOM_SPEED
@@ -95,9 +96,19 @@ static void __default_scroll_callback(const scroll_cb_param* param) {
 #else
 #error For some reason your dumbass also decided to define this macro why do you have to make me want to shove a shotgun barrel up my mouth
 #endif
-    camera->zoom *= factor;
-    if (camera->zoom < 0.5f)  camera->zoom = 0.5f;
-    if (camera->zoom > 100.0f) camera->zoom = 100.0f;
+    f64 mx, my;
+    glfwGetCursorPos(frame->ctx, &mx, &my);
+
+    const f32 offset_x = (f32)mx - parent_header->content_box.x;
+    const f32 offset_y = (f32)my - parent_header->content_box.y;
+
+    const f32 new_zoom = camera->zoom * factor;
+    const f32 clamped  = new_zoom < 0.5f ? 0.5f : (new_zoom > 100.0f ? 100.0f : new_zoom);
+    const f32 actual_factor = clamped / camera->zoom;
+
+    camera->position.x = offset_x + actual_factor * (camera->position.x - offset_x);
+    camera->position.y = offset_y + actual_factor * (camera->position.y - offset_y);
+    camera->zoom = clamped;
 
     canvas->transform.init |= 3;
 }
@@ -171,13 +182,13 @@ void update_canvas(canvas_t* canvas, const mat4* projection) {
     const frame_t* frame = ((comp_node_t*)canvas->header.components)->root->component.inst;
     const comp_header_t* parent_header = (comp_header_t*)canvas->parent;
 
-    if (frame->focused.inst == canvas) __default_camera_handler(canvas);
+    if (frame->focused.inst == canvas && canvas->camera->keys) __default_camera_handler(canvas);
     else canvas->camera->keys = 0;
     if (canvas->transform.init == 3) {
         const mat4 rotation = m4_rotateZ(rad(canvas->camera->roll));
         const mat4 position = m4_transl(canvas->camera->position.x + parent_header->content_box.x, canvas->camera->position.y + parent_header->content_box.y, 0.0f);
-        const mat4 size = m4_transl((f32)canvas->dim.width * 0.5f, (f32)canvas->dim.height * 0.5f, 0.0f);
-        const mat4 inv_size = m4_transl(-(f32)canvas->dim.width * 0.5f, -(f32)canvas->dim.height * 0.5f, 0.0f);
+        const mat4 size = m4_transl(canvas->camera->zoom * (f32)canvas->dim.width * 0.5f, canvas->camera->zoom * (f32)canvas->dim.height * 0.5f, 0.0f);
+        const mat4 inv_size = m4_transl(-canvas->camera->zoom * (f32)canvas->dim.width * 0.5f, -canvas->camera->zoom * (f32)canvas->dim.height * 0.5f, 0.0f);
 
         const mat4 scale = m4_scale(canvas->camera->zoom * (f32)canvas->dim.width, canvas->camera->zoom * (f32)canvas->dim.height, 1.0f);
         const mat4 inv_scale = m4_scale(canvas->camera->zoom, canvas->camera->zoom, 1.0f);
