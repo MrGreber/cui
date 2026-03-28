@@ -2,7 +2,7 @@
 
 #ifndef OBJECT_H
 #define OBJECT_H
-#include <geometry.h>
+#include <geometry/types.h>
 #include <shader/types.h>
 #include <texture.h>
 #include <frame.h>

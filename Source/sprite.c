@@ -3,6 +3,7 @@
 #include <utils.h>
 #include <log.h>
 #include <shader/ops.h>
+#include <geometry/ops.h>
 
 #include <stdio.h>
 #include <glad.h>
@@ -28,12 +29,14 @@ sprite_t* new_sprite(frame_t* frame, const shader_tag_t tag) {
     sprite_t* sprite = buffer.ptr;
 
     sprite->va = VertexArray(new)(2);
-    sprite->vb = VertexBuffer(new)(vertices, sizeof(vertices), false);
-    sprite->eb = ElementBuffer(new)(indices, sizeof(indices));
+    sprite->vb = VertexBuffer(new)(false);
+    sprite->eb = ElementBuffer(new)();
     if (!sprite->va || !sprite->vb || !sprite->eb) goto cleanup;
     VertexArray(bind)(sprite->va);
     VertexBuffer(bind)(sprite->vb);
+    VertexBuffer(set)(sprite->vb, vertices, sizeof(vertices));
     ElementBuffer(bind)(sprite->eb);
+    ElementBuffer(set)(sprite->eb, indices, sizeof(indices));
 
     VertexArray(push_f32)(sprite->va, 2);
     VertexArray(push_f32)(sprite->va, 2);
@@ -48,6 +51,7 @@ cleanup:
     if (sprite->va) VertexArray(del)(sprite->va);
     if (sprite->vb) VertexBuffer(del)(sprite->vb);
     if (sprite->eb) ElementBuffer(del)(sprite->eb);
+    del_buf(&(buf_t){.size = sizeof(sprite_t), .tag = MEMTAG_SPRITE, .ptr = sprite});
     return NULL;
 }
 

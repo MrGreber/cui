@@ -7,7 +7,7 @@
 typedef struct uniform {
     u64 hash;
     uptr address;
-    i32 location;    /**< Location of the uniform in the shader program */
+    i32 location;
 } uniform_t;
 
 typedef struct uniform_hashmap_entry {
@@ -23,8 +23,8 @@ typedef struct uniform_hashmap {
 
 typedef enum shader_tag{
     COMP_SHADER = 0,
-    TEXT_SHADER = 1,
-    RECT_SHADER = 2,
+    TEXT_SHADER,
+    RECT_SHADER,
     __SHADER_TAG_COUNT__
 } shader_tag_t;
 

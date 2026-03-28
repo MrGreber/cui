@@ -1,15 +1,9 @@
-#include <geometry.h>
+#include <geometry/ops.h>
 #include <log.h>
 #include <memio.h>
 #include <utils.h>
-
-vert_buf_t* VertexBuffer(new)(const void* data, const u32 size, const bool dynamic) {
-    if (!size) return NULL;
-    if (!data && !dynamic) {
-        logWarn("VertexBuffer(new) - Invalid data address 0x%p.", NULL);
-        return NULL;
-    }
-
+// todo: make this create no copies for of old vertex arrays and reuse the appropriate vertex arrays also cache it in the frame struct
+vert_buf_t* VertexBuffer(new)(const bool dynamic) {
     buf_t buffer = {
         .size = sizeof(vert_buf_t),
         .tag = MEMTAG_VERTEX_BUFFER
@@ -19,12 +13,8 @@ vert_buf_t* VertexBuffer(new)(const void* data, const u32 size, const bool dynam
     vert_buf_t* vb = buffer.ptr;
     vb->dynamic = dynamic;
     glcall(glGenBuffers(1, &vb->id), cleanup, "VertexBuffer(new) - Failed to allocate vertex buffer.");
-    glBindBuffer(GL_ARRAY_BUFFER, vb->id);
-    glcall(glBufferData(GL_ARRAY_BUFFER, size, data, dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW), cleanup, "VertexBuffer(new) - Failed to copy vertex buffer data.");
-
     return vb;
 cleanup:
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
     glDeleteBuffers(1, &vb->id);
     del_buf(&buffer);
     return NULL;
@@ -35,14 +25,16 @@ void VertexBuffer(del)(vert_buf_t* vb) {
     glDeleteBuffers(1, &vb->id);
     del_buf(&(buf_t){.size = sizeof(vert_buf_t), .tag = MEMTAG_VERTEX_BUFFER, .ptr = vb});
 }
+bool VertexBuffer(set)(vert_buf_t* vb, const void* data, const u32 size) {
+    if (!vb || (!data && !vb->dynamic) || !size) return false;
+    glBindBuffer(GL_ARRAY_BUFFER, vb->id);
+    glcall(glBufferData(GL_ARRAY_BUFFER, size, data, vb->dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW), cleanup, "VertexBuffer(set) - Failed to copy vertex buffer data.");
+    return true;
+cleanup:
+    return false;
+}
 
-elem_buf_t* ElementBuffer(new)(const u32* data, const u32 count) {
-    if (!count) return NULL;
-    if (data == NULL) {
-        logWarn("ElementBuffer(new) - Invalid data address 0x%p.", NULL);
-        return NULL;
-    }
-
+elem_buf_t* ElementBuffer(new)(void) {
     buf_t buffer = {
         .size = sizeof(elem_buf_t),
         .tag = MEMTAG_ELEMENT_BUFFER
@@ -51,13 +43,8 @@ elem_buf_t* ElementBuffer(new)(const u32* data, const u32 count) {
 
     elem_buf_t* eb = buffer.ptr;
     glcall(glGenBuffers(1, &eb->id), cleanup, "ElementBuffer(new) - Failed to allocate element buffer.");
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eb->id);
-    glcall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, count * sizeof(u32), data, GL_STATIC_DRAW), cleanup, "ElementBuffer(new) - Failed to copy element buffer data.");
-
-    eb->count = count;
     return eb;
 cleanup:
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     glDeleteBuffers(1, &eb->id);
     del_buf(&buffer);
     return NULL;
@@ -67,6 +54,14 @@ void ElementBuffer(del)(elem_buf_t* eb) {
 
     glDeleteBuffers(1, &eb->id);
     del_buf(&(buf_t){.size = sizeof(elem_buf_t), .tag = MEMTAG_ELEMENT_BUFFER, .ptr = eb});
+}
+bool ElementBuffer(set)(elem_buf_t* eb, const u32* data, const u32 size) {
+    if (!eb || !data || !size) return false;
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eb->id);
+    glcall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, size * sizeof(u32), data, GL_STATIC_DRAW), cleanup, "ElementBuffer(set) - Failed to copy element buffer data.");
+    return true;
+cleanup:
+    return false;
 }
 
 vert_array_t* VertexArray(new)(u64 capacity) {
@@ -188,4 +183,24 @@ void VertexArray(push_buffer)(vert_array_t* va, vert_buf_t* vb) {
         );
         offset += elem->count * private(gl_sizeof)(elem->type);
     }
+}
+
+mesh_t* Mesh(new)(frame_t* frame, const mesh_tag_t tag) {
+    mesh_t* mesh = NULL;
+    if (tag < __MESH_TAG_COUNT__ && frame->cache.static_meshes[tag].va == NULL) {
+        static_mesh_t* static_mesh = &frame->cache.static_meshes[tag];
+        static_mesh->va = VertexArray(new)(2);
+        static_mesh->vb = VertexBuffer(new)(false);
+
+    }
+    else if (tag == DYNAMIC_MESH) {
+
+    }
+
+    return mesh;
+cleanup:
+    return NULL;
+}
+void Mesh(del_cache)(frame_t* frame) {
+
 }

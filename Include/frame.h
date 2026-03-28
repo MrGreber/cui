@@ -7,6 +7,7 @@
 #include <event_system.h>
 #include <stopwatch.h>
 #include <shader/types.h>
+#include <geometry/types.h>
 
 typedef enum frame_flag{
     HIDE_FLAG
@@ -33,8 +34,14 @@ typedef struct frame {
 
     struct {
         uniform_hashmap_t uniforms;
-        shader_t cache[__SHADER_TAG_COUNT__];
-    } shaders;
+        shader_t shaders[__SHADER_TAG_COUNT__];
+        static_mesh_t static_meshes[__MESH_TAG_COUNT__];
+        struct {
+            dynamic_mesh_t* data;
+            u16 count;
+            u16 capacity;
+        } dynamic_meshes;
+    } cache;
     byte flags;
 } frame_t;
 

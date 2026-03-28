@@ -148,7 +148,6 @@ bool gen_texture(texture_t** out, const bounding_box* box, const style_t* style)
                 logError("gen_comp_texture - Invalid parameter, box address %p.\n", NULL);
                 return false;
             }
-
             *out = new_texture(NULL, box->width, box->height);
             if (!*out) goto cleanup;
             flush_texture(*out, style->background.color);
@@ -176,7 +175,7 @@ bool gen_texture(texture_t** out, const bounding_box* box, const style_t* style)
     }
 
     return true;
-    cleanup:
-        logError("gen_comp_texture - Failed to generate component texture.");
+cleanup:
+    logError("gen_comp_texture - Failed to generate component texture.");
     return false;
 }

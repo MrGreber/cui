@@ -5,6 +5,7 @@
 #include <frame.h>
 #include <log.h>
 #include <shader/ops.h>
+#include <geometry/ops.h>
 
 #include <string.h>
 #include <glad.h>
@@ -330,6 +331,7 @@ edit_t* new_edit(void* parent, const style_group_t* group, const bounding_box* b
     if (group->hover.init) memcpy(&edit->styles.hover, &group->hover, sizeof(style_t));
 
     frame_t* frame = get_root(parent);
+
     edit->sprite = new_sprite(frame, COMP_SHADER);
     if (!edit->sprite) goto cleanup;
     if (!set_sprite_texture(edit->sprite, box->width, box->height, (style_t*)&group->normal)) goto cleanup;
@@ -352,7 +354,8 @@ edit_t* new_edit(void* parent, const style_group_t* group, const bounding_box* b
     edit->mesh.count = 0;
 
     edit->mesh.va = VertexArray(new)(2);
-    edit->mesh.vb = VertexBuffer(new)(NULL, QUAD_SIZE * DEFAULT_CAPACITY, true);
+    edit->mesh.vb = VertexBuffer(new)(true);
+    VertexBuffer(set)(edit->mesh.vb, NULL, QUAD_SIZE * DEFAULT_CAPACITY);
     if (!edit->mesh.va || !edit->mesh.vb) goto cleanup;
     VertexArray(bind)(edit->mesh.va);
     VertexBuffer(bind)(edit->mesh.vb);
