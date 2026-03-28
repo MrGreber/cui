@@ -3,61 +3,39 @@
 #include <memio.h>
 #include <utils.h>
 // todo: make this create no copies for of old vertex arrays and reuse the appropriate vertex arrays also cache it in the frame struct
-vert_buf_t* VertexBuffer(new)(const bool dynamic) {
-    buf_t buffer = {
-        .size = sizeof(vert_buf_t),
-        .tag = MEMTAG_VERTEX_BUFFER
-    };
-    if (!new_buf(&buffer, false)) return NULL;
-
-    vert_buf_t* vb = buffer.ptr;
-    vb->dynamic = dynamic;
-    glcall(glGenBuffers(1, &vb->id), cleanup, "VertexBuffer(new) - Failed to allocate vertex buffer.");
+vert_buf_t VertexBuffer(new)(const bool dynamic) {
+    vert_buf_t vb = { 0 };
+    u32 id;
+    glcall(glGenBuffers(1, &id), cleanup, "VertexBuffer(new) - Failed to allocate vertex buffer.");
+    vb.gl_id = id;
+    vb.dynamic = dynamic;
     return vb;
 cleanup:
-    glDeleteBuffers(1, &vb->id);
-    del_buf(&buffer);
-    return NULL;
+    id = vb.gl_id;
+    glDeleteBuffers(1, &id);
+    vb.gl_id = 0;
+    return (vert_buf_t){ 0 };
 }
-void VertexBuffer(del)(vert_buf_t* vb) {
-    if (!vb) return;
-
-    glDeleteBuffers(1, &vb->id);
-    del_buf(&(buf_t){.size = sizeof(vert_buf_t), .tag = MEMTAG_VERTEX_BUFFER, .ptr = vb});
-}
-bool VertexBuffer(set)(vert_buf_t* vb, const void* data, const u32 size) {
-    if (!vb || (!data && !vb->dynamic) || !size) return false;
-    glBindBuffer(GL_ARRAY_BUFFER, vb->id);
-    glcall(glBufferData(GL_ARRAY_BUFFER, size, data, vb->dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW), cleanup, "VertexBuffer(set) - Failed to copy vertex buffer data.");
+bool VertexBuffer(set)(vert_buf_t vb, const void* data, const u32 size) {
+    if ((!data && !vb.dynamic) || !size) return false;
+    glBindBuffer(GL_ARRAY_BUFFER, vb.gl_id);
+    glcall(glBufferData(GL_ARRAY_BUFFER, size, data, vb.dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW), cleanup, "VertexBuffer(set) - Failed to copy vertex buffer data.");
     return true;
 cleanup:
     return false;
 }
 
-elem_buf_t* ElementBuffer(new)(void) {
-    buf_t buffer = {
-        .size = sizeof(elem_buf_t),
-        .tag = MEMTAG_ELEMENT_BUFFER
-    };
-    if (!new_buf(&buffer, false)) return NULL;
-
-    elem_buf_t* eb = buffer.ptr;
-    glcall(glGenBuffers(1, &eb->id), cleanup, "ElementBuffer(new) - Failed to allocate element buffer.");
+elem_buf_t ElementBuffer(new)(void) {
+    elem_buf_t eb = { 0 };
+    glcall(glGenBuffers(1, &eb.id), cleanup, "ElementBuffer(new) - Failed to allocate element buffer.");
     return eb;
 cleanup:
-    glDeleteBuffers(1, &eb->id);
-    del_buf(&buffer);
-    return NULL;
+    glDeleteBuffers(1, &eb.id);
+    return (elem_buf_t){ 0 };
 }
-void ElementBuffer(del)(elem_buf_t* eb) {
-    if (!eb) return;
-
-    glDeleteBuffers(1, &eb->id);
-    del_buf(&(buf_t){.size = sizeof(elem_buf_t), .tag = MEMTAG_ELEMENT_BUFFER, .ptr = eb});
-}
-bool ElementBuffer(set)(elem_buf_t* eb, const u32* data, const u32 size) {
-    if (!eb || !data || !size) return false;
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eb->id);
+bool ElementBuffer(set)(elem_buf_t eb, const u32* data, const u32 size) {
+    if (!eb.id || !data || !size) return false;
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eb.id);
     glcall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, size * sizeof(u32), data, GL_STATIC_DRAW), cleanup, "ElementBuffer(set) - Failed to copy element buffer data.");
     return true;
 cleanup:
@@ -126,7 +104,7 @@ void VertexArray(push_f32)(vert_array_t* va, const u32 count) {
     if (!private(resize_vertex_array)(va)) return;
     vert_elem_t* elem = &va->elem[va->count];
     elem->count = count;
-    elem->type = GL_FLOAT;
+    elem->gl_type = GL_FLOAT;
     elem->normalized = false;
     va->count++;
     va->stride += sizeof(f32) * count;
@@ -137,7 +115,7 @@ void VertexArray(push_u32)(vert_array_t* va, const u32 count) {
 
     vert_elem_t* elem = &va->elem[va->count];
     elem->count = count;
-    elem->type = GL_UNSIGNED_INT;
+    elem->gl_type = GL_UNSIGNED_INT;
     elem->normalized = false;
     va->count++;
     va->stride += sizeof(u32) * count;
@@ -148,7 +126,7 @@ void VertexArray(push_u8)(vert_array_t* va, const u32 count) {
 
     vert_elem_t* elem = &va->elem[va->count];
     elem->count = count;
-    elem->type = GL_UNSIGNED_BYTE;
+    elem->gl_type = GL_UNSIGNED_BYTE;
     elem->normalized = false;
     va->count++;
     va->stride += sizeof(u8) * count;
@@ -162,8 +140,8 @@ static u32 private(gl_sizeof)(const u32 type) {
         default: return 0;
     }
 }
-void VertexArray(push_buffer)(vert_array_t* va, vert_buf_t* vb) {
-    if (!va || !vb) return;
+void VertexArray(push_buffer)(vert_array_t* va, vert_buf_t vb) {
+    if (!va || !vb.id) return;
 
     VertexArray(bind)(va);
     VertexBuffer(bind)(vb);
@@ -176,7 +154,7 @@ void VertexArray(push_buffer)(vert_array_t* va, vert_buf_t* vb) {
         glVertexAttribPointer(
             i,
             elem->count,
-            elem->type,
+            elem->gl_type,
             elem->normalized,
             va->stride,
             (const void*)(u64)offset

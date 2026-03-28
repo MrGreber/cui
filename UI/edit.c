@@ -120,7 +120,7 @@ static void build_text_mesh(edit_t* edit, f32 start_x, f32 start_y) {
     VertexArray(bind)(edit->mesh.va);
     glUseProgram(edit->mesh.shader->id);
     bind_font(edit->font);
-    glBindBuffer(GL_ARRAY_BUFFER, edit->mesh.vb->id);
+    glBindBuffer(GL_ARRAY_BUFFER, edit->mesh.vb.gl_id);
     glBufferSubData(GL_ARRAY_BUFFER, 0, edit->mesh.count * QUAD_SIZE, edit->mesh.vertices);
 }
 static void private(set_caret_position)(edit_t* edit, const f64 mouse_x, const f64 mouse_y) {
@@ -166,7 +166,7 @@ static void private(set_caret_position)(edit_t* edit, const f64 mouse_x, const f
     VertexArray(bind)(edit->mesh.va);
     glUseProgram(edit->mesh.shader->id);
     bind_font(edit->font);
-    glBindBuffer(GL_ARRAY_BUFFER, edit->mesh.vb->id);
+    glBindBuffer(GL_ARRAY_BUFFER, edit->mesh.vb.gl_id);
     glBufferSubData(GL_ARRAY_BUFFER, (edit->mesh.count - 1) * QUAD_SIZE, QUAD_SIZE, edit->mesh.vertices + 6 * (edit->mesh.count - 1));
 }
 
@@ -356,7 +356,7 @@ edit_t* new_edit(void* parent, const style_group_t* group, const bounding_box* b
     edit->mesh.va = VertexArray(new)(2);
     edit->mesh.vb = VertexBuffer(new)(true);
     VertexBuffer(set)(edit->mesh.vb, NULL, QUAD_SIZE * DEFAULT_CAPACITY);
-    if (!edit->mesh.va || !edit->mesh.vb) goto cleanup;
+    if (!edit->mesh.va || !edit->mesh.vb.id) goto cleanup;
     VertexArray(bind)(edit->mesh.va);
     VertexBuffer(bind)(edit->mesh.vb);
 
@@ -380,7 +380,7 @@ edit_t* new_edit(void* parent, const style_group_t* group, const bounding_box* b
     return edit;
 cleanup:
     if (edit->mesh.va) VertexArray(del)(edit->mesh.va);
-    if (edit->mesh.vb) VertexBuffer(del)(edit->mesh.vb);
+    if (edit->mesh.vb.id) VertexBuffer(del)(&edit->mesh.vb);
     if (edit->mesh.vertices) del_buf(&(buf_t){.ptr = edit->mesh.vertices, .size = QUAD_SIZE * DEFAULT_CAPACITY, .tag = MEMTAG_VECTOR});
     if (edit->sprite) del_sprite(edit->sprite);
     if (edit->text.buffer) del_str(edit->text.buffer);
@@ -391,7 +391,7 @@ cleanup:
 void del_edit(edit_t* edit) {
     if (!edit) return;
     VertexArray(del)(edit->mesh.va);
-    VertexBuffer(del)(edit->mesh.vb);
+    VertexBuffer(del)(&edit->mesh.vb);
     del_buf(&(buf_t){.ptr = edit->mesh.vertices, .size = QUAD_SIZE * edit->mesh.capacity, .tag = MEMTAG_VECTOR});
     del_sprite(edit->sprite);
     del_str(edit->text.buffer);

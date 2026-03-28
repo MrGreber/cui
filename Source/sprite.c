@@ -31,7 +31,7 @@ sprite_t* new_sprite(frame_t* frame, const shader_tag_t tag) {
     sprite->va = VertexArray(new)(2);
     sprite->vb = VertexBuffer(new)(false);
     sprite->eb = ElementBuffer(new)();
-    if (!sprite->va || !sprite->vb || !sprite->eb) goto cleanup;
+    if (!sprite->va || !sprite->vb.id || !sprite->eb.id) goto cleanup;
     VertexArray(bind)(sprite->va);
     VertexBuffer(bind)(sprite->vb);
     VertexBuffer(set)(sprite->vb, vertices, sizeof(vertices));
@@ -49,8 +49,8 @@ sprite_t* new_sprite(frame_t* frame, const shader_tag_t tag) {
     return sprite;
 cleanup:
     if (sprite->va) VertexArray(del)(sprite->va);
-    if (sprite->vb) VertexBuffer(del)(sprite->vb);
-    if (sprite->eb) ElementBuffer(del)(sprite->eb);
+    if (sprite->vb.id) VertexBuffer(del)(&sprite->vb);
+    if (sprite->eb.id) ElementBuffer(del)(&sprite->eb);
     del_buf(&(buf_t){.size = sizeof(sprite_t), .tag = MEMTAG_SPRITE, .ptr = sprite});
     return NULL;
 }
@@ -59,8 +59,8 @@ void del_sprite(sprite_t* sprite) {
     if (!sprite) return;
     if (sprite->tex) del_texture(sprite->tex);
     if (sprite->va) VertexArray(del)(sprite->va);
-    if (sprite->vb) VertexBuffer(del)(sprite->vb);
-    if (sprite->eb) ElementBuffer(del)(sprite->eb);
+    if (sprite->vb.id) VertexBuffer(del)(&sprite->vb);
+    if (sprite->eb.id) ElementBuffer(del)(&sprite->eb);
 
     del_buf(&(buf_t){.size = sizeof(sprite_t), .tag = MEMTAG_SPRITE, .ptr = sprite});
 }

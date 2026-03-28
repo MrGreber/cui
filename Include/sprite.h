@@ -15,8 +15,8 @@
  */
 typedef struct sprite {
     vert_array_t* va;   /**< Pointer to the vertex array object */
-    vert_buf_t* vb;     /**< Pointer to the vertex buffer */
-    elem_buf_t* eb;     /**< Pointer to the element/index buffer */
+    vert_buf_t vb;     /**< Pointer to the vertex buffer */
+    elem_buf_t eb;     /**< Pointer to the element/index buffer */
     texture_t* tex;
     shader_t* shader; /**< Pointer to the shader used for rendering */
 } sprite_t;
