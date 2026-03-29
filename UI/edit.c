@@ -300,7 +300,6 @@ static void __default_resize_callback(const resize_cb_param* param) {
     // edit->header.box.height += param->height;
 }
 
-
 void set_edit_text(edit_t* edit, char_t* text, const u64 length) {
     if (!assign_str(edit->text.buffer, text, length)) {
         logError("set_text - Failed to set edit, text.");
@@ -355,8 +354,8 @@ edit_t* new_edit(void* parent, const style_group_t* group, const bounding_box* b
 
     edit->mesh.va = VertexArray(new)(2);
     edit->mesh.vb = VertexBuffer(new)(true);
-    VertexBuffer(set)(edit->mesh.vb, NULL, QUAD_SIZE * DEFAULT_CAPACITY);
     if (!edit->mesh.va || !edit->mesh.vb.id) goto cleanup;
+    VertexBuffer(set)(edit->mesh.vb, NULL, QUAD_SIZE * DEFAULT_CAPACITY);
     VertexArray(bind)(edit->mesh.va);
     VertexBuffer(bind)(edit->mesh.vb);
 
@@ -477,14 +476,14 @@ void update_edit(edit_t* edit, const mat4* projection) {
     const mat4 position = m4_transl((f32)edit->header.box.x + style->border.thickness, (f32)edit->header.box.y + style->border.thickness, 0.0f);
     const mat4 size = m4_scale(1.0f, 1.0f, 1.0f);
     const mat4 model = m4_mul(&position, &size);
-    VertexArray(bind)(edit->mesh.va);
-    glUseProgram(edit->mesh.shader->id);
-    bind_font(edit->font);
     glEnable(GL_SCISSOR_TEST);
     glScissor(
         edit->header.box.x , frame->header.box.height - edit->header.box.y - edit->header.box.height + style->border.thickness,
         edit->header.box.width - style->border.thickness, edit->header.box.height - style->border.thickness
     );
+    VertexArray(bind)(edit->mesh.va);
+    glUseProgram(edit->mesh.shader->id);
+    bind_font(edit->font);
     Shader(set_mat4)(edit->mesh.shader, "projection", true, projection->e);
     Shader(set_mat4)(edit->mesh.shader, "model", true, model.e);
     Shader(set_vec4)(edit->mesh.shader, "font.bg", color_v4(font->bg).e);

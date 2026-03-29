@@ -14,7 +14,7 @@ __forceinline void VertexBuffer(del)(vert_buf_t* vb) {
     glDeleteBuffers(1, &id);
     vb->gl_id = 0;
 }
-bool VertexBuffer(set)(vert_buf_t vb, const void* data, const u32 size);
+bool VertexBuffer(set)(vert_buf_t vb, const void* vertices, const u32 size);
 __forceinline void VertexBuffer(bind)(const vert_buf_t vb) {
     glBindBuffer(GL_ARRAY_BUFFER, vb.gl_id);
 }
@@ -28,7 +28,7 @@ __forceinline void ElementBuffer(del)(elem_buf_t* eb) {
     if (!eb->id) return;
     glDeleteBuffers(1, &eb->id);
 }
-bool ElementBuffer(set)(elem_buf_t eb, const u32* data, const u32 size);
+bool ElementBuffer(set)(elem_buf_t eb, const u32* indices, const u32 size);
 __forceinline void ElementBuffer(bind)(const elem_buf_t eb) {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eb.id);
 }
@@ -54,6 +54,14 @@ void VertexArray(push_buffer)(vert_array_t* va, vert_buf_t vb);
 #define Mesh(func) __mesh_##func
 mesh_t* Mesh(new)(frame_t* frame, const mesh_tag_t tag);
 void Mesh(del_cache)(frame_t* frame);
-
+__forceinline void Mesh(bind)(const mesh_t* mesh) {
+    mesh_metadata_t* metadata = (mesh_metadata_t*)mesh;
+    VertexArray(bind)(metadata->va);
+}
+__forceinline void Mesh(unbind)(void) {
+    VertexArray(unbind)();
+}
+void Mesh(set_indices)(mesh_t* mesh, const u32* indices, const u32 size);
+void Mesh(draw)(mesh_t* mesh);
 
 #endif // OPS_H
