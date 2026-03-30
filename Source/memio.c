@@ -31,7 +31,8 @@ static char* mem_table_labels[__MEMTAG_COUNT__ - 1] = {
     "font",
     "vector",
     "hashmap",
-    "key-value-pair"
+    "key-value-pair",
+    "mesh"
 };
 
 

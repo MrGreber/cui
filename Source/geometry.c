@@ -2,7 +2,6 @@
 #include <log.h>
 #include <memio.h>
 #include <utils.h>
-// todo: make this create no copies for of old vertex arrays and reuse the appropriate vertex arrays also cache it in the frame struct
 vert_buf_t VertexBuffer(new)(const bool dynamic) {
     vert_buf_t vb = { 0 };
     u32 id;
@@ -233,15 +232,47 @@ static_cleanup:
     Mesh(del_cache)(frame);
     return NULL;
 }
-static dynamic_mesh_t* private(new_dynamic_mesh)(frame_t* frame, const mesh_tag_t) {
+static dynamic_mesh_t* private(new_dynamic_mesh)(frame_t* frame) {
     return NULL;
 }
 mesh_t* Mesh(new)(frame_t* frame, const mesh_tag_t tag) {
     if (tag < __MESH_TAG_COUNT__ && frame->cache.static_meshes.data[tag].va == NULL) return (mesh_t*)private(new_static_mesh)(frame, tag);
-    else if (tag == DYNAMIC_MESH) return private(new_dynamic_mesh)(frame, tag);
+    else if (tag == DYNAMIC_MESH) return private(new_dynamic_mesh)(frame);
     return NULL;
 }
 void Mesh(del_cache)(frame_t* frame) {
+    for (mesh_tag_t i = 0; i < __MESH_TAG_COUNT__; i++) {
+        static_mesh_t* static_mesh = &frame->cache.static_meshes.data[i];
+        if (static_mesh->vb.id) {
+            VertexArray(del)(static_mesh->va);
+            VertexBuffer(del)(&static_mesh->vb);
+        }
+    }
+    if (frame->cache.static_meshes.eb.id) ElementBuffer(del)(&frame->cache.static_meshes.eb);
+    for (u16 i = 0; i < frame->cache.dynamic_meshes.count; i++) {
+        dynamic_mesh_t* dynamic_mesh = &frame->cache.dynamic_meshes.data[i];
+        mesh_metadata_t* metadata = &dynamic_mesh->metadata;
+
+        if (metadata->vb.id) {
+            VertexArray(del)(metadata->va);
+            VertexBuffer(del)(&metadata->vb);
+        }
+        if (dynamic_mesh->eb.id) ElementBuffer(del)(&dynamic_mesh->eb);
+        if (dynamic_mesh->vertices) {
+            del_buf(&(buf_t){
+                .ptr = dynamic_mesh->vertices,
+                .size = dynamic_mesh->capacity * sizeof(vec4),
+                .tag = MEMTAG_VECTOR
+            });
+        }
+    }
+    if (frame->cache.dynamic_meshes.data) {
+        del_buf(&(buf_t){
+            .ptr = frame->cache.dynamic_meshes.data,
+            .size = frame->cache.dynamic_meshes.capacity * sizeof(dynamic_mesh_t),
+            .tag = MEMTAG_MESH
+        });
+    }
 }
 
 void Mesh(draw)(mesh_t* mesh) {
