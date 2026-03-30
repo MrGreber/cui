@@ -35,9 +35,13 @@ typedef struct frame {
     struct {
         uniform_hashmap_t uniforms;
         shader_t shaders[__SHADER_TAG_COUNT__];
-        static_mesh_t static_meshes[__MESH_TAG_COUNT__];
+        struct {
+            static_mesh_t data[__MESH_TAG_COUNT__];
+            elem_buf_t eb;
+        } static_meshes;
         struct {
             dynamic_mesh_t* data;
+
             u16 count;
             u16 capacity;
         } dynamic_meshes;

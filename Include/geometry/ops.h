@@ -61,7 +61,6 @@ __forceinline void Mesh(bind)(const mesh_t* mesh) {
 __forceinline void Mesh(unbind)(void) {
     VertexArray(unbind)();
 }
-void Mesh(set_indices)(mesh_t* mesh, const u32* indices, const u32 size);
 void Mesh(draw)(mesh_t* mesh);
 
 #endif // OPS_H

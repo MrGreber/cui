@@ -195,7 +195,7 @@ static const struct { u8 bit; u8 count; } __attributes_table[] = {
     { MESH_NORM, 3 },
 };
 static static_mesh_t* private(new_static_mesh)(frame_t* frame, const mesh_tag_t tag) {
-    static_mesh_t* static_mesh = &frame->cache.static_meshes[tag];
+    static_mesh_t* static_mesh = &frame->cache.static_meshes.data[tag];
     static_mesh->va = VertexArray(new)(2);
     if (!static_mesh->va->id) {
         logError("Mesh(new) - Failed to create vertex array for static mesh.");
@@ -208,59 +208,63 @@ static static_mesh_t* private(new_static_mesh)(frame_t* frame, const mesh_tag_t 
     }
     const struct mesh_range* range = &__mesh_table[tag];
     VertexArray(bind)(static_mesh->va);
-    if (range->idx.count) {
-        static_mesh->eb = ElementBuffer(new)();
-        if (!static_mesh->eb.id) {
-            logError("Mesh(new) - Failed to create element buffer for static mesh.");
-            goto static_cleanup;
-        }
-        const u32* indices = (u32*)__indices + range->idx.offset;
-        const u32 count = range->idx.count;
-        ElementBuffer(set)(static_mesh->eb, indices, count * sizeof(u32));
-    }
     const f32* vertices = (f32*)__vertices + range->vert.offset;
     const u32 count = range->vert.count;
     VertexBuffer(bind)(static_mesh->vb);
-    VertexBuffer(set)(static_mesh->vb, vertices, count * sizeof(u32));
+    VertexBuffer(set)(static_mesh->vb, vertices, count * sizeof(f32));
 
     for (u8 i = 0; i < 4; i++) {
         if (range->attributes & __attributes_table[i].bit)
             VertexArray(push_f32)(static_mesh->va, __attributes_table[i].count);
     }
     VertexArray(push_buffer)(static_mesh->va, static_mesh->vb);
+
+    if (!frame->cache.static_meshes.eb.id) {
+        frame->cache.static_meshes.eb = ElementBuffer(new)();
+        if (!frame->cache.static_meshes.eb.id) {
+            logError("Mesh(new) - Failed to create element buffer for static mesh.");
+            goto static_cleanup;
+        }
+        ElementBuffer(set)(frame->cache.static_meshes.eb, __indices, sizeof(__indices));
+    }
     static_mesh->tag = tag;
     return static_mesh;
 static_cleanup:
-    if (static_mesh->va) VertexArray(del)(static_mesh->va);
-    if (static_mesh->vb.id) VertexBuffer(del)(&static_mesh->vb);
-    if (static_mesh->eb.id) ElementBuffer(del)(&static_mesh->eb);
+    Mesh(del_cache)(frame);
     return NULL;
 }
 static dynamic_mesh_t* private(new_dynamic_mesh)(frame_t* frame, const mesh_tag_t) {
     return NULL;
 }
 mesh_t* Mesh(new)(frame_t* frame, const mesh_tag_t tag) {
-    if (tag < __MESH_TAG_COUNT__ && frame->cache.static_meshes[tag].va == NULL)
-        return (mesh_t*)private(new_static_mesh)(frame, tag);
-    else if (tag == DYNAMIC_MESH)
-        return private(new_dynamic_mesh)(frame, tag);
+    if (tag < __MESH_TAG_COUNT__ && frame->cache.static_meshes.data[tag].va == NULL) return (mesh_t*)private(new_static_mesh)(frame, tag);
+    else if (tag == DYNAMIC_MESH) return private(new_dynamic_mesh)(frame, tag);
     return NULL;
 }
 void Mesh(del_cache)(frame_t* frame) {
-
 }
 
 void Mesh(draw)(mesh_t* mesh) {
     if (!mesh) return;
     mesh_metadata_t* metadata = &mesh->metadata;
-    const struct mesh_range* range = &__mesh_table[metadata->tag];
-    if (range->idx.count) glDrawElements(GL_TRIANGLES, range->vert.count, GL_UNSIGNED_INT, 0);
-    else glDrawArrays(GL_TRIANGLES, 0, range->vert.count);
+    if (metadata->tag < __MESH_TAG_COUNT__) {
+        const struct mesh_range* range = &__mesh_table[metadata->tag];
+        if (range->idx.count) glDrawElements(GL_TRIANGLES, range->vert.count, GL_UNSIGNED_INT, 0);
+        else glDrawArrays(GL_TRIANGLES, 0, range->vert.count);
+    }
+    else {
+
+    }
 }
 void Mesh(sub_draw)(mesh_t* mesh, const u32 count, const u32 offset) {
     if (!mesh) return;
     mesh_metadata_t* metadata = &mesh->metadata;
-    const struct mesh_range* range = &__mesh_table[metadata->tag];
-    if (range->idx.count && offset + count <= range->idx.offset + range->idx.count) glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, (void*)(offset * sizeof(u32)));
-    else if (offset + count <= range->vert.offset + range->vert.count) glDrawArrays(GL_TRIANGLES, offset, count);
+    if (metadata->tag < __MESH_TAG_COUNT__) {
+        const struct mesh_range* range = &__mesh_table[metadata->tag];
+        if (range->idx.count && offset + count <= range->idx.offset + range->idx.count) glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, (void*)(offset * sizeof(u32)));
+        else if (offset + count <= range->vert.offset + range->vert.count) glDrawArrays(GL_TRIANGLES, offset, count);
+    }
+    else {
+
+    }
 }

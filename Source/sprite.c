@@ -28,19 +28,20 @@ sprite_t* new_sprite(frame_t* frame, const shader_tag_t tag) {
 
     sprite_t* sprite = buffer.ptr;
 
-    sprite->va = VertexArray(new)(2);
-    sprite->vb = VertexBuffer(new)(false);
     sprite->eb = ElementBuffer(new)();
-    if (!sprite->va || !sprite->vb.id || !sprite->eb.id) goto cleanup;
-    VertexArray(bind)(sprite->va);
-    ElementBuffer(bind)(sprite->eb);
     ElementBuffer(set)(sprite->eb, indices, sizeof(indices));
-    VertexBuffer(bind)(sprite->vb);
-    VertexBuffer(set)(sprite->vb, vertices, sizeof(vertices));
 
+    sprite->vb = VertexBuffer(new)(false);
+    sprite->va = VertexArray(new)(2);
+    VertexArray(bind)(sprite->va);
     VertexArray(push_f32)(sprite->va, 2);
     VertexArray(push_f32)(sprite->va, 2);
     VertexArray(push_buffer)(sprite->va, sprite->vb);
+
+    VertexBuffer(bind)(sprite->vb);
+    VertexBuffer(set)(sprite->vb, vertices, sizeof(vertices));
+    if (!sprite->va || !sprite->vb.id || !sprite->eb.id) goto cleanup;
+
 
     sprite->shader = Shader(get)(frame, tag);
     sprite->tex = NULL;
@@ -67,6 +68,7 @@ void del_sprite(sprite_t* sprite) {
 
 void bind_sprite(const sprite_t* sprite) {
     VertexArray(bind)(sprite->va);
+    ElementBuffer(bind)(sprite->eb);
     glUseProgram(sprite->shader->id);
     if (sprite->tex) bind_texture(sprite->tex);
 }
