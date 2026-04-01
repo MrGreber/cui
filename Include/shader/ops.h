@@ -5,11 +5,16 @@
 #include <frame.h>
 #include <shader/types.h>
 
+#include <glad.h>
+
 #define Shader(func) __shader_##func
 
 shader_t* Shader(get)(frame_t* frame, const shader_tag_t tag);
 bool Shader(new_cache)(frame_t* frame);
 void Shader(del_cache)(frame_t* frame);
+__forceinline void Shader(bind)(const shader_t* shader) {
+    glUseProgram(shader->id);
+}
 
 bool Shader(set_mat4_array)(shader_t* shader, const char* name, const u32 count, const bool transpose, const f32* elements);
 __forceinline bool Shader(set_mat4)(shader_t* shader, const char* name, const bool transpose, const f32* elements) {

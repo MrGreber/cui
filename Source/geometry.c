@@ -2,10 +2,12 @@
 #include <log.h>
 #include <memio.h>
 #include <utils.h>
-vert_buf_t VertexBuffer(new)(const bool dynamic) {
+vert_buf_t VertexBuffer(new)(const bool dynamic, const void* vertices, const u32 size) {
     vert_buf_t vb = { 0 };
     u32 id;
     glcall(glGenBuffers(1, &id), cleanup, "VertexBuffer(new) - Failed to allocate vertex buffer.");
+    glBindBuffer(GL_ARRAY_BUFFER, id);
+    glcall(glBufferData(GL_ARRAY_BUFFER, size, vertices, dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW), cleanup, "VertexBuffer(new) - Failed to copy vertex buffer data.");
     vb.gl_id = id;
     vb.dynamic = dynamic;
     return vb;
@@ -15,34 +17,23 @@ cleanup:
     vb.gl_id = 0;
     return (vert_buf_t){ 0 };
 }
-bool VertexBuffer(init)(vert_buf_t vb, const void* vertices, const u32 size) {
-    if ((!vertices && !vb.dynamic) || !size) return false;
-    glBindBuffer(GL_ARRAY_BUFFER, vb.gl_id);
-    glcall(glBufferData(GL_ARRAY_BUFFER, size, vertices, vb.dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW), cleanup, "VertexBuffer(set) - Failed to copy vertex buffer data.");
-    return true;
-cleanup:
-    return false;
-}
 
-elem_buf_t ElementBuffer(new)(const bool dynamic) {
+elem_buf_t ElementBuffer(new)(const bool dynamic, const u32* indices, const u32 size) {
     elem_buf_t eb = { 0 };
     u32 id;
     glcall(glGenBuffers(1, &id), cleanup, "ElementBuffer(new) - Failed to allocate element buffer.");
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id);
+    glcall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, indices, dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW), cleanup, "ElementBuffer(new) - Failed to copy element buffer data.");
     eb.gl_id = id;
     eb.dynamic = dynamic;
     return eb;
 cleanup:
-    glDeleteBuffers(1, &eb.id);
+    id = eb.gl_id;
+    glDeleteBuffers(1, &id);
+    eb.gl_id = 0;
     return (elem_buf_t){ 0 };
 }
-bool ElementBuffer(init)(elem_buf_t eb, const u32* indices, const u32 size) {
-    if (!eb.id || !indices || !size) return false;
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eb.id);
-    glcall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, indices, eb.dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW), cleanup, "ElementBuffer(set) - Failed to copy element buffer data.");
-    return true;
-cleanup:
-    return false;
-}
+
 
 vert_array_t* VertexArray(new)(u64 capacity) {
     if (!capacity) return NULL;
@@ -203,31 +194,31 @@ static static_mesh_t* private(new_static_mesh)(frame_t* frame, const mesh_tag_t 
         logError("Mesh(new) - Failed to create vertex array for static mesh.");
         goto static_cleanup;
     }
-    static_mesh->vb = VertexBuffer(new)(false);
+
+    const struct mesh_range* range = &__mesh_table[tag];
+    const f32* vertices = (f32*)__vertices + range->vert.offset;
+    const u32 count = range->vert.count;
+    static_mesh->vb = VertexBuffer(new)(false, vertices, count * sizeof(f32));
     if (!static_mesh->vb.id) {
         logError("Mesh(new) - Failed to create vertex buffer for static mesh.");
         goto static_cleanup;
     }
-    const struct mesh_range* range = &__mesh_table[tag];
     VertexArray(bind)(static_mesh->va);
-    const f32* vertices = (f32*)__vertices + range->vert.offset;
-    const u32 count = range->vert.count;
     VertexBuffer(bind)(static_mesh->vb);
-    VertexBuffer(init)(static_mesh->vb, vertices, count * sizeof(f32));
 
     for (u8 i = 0; i < 4; i++) {
-        if (range->attributes & __attributes_table[i].bit)
+        if (range->attributes & __attributes_table[i].bit) {
             VertexArray(push_f32)(static_mesh->va, __attributes_table[i].count);
+        }
     }
     VertexArray(push_buffer)(static_mesh->va, static_mesh->vb);
 
     if (!frame->cache.static_meshes.eb.id) {
-        frame->cache.static_meshes.eb = ElementBuffer(new)(false);
+        frame->cache.static_meshes.eb = ElementBuffer(new)(false, __indices, sizeof(__indices));
         if (!frame->cache.static_meshes.eb.id) {
             logError("Mesh(new) - Failed to create element buffer for static mesh.");
             goto static_cleanup;
         }
-        ElementBuffer(init)(frame->cache.static_meshes.eb, __indices, sizeof(__indices));
     }
     static_mesh->tag = tag;
     return static_mesh;
@@ -239,8 +230,10 @@ static dynamic_mesh_t* private(new_dynamic_mesh)(frame_t* frame) {
     return NULL;
 }
 mesh_t* Mesh(new)(frame_t* frame, const mesh_tag_t tag) {
-    if (tag < __MESH_TAG_COUNT__ && frame->cache.static_meshes.data[tag].va == NULL) return (mesh_t*)private(new_static_mesh)(frame, tag);
-    else if (tag == DYNAMIC_MESH) return private(new_dynamic_mesh)(frame);
+    if (tag < __MESH_TAG_COUNT__ && frame->cache.static_meshes.data[tag].va == NULL)
+        return (mesh_t*)private(new_static_mesh)(frame, tag);
+    else if (tag == DYNAMIC_MESH)
+        return private(new_dynamic_mesh)(frame);
     return NULL;
 }
 void Mesh(del_cache)(frame_t* frame) {
@@ -260,7 +253,7 @@ void Mesh(del_cache)(frame_t* frame) {
             VertexArray(del)(metadata->va);
             VertexBuffer(del)(&metadata->vb);
         }
-        if (dynamic_mesh->eb.id) ElementBuffer(del)(&dynamic_mesh->eb);
+        if (dynamic_mesh->metadata.eb.gl_id) ElementBuffer(del)(&dynamic_mesh->metadata.eb);
         if (dynamic_mesh->indices.data) {
             del_buf(&(buf_t){
                 .ptr = dynamic_mesh->indices.data,
@@ -290,11 +283,15 @@ void Mesh(draw)(mesh_t* mesh) {
     mesh_metadata_t* metadata = &mesh->metadata;
     if (metadata->tag < __MESH_TAG_COUNT__) {
         const struct mesh_range* range = &__mesh_table[metadata->tag];
-        if (range->idx.count) glDrawElements(GL_TRIANGLES, range->vert.count, GL_UNSIGNED_INT, 0);
+        if (range->idx.count) {
+            glDrawElements(GL_TRIANGLES, range->idx.count, GL_UNSIGNED_INT, (void*)(range->idx.offset * sizeof(u32)));
+        }
         else glDrawArrays(GL_TRIANGLES, 0, range->vert.count);
+
+
     }
     else {
-        if (mesh->eb.id) glDrawElements(GL_TRIANGLES, mesh->indices.count, GL_UNSIGNED_INT, 0);
+        if (mesh->metadata.eb.gl_id) glDrawElements(GL_TRIANGLES, mesh->indices.count, GL_UNSIGNED_INT, 0);
         else glDrawArrays(GL_TRIANGLES, 0, mesh->vertices.count);
     }
 }
@@ -307,7 +304,7 @@ void Mesh(sub_draw)(mesh_t* mesh, const u32 count, const u32 offset) {
         else if (offset + count <= range->vert.offset + range->vert.count) glDrawArrays(GL_TRIANGLES, offset, count);
     }
     else {
-        if (mesh->eb.id) glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, (void*)(offset * sizeof(u32)));
+        if (mesh->metadata.eb.gl_id) glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, (void*)(offset * sizeof(u32)));
         else glDrawArrays(GL_TRIANGLES, offset, count);
     }
 }

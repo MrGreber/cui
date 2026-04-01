@@ -8,13 +8,12 @@
 #include <glad.h>
 
 #define VertexBuffer(func) __vertex_buffer_##func
-vert_buf_t VertexBuffer(new)(const bool dynamic);
+vert_buf_t VertexBuffer(new)(const bool dynamic, const void* vertices, const u32 size);
 __forceinline void VertexBuffer(del)(vert_buf_t* vb) {
     const u32 id = vb->gl_id;
     glDeleteBuffers(1, &id);
     vb->gl_id = 0;
 }
-bool VertexBuffer(init)(vert_buf_t vb, const void* vertices, const u32 size);
 __forceinline void VertexBuffer(bind)(const vert_buf_t vb) {
     glBindBuffer(GL_ARRAY_BUFFER, vb.gl_id);
 }
@@ -23,14 +22,14 @@ __forceinline void VertexBuffer(unbind)(void) {
 }
 
 #define ElementBuffer(func) __element_buffer_##func
-elem_buf_t ElementBuffer(new)(const bool dynamic);
+elem_buf_t ElementBuffer(new)(const bool dynamic, const u32* indices, const u32 size);
 __forceinline void ElementBuffer(del)(elem_buf_t* eb) {
-    if (!eb->id) return;
-    glDeleteBuffers(1, &eb->id);
+    const u32 id = eb->gl_id;
+    glDeleteBuffers(1, &id);
+    eb->gl_id = 0;
 }
-bool ElementBuffer(init)(elem_buf_t eb, const u32* indices, const u32 size);
 __forceinline void ElementBuffer(bind)(const elem_buf_t eb) {
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eb.id);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eb.gl_id);
 }
 __forceinline void ElementBuffer(unbind)(void) {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
@@ -54,11 +53,10 @@ void VertexArray(push_buffer)(vert_array_t* va, vert_buf_t vb);
 #define Mesh(func) __mesh_##func
 mesh_t* Mesh(new)(frame_t* frame, const mesh_tag_t tag);
 void Mesh(del_cache)(frame_t* frame);
-__forceinline void Mesh(bind)(frame_t* frame, const mesh_t* mesh) {
+__forceinline void Mesh(bind)(const mesh_t* mesh) {
     mesh_metadata_t* metadata = (mesh_metadata_t*)mesh;
     VertexArray(bind)(metadata->va);
-    if (metadata->tag < __MESH_TAG_COUNT__) ElementBuffer(bind)(frame->cache.static_meshes.eb);
-    else if (mesh->eb.id) ElementBuffer(bind)(mesh->eb);
+    ElementBuffer(bind)(metadata->eb);
 }
 __forceinline void Mesh(unbind)(void) {
     ElementBuffer(unbind)();

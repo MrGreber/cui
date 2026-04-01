@@ -51,13 +51,13 @@ typedef enum mesh_tag {
 
 typedef struct mesh_metadata {
     mesh_tag_t tag;
+    elem_buf_t eb;
     vert_buf_t vb;
     vert_array_t* va;
 } mesh_metadata_t, static_mesh_t;
 
 typedef struct dynamic_mesh {
     mesh_metadata_t metadata;
-    elem_buf_t eb;
 
     struct {
         u32 count;

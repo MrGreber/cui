@@ -4,6 +4,7 @@
 #include <frame.h>
 #include <math-utils.h>
 #include <shader/ops.h>
+#include <geometry/ops.h>
 
 #include <memory.h>
 #include <glad.h>
@@ -121,7 +122,6 @@ void update_panel(panel_t* panel, const mat4* projection) {
         panel->transform.model = m4_mul(&panel->transform.model, &scale);
         panel->transform.init ^= 1;
     }
-
     Shader(set_mat4)(panel->sprite->shader, "projection", true, projection->e);
     Shader(set_mat4)(panel->sprite->shader, "model", true, panel->transform.model.e);
 
@@ -135,5 +135,5 @@ void update_panel(panel_t* panel, const mat4* projection) {
     Shader(set_vec2)(panel->sprite->shader, "size", dim.e);
     Shader(set_vec4)(panel->sprite->shader, "mask", ((vec4){.x = 1.0f, .y = 1.0f, .z = 1.0f, .w = 1.0f}).e);
 
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    Mesh(draw)(panel->sprite->mesh);
 }
