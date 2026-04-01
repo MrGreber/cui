@@ -13,8 +13,12 @@ typedef union vertex_buffer {
     };
 } vert_buf_t;
 
-typedef struct element_buffer {
+typedef union element_buffer {
     u32 id;
+    struct {
+        u32 gl_id : 31;
+        u32 dynamic : 1;
+    };
 } elem_buf_t;
 
 typedef struct vertex_array_element {
@@ -54,9 +58,18 @@ typedef struct mesh_metadata {
 typedef struct dynamic_mesh {
     mesh_metadata_t metadata;
     elem_buf_t eb;
-    u64 count;
-    u64 capacity;
-    vec4* vertices;
+
+    struct {
+        u32 count;
+        u32 capacity;
+        u32* data;
+    } indices;
+
+    struct {
+        u32 count;
+        u32 capacity;
+        vec4* data;
+    } vertices;
 } dynamic_mesh_t, mesh_t;
 
 #endif // TYPES_H

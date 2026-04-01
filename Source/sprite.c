@@ -28,8 +28,8 @@ sprite_t* new_sprite(frame_t* frame, const shader_tag_t tag) {
 
     sprite_t* sprite = buffer.ptr;
 
-    sprite->eb = ElementBuffer(new)();
-    ElementBuffer(set)(sprite->eb, indices, sizeof(indices));
+    sprite->eb = ElementBuffer(new)(false);
+    ElementBuffer(init)(sprite->eb, indices, sizeof(indices));
 
     sprite->va = VertexArray(new)(2);
     VertexArray(bind)(sprite->va);
@@ -40,7 +40,7 @@ sprite_t* new_sprite(frame_t* frame, const shader_tag_t tag) {
     VertexArray(push_buffer)(sprite->va, sprite->vb);
 
     VertexBuffer(bind)(sprite->vb);
-    VertexBuffer(set)(sprite->vb, vertices, sizeof(vertices));
+    VertexBuffer(init)(sprite->vb, vertices, sizeof(vertices));
     if (!sprite->va || !sprite->vb.id || !sprite->eb.id) goto cleanup;
 
     sprite->shader = Shader(get)(frame, tag);

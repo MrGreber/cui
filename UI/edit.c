@@ -355,7 +355,7 @@ edit_t* new_edit(void* parent, const style_group_t* group, const bounding_box* b
     edit->mesh.va = VertexArray(new)(2);
     edit->mesh.vb = VertexBuffer(new)(true);
     if (!edit->mesh.va || !edit->mesh.vb.id) goto cleanup;
-    VertexBuffer(set)(edit->mesh.vb, NULL, QUAD_SIZE * DEFAULT_CAPACITY);
+    VertexBuffer(init)(edit->mesh.vb, NULL, QUAD_SIZE * DEFAULT_CAPACITY);
     VertexArray(bind)(edit->mesh.va);
     VertexBuffer(bind)(edit->mesh.vb);
 

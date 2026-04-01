@@ -14,7 +14,7 @@ __forceinline void VertexBuffer(del)(vert_buf_t* vb) {
     glDeleteBuffers(1, &id);
     vb->gl_id = 0;
 }
-bool VertexBuffer(set)(vert_buf_t vb, const void* vertices, const u32 size);
+bool VertexBuffer(init)(vert_buf_t vb, const void* vertices, const u32 size);
 __forceinline void VertexBuffer(bind)(const vert_buf_t vb) {
     glBindBuffer(GL_ARRAY_BUFFER, vb.gl_id);
 }
@@ -23,12 +23,12 @@ __forceinline void VertexBuffer(unbind)(void) {
 }
 
 #define ElementBuffer(func) __element_buffer_##func
-elem_buf_t ElementBuffer(new)(void);
+elem_buf_t ElementBuffer(new)(const bool dynamic);
 __forceinline void ElementBuffer(del)(elem_buf_t* eb) {
     if (!eb->id) return;
     glDeleteBuffers(1, &eb->id);
 }
-bool ElementBuffer(set)(elem_buf_t eb, const u32* indices, const u32 size);
+bool ElementBuffer(init)(elem_buf_t eb, const u32* indices, const u32 size);
 __forceinline void ElementBuffer(bind)(const elem_buf_t eb) {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eb.id);
 }
