@@ -143,9 +143,34 @@ color_t* load_texture(const char* path, u32* width, u32* height) {
 bool gen_texture(texture_t** out, const bounding_box* box, const style_t* style) {
     if (!out || !style) return false;
     switch (style->background.type) {
+        case BG_TEST: {
+            if (!box) {
+                logError("gen_texture - Invalid parameter, box address %p.\n", NULL);
+                return false;
+            }
+            u64 size = box->width * box->height * sizeof(color_t);
+            buf_t buffer = { .size = size, .tag = MEMTAG_COLOR };
+            if (!new_buf(&buffer, false)) goto cleanup;
+
+            color_t* checkers = buffer.ptr;
+            color_t palette[2] = {
+                { .r = 0xff, .g = 0xff, .b = 0xff, .a = 0xff},
+                { .r = 127, .g = 127, .b = 127, .a = 0xff}
+            };
+            for (u32 y = 0; y < box->height; y++) {
+                for (u32 x = 0; x < box->width; x++) {
+                    const u32 idx = y * box->width + x;
+                    checkers[idx].hex = palette[((x >> 6) + (y >> 6)) & 1].hex;
+                }
+            }
+            *out = new_texture(checkers, box->width, box->height);
+            del_buf(&(buf_t){.ptr = (void*)checkers, .size = size, .tag = MEMTAG_COLOR});
+            if (!*out) goto cleanup;
+            break;
+        }
         case BG_COLOR: {
             if (!box) {
-                logError("gen_comp_texture - Invalid parameter, box address %p.\n", NULL);
+                logError("gen_texture - Invalid parameter, box address %p.\n", NULL);
                 return false;
             }
             *out = new_texture(NULL, box->width, box->height);
@@ -163,7 +188,7 @@ bool gen_texture(texture_t** out, const bounding_box* box, const style_t* style)
 
             const color_t* data = load_texture(style->background.image, &width, &height);
             if (!data) {
-                logError("gen_comp_texture - Failed to load texture.");
+                logError("gen_texture - Failed to load texture.");
                 goto cleanup;
             }
             *out = new_texture(data, width, height);
@@ -176,6 +201,6 @@ bool gen_texture(texture_t** out, const bounding_box* box, const style_t* style)
 
     return true;
 cleanup:
-    logError("gen_comp_texture - Failed to generate component texture.");
+    logError("gen_texture - Failed to generate texture.");
     return false;
 }

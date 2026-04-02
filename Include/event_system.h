@@ -24,6 +24,7 @@ typedef enum component_tag {
 
 typedef enum background_type {
     BG_NONE,
+    BG_TEST,
     BG_COLOR,
     BG_IMAGE,
     BG_GRADIENT

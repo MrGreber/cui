@@ -8,7 +8,6 @@
 #include <glad.h>
 
 #define Shader(func) __shader_##func
-
 shader_t* Shader(get)(frame_t* frame, const shader_tag_t tag);
 bool Shader(new_cache)(frame_t* frame);
 void Shader(del_cache)(frame_t* frame);

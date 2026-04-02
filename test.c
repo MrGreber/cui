@@ -19,9 +19,9 @@ static bool __init(app_t* app) {
         .normal = {
             .init = true,
             .background = {
-                .type = BG_IMAGE,
-                .image = __DIR__"\\Resources\\heisenberg.jpg",
-                .mask = WHITE
+                .type = BG_TEST,
+                //.image = __DIR__"\\Resources\\heisenberg.jpg",
+                .mask = MAGENTA
             },
             .border = {
                 .color = BLACK,
@@ -57,7 +57,7 @@ static bool __init(app_t* app) {
     push_app_var(app, panel);
     push_app_var(app, canvas);
     push_app_var(app, edit);
-    // push_app_var(app, button);
+    //push_app_var(app, button);
     print_comp_node(frame->header.components, 0);
     return true;
 }
@@ -67,7 +67,7 @@ static void __loop(app_t* app) {
     panel_t* panel = get_app_var(app, 0);
     canvas_t* canvas = get_app_var(app, 1);
     edit_t* edit = get_app_var(app, 2);
-    // button_t* button = get_app_var(app, 3);
+    //button_t* button = get_app_var(app, 3);
     const mat4 projection = m4_ortho(0.0f, (f32)frame->header.box.width, (f32)frame->header.box.height, 0.0f, -1.0f, 1.0f);
     update_frame(frame);
 
@@ -89,9 +89,9 @@ static void __exit(app_t* app) {
     //button_t* button = get_app_var(app, 3);
 
     del_panel(panel);
-    del_edit(edit);
     del_canvas(canvas);
-    // del_button(button);
+    del_edit(edit);
+    //del_button(button);
     del_frame(frame);
 }
 
