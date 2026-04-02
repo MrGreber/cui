@@ -47,32 +47,33 @@ button_t* new_button(void* parent, style_group_t* group, const bounding_box* box
     if (group->hover.init) memcpy(&button->styles.hover, &group->hover, sizeof(style_t));
 
     frame_t* frame = get_root(parent);
-    button->sprite = new_sprite(frame, COMP_SHADER);
+    button->sprite = Sprite(new)(frame, COMP_SHADER);
     if (!button->sprite) goto cleanup;
-    if (!set_sprite_texture(button->sprite, box->width, box->height, &group->normal)) goto cleanup;
+    if (!Sprite(set_texture)(button->sprite, box->width, box->height, &group->normal)) goto cleanup;
 
     button->header.mouse = (callback)__default_mouse_callback;
     button->header.resize =  (callback)__default_resize_callback;
     push_comp_node(parent_header->components, button, BUTTON_COMPONENT);
     return button;
 cleanup:
-    if (button->sprite) del_sprite(button->sprite);
+    if (button->sprite) Sprite(del)(button->sprite);
     del_buf(&(buf_t){.size = sizeof(button_t), .tag = MEMTAG_BUTTON, .ptr = button});
     return NULL;
 }
 void del_button(button_t* button) {
     if (!button) return;
-    if (button->sprite) del_sprite(button->sprite);
+    if (button->sprite) Sprite(del)(button->sprite);
     del_buf(&(buf_t){.size = sizeof(button_t), .tag = MEMTAG_BUTTON, .ptr = button});
 }
 void bind_button(const button_t* button) {
     if (!button) return;
-    bind_sprite(button->sprite);
+    frame_t* frame = get_root(button);
+    Sprite(bind)(frame, button->sprite);
 }
 
 void update_button(button_t* button, const mat4* projection) {
     if (!button) return;
-    frame_t* frame = ((comp_node_t*)button->header.components)->root->component.inst;
+    frame_t* frame = get_root(button);
 
     if (button->transform.init & 1) {
         const mat4 scale = m4_scale((f32)button->header.box.width, (f32)button->header.box.height, 1.0f);

@@ -331,9 +331,9 @@ edit_t* new_edit(void* parent, const style_group_t* group, const bounding_box* b
 
     frame_t* frame = get_root(parent);
 
-    edit->sprite = new_sprite(frame, COMP_SHADER);
+    edit->sprite = Sprite(new)(frame, COMP_SHADER);
     if (!edit->sprite) goto cleanup;
-    if (!set_sprite_texture(edit->sprite, box->width, box->height, (style_t*)&group->normal)) goto cleanup;
+    if (!Sprite(set_texture)(edit->sprite, box->width, box->height, (style_t*)&group->normal)) goto cleanup;
 
     // Loads default font
     edit->font = new_font(__DIR__"\\Resources\\vcr_osd_mono.fnt");
@@ -380,7 +380,7 @@ cleanup:
     if (edit->mesh.va) VertexArray(del)(edit->mesh.va);
     if (edit->mesh.vb.id) VertexBuffer(del)(&edit->mesh.vb);
     if (edit->mesh.vertices) del_buf(&(buf_t){.ptr = edit->mesh.vertices, .size = QUAD_SIZE * DEFAULT_CAPACITY, .tag = MEMTAG_VECTOR});
-    if (edit->sprite) del_sprite(edit->sprite);
+    if (edit->sprite) Sprite(del)(edit->sprite);
     if (edit->text.buffer) del_str(edit->text.buffer);
     if (edit->font) del_font(edit->font);
     del_buf(&(buf_t){.size = sizeof(edit_t), .tag = MEMTAG_EDIT, .ptr = edit});
@@ -391,14 +391,15 @@ void del_edit(edit_t* edit) {
     VertexArray(del)(edit->mesh.va);
     VertexBuffer(del)(&edit->mesh.vb);
     del_buf(&(buf_t){.ptr = edit->mesh.vertices, .size = QUAD_SIZE * edit->mesh.capacity, .tag = MEMTAG_VECTOR});
-    del_sprite(edit->sprite);
+    Sprite(del)(edit->sprite);
     del_str(edit->text.buffer);
     del_font(edit->font);
     del_buf(&(buf_t){.size = sizeof(edit_t), .tag = MEMTAG_EDIT, .ptr = edit});
 }
 void bind_edit(const edit_t* edit) {
     if (!edit) return;
-    bind_sprite(edit->sprite);
+    const frame_t* frame = get_root(edit);
+    Sprite(bind)(frame, edit->sprite);
 }
 
 #define CLOCK_TIME 0.02

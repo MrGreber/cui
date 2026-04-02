@@ -18,8 +18,9 @@ static void __default_mouse_callback(const mouse_cb_param* param) {
     if (param->action == GLFW_PRESS &&
         param->button == GLFW_MOUSE_BUTTON_LEFT &&
         (panel->styles.normal.mode & CAPTION) &&
-        !(panel->styles.normal.mode & STATIC_POPUP))
-    {
+        !(panel->styles.normal.mode & STATIC_POPUP) &&
+        !(bounded(param->x, param->y, panel->header.content_box.x, panel->header.content_box.y, panel->header.content_box.width, panel->header.content_box.height))
+    ) {
         panel->drag.state = true;
         panel->drag.prev.x = param->x;
         panel->drag.prev.y = param->y;
@@ -85,27 +86,28 @@ panel_t* new_panel(void* parent, style_group_t* group, const bounding_box* box) 
     if (group->hover.init) memcpy(&panel->styles.hover, &group->hover, sizeof(style_t));
 
     frame_t* frame = get_root(parent);
-    panel->sprite = new_sprite(frame, COMP_SHADER);
+    panel->sprite = Sprite(new)(frame, COMP_SHADER);
     if (!panel->sprite) goto cleanup;
-    if (!set_sprite_texture(panel->sprite, box->width, box->height, &group->normal)) goto cleanup;
+    if (!Sprite(set_texture)(panel->sprite, box->width, box->height, &group->normal)) goto cleanup;
 
     panel->header.mouse = (callback)__default_mouse_callback;
     panel->header.resize = (callback)__default_resize_callback;
     push_comp_node(parent_header->components, panel, PANEL_COMPONENT);
     return panel;
 cleanup:
-    if (panel->sprite) del_sprite(panel->sprite);
+    if (panel->sprite) Sprite(del)(panel->sprite);
     del_buf(&(buf_t){.size = sizeof(panel_t), .tag = MEMTAG_PANEL, .ptr = panel});
     return NULL;
 }
 void del_panel(panel_t* panel) {
     if (!panel) return;
-    if (panel->sprite) del_sprite(panel->sprite);
+    if (panel->sprite) Sprite(del)(panel->sprite);
     del_buf(&(buf_t){.size = sizeof(panel_t), .tag = MEMTAG_PANEL, .ptr = panel});
 }
 void bind_panel(const panel_t* panel) {
     if (!panel) return;
-    bind_sprite(panel->sprite);
+    frame_t* frame = get_root(panel);
+    Sprite(bind)(frame, panel->sprite);
 }
 
 void update_panel(panel_t* panel, const mat4* projection) {

@@ -141,9 +141,9 @@ typedef struct component_node {
 
 #define get_header(COMP) ((comp_header_t*)(COMP))
 #define bounded(mx, my, x, y, w, h) (((mx) >= (x) && (mx) < ((x) + (w))) && ((my) >= (y) && (my) < ((y) + (h))))
-__forceinline void* get_root(void* comp) {
+__forceinline void* get_root(const void* comp) {
     comp_node_t* root = ((comp_node_t*)((comp_header_t*)comp)->components)->root;
-    if (root == NULL) return comp;
+    if (root == NULL) return (void*)comp;
     return root->component.inst;
 }
 

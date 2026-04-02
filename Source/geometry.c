@@ -189,6 +189,7 @@ static const struct { u8 bit; u8 count; } __attributes_table[] = {
 };
 static static_mesh_t* private(new_static_mesh)(frame_t* frame, const mesh_tag_t tag) {
     static_mesh_t* static_mesh = &frame->cache.static_meshes.data[tag];
+    if (static_mesh->va) return static_mesh;
     static_mesh->va = VertexArray(new)(2);
     if (!static_mesh->va->id) {
         logError("Mesh(new) - Failed to create vertex array for static mesh.");
@@ -230,7 +231,7 @@ static dynamic_mesh_t* private(new_dynamic_mesh)(frame_t* frame) {
     return NULL;
 }
 mesh_t* Mesh(new)(frame_t* frame, const mesh_tag_t tag) {
-    if (tag < __MESH_TAG_COUNT__ && frame->cache.static_meshes.data[tag].va == NULL)
+    if (tag < __MESH_TAG_COUNT__)
         return (mesh_t*)private(new_static_mesh)(frame, tag);
     else if (tag == DYNAMIC_MESH)
         return private(new_dynamic_mesh)(frame);
@@ -253,7 +254,7 @@ void Mesh(del_cache)(frame_t* frame) {
             VertexArray(del)(metadata->va);
             VertexBuffer(del)(&metadata->vb);
         }
-        if (dynamic_mesh->metadata.eb.gl_id) ElementBuffer(del)(&dynamic_mesh->metadata.eb);
+        if (dynamic_mesh->eb.gl_id) ElementBuffer(del)(&dynamic_mesh->eb);
         if (dynamic_mesh->indices.data) {
             del_buf(&(buf_t){
                 .ptr = dynamic_mesh->indices.data,
@@ -291,7 +292,7 @@ void Mesh(draw)(mesh_t* mesh) {
 
     }
     else {
-        if (mesh->metadata.eb.gl_id) glDrawElements(GL_TRIANGLES, mesh->indices.count, GL_UNSIGNED_INT, 0);
+        if (mesh->eb.gl_id) glDrawElements(GL_TRIANGLES, mesh->indices.count, GL_UNSIGNED_INT, 0);
         else glDrawArrays(GL_TRIANGLES, 0, mesh->vertices.count);
     }
 }
@@ -304,7 +305,7 @@ void Mesh(sub_draw)(mesh_t* mesh, const u32 count, const u32 offset) {
         else if (offset + count <= range->vert.offset + range->vert.count) glDrawArrays(GL_TRIANGLES, offset, count);
     }
     else {
-        if (mesh->metadata.eb.gl_id) glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, (void*)(offset * sizeof(u32)));
+        if (mesh->eb.gl_id) glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, (void*)(offset * sizeof(u32)));
         else glDrawArrays(GL_TRIANGLES, offset, count);
     }
 }

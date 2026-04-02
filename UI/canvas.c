@@ -3,11 +3,13 @@
 #include <event_system.h>
 #include <frame.h>
 #include <shader/ops.h>
+#include <geometry/ops.h>
 
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <glad.h>
 #include <glfw3.h>
 #include <glfw3native.h>
+
 
 #define CAM_KEY_W (1 << 0)
 #define CAM_KEY_S (1 << 1)
@@ -142,9 +144,9 @@ canvas_t* new_canvas(void* parent, const u32 width, const u32 height) {
     canvas->prev.y = -1;
 
     frame_t* frame = get_root(parent);
-    canvas->sprite = new_sprite(frame, RECT_SHADER);
+    canvas->sprite = Sprite(new)(frame, RECT_SHADER);
     if (!canvas->sprite) goto cleanup;
-    if (!set_sprite_texture(canvas->sprite, width, height, &(style_t){.background = {.type = BG_COLOR, .color = WHITE}})) goto cleanup;
+    if (!Sprite(set_texture)(canvas->sprite, width, height, &(style_t){.background = {.type = BG_COLOR, .color = WHITE}})) goto cleanup;
 
     canvas->camera = new_camera();
     if (!canvas->camera) goto cleanup;
@@ -156,20 +158,21 @@ canvas_t* new_canvas(void* parent, const u32 width, const u32 height) {
     push_comp_node(parent_header->components, canvas, CANVAS_COMPONENT);
     return canvas;
 cleanup:
-    if (canvas->sprite) del_sprite(canvas->sprite);
+    if (canvas->sprite) Sprite(del)(canvas->sprite);
     if (canvas->camera) del_camera(canvas->camera);
     del_buf(&(buf_t){.size = sizeof(canvas_t), .tag = MEMTAG_CANVAS, .ptr = canvas});
     return NULL;
 }
 void del_canvas(canvas_t* canvas) {
     if (!canvas) return;
-    del_sprite(canvas->sprite);
+    Sprite(del)(canvas->sprite);
     del_camera(canvas->camera);
     del_buf(&(buf_t){.size = sizeof(canvas_t), .tag = MEMTAG_CANVAS, .ptr = canvas});
 }
 void bind_canvas(canvas_t* canvas) {
     if (!canvas) return;
-    bind_sprite(canvas->sprite);
+    const frame_t* frame = get_root(canvas);
+    Sprite(bind)(frame, canvas->sprite);
 }
 void set_brush(canvas_t* canvas, const color_t color, const f32 size) {
     if (!canvas) return;
@@ -212,6 +215,7 @@ void update_canvas(canvas_t* canvas, const mat4* projection) {
         parent_header->content_box.x, frame->header.box.height - parent_header->content_box.y - parent_header->content_box.height,
         parent_header->content_box.width, parent_header->content_box.height
     );
+    Mesh(draw)(canvas->sprite->mesh);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
     glDisable(GL_SCISSOR_TEST);
 
