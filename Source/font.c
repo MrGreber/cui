@@ -164,7 +164,7 @@ static bool __parse_fnt(font_t* font, const char* path) {
             .image = (const char*)pages_name
         },
     };
-    if (!gen_texture(&font->atlas, NULL, &style)) return false;
+    if (!Texture(generate)(&font->atlas, NULL, &style)) return false;
     free(pages_name);
     fread(&chars, sizeof(struct fnt_chars), 1, stream);
 
@@ -214,12 +214,12 @@ cleanup:
 }
 void del_font(font_t* font) {
     if (!font) return;
-    del_texture(font->atlas);
+    Texture(del)(font->atlas);
     del_buf(&(buf_t){.ptr = font->glyphs, .size = sizeof(glyph_t) * font->count, .tag = MEMTAG_FONT});
     del_buf(&(buf_t){.ptr = font, .size = sizeof(font_t), .tag = MEMTAG_FONT});
 }
 void bind_font(const font_t* font) {
-    bind_texture(font->atlas);
+    Texture(bind)(font->atlas);
 }
 
 void set_font(font_t* font, const char* path, const color_t fg, const color_t bg) {

@@ -61,7 +61,7 @@ void aligned_memset(u32* buffer, const u32 val, const u64 size) {
 
 void* load_cursor(const char* path, const u16 width, const u16 height, const u16 hotx, const u16 hoty) {
     GLFWimage img = { .width = width, .height = height };
-    img.pixels = (byte*)load_texture(path, (u32*)&img.width, (u32*)&img.height);
+    img.pixels = (byte*)Texture(load_image)(path, (u32*)&img.width, (u32*)&img.height);
     if (!img.pixels) return NULL;
 
     GLFWcursor* cursor = glfwCreateCursor(&img, hotx, hoty);

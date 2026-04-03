@@ -54,8 +54,8 @@ static void __default_mouse_callback(const mouse_cb_param* param) {
         vec4 mpos = {param->x, param->y, 0.0f, 1.0f};
         mpos = mv4_mul(&canvas->transform.inv_model, &mpos);
 
-        if (canvas->prev.x != -1 && canvas->prev.y != -1) draw_texture_line(canvas->sprite->tex, canvas->brush.color, canvas->prev.x, canvas->prev.y, mpos.x, mpos.y);
-        else set_texture_pixel(canvas->sprite->tex, canvas->brush.color, mpos.x, mpos.y);
+        if (canvas->prev.x != -1 && canvas->prev.y != -1) Texture(draw_line)(canvas->sprite->tex, canvas->brush.color, canvas->prev.x, canvas->prev.y, mpos.x, mpos.y);
+        else Texture(set_pixel)(canvas->sprite->tex, canvas->brush.color, mpos.x, mpos.y);
 
         canvas->prev.x = mpos.x;
         canvas->prev.y = mpos.y;
@@ -77,7 +77,7 @@ static void __default_keyboard_callback(const keyboard_cb_param* param) {
         case GLFW_KEY_E: bit = CAM_KEY_E; break;
         case GLFW_KEY_R: bit = CAM_KEY_R; break;
         case GLFW_KEY_SPACE:
-            if (param->action == GLFW_PRESS) flush_texture(canvas->sprite->tex, WHITE);
+            if (param->action == GLFW_PRESS) Texture(flush)(canvas->sprite->tex, WHITE);
             return;
         default: return;
     }

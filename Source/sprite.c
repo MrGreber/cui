@@ -30,14 +30,14 @@ cleanup:
 
 void Sprite(del)(sprite_t* sprite) {
     if (!sprite) return;
-    if (sprite->tex) del_texture(sprite->tex);
+    if (sprite->tex) Texture(del)(sprite->tex);
     del_buf(&(buf_t){.size = sizeof(sprite_t), .tag = MEMTAG_SPRITE, .ptr = sprite});
 }
 
 void Sprite(bind)(const frame_t* frame, const sprite_t* sprite){
     Mesh(bind)(frame, sprite->mesh);
     Shader(bind)(sprite->shader);
-    if (sprite->tex) bind_texture(sprite->tex);
+    if (sprite->tex) Texture(bind)(sprite->tex);
 }
 
 void Sprite(unbind)(void) {
@@ -46,6 +46,6 @@ void Sprite(unbind)(void) {
 
 bool Sprite(set_texture)(sprite_t* sprite, const u32 width, const u32 height, style_t* style) {
     if (!sprite || !style) return false;
-    if (!gen_texture(&sprite->tex, &(bounding_box){0, 0, width, height}, style)) return false;
+    if (!Texture(generate)(&sprite->tex, &(bounding_box){0, 0, width, height}, style)) return false;
     return true;
 }

@@ -24,24 +24,25 @@ typedef struct texture {
  * @param height Texture height in pixels
  * @return Pointer to the allocated texture_t, or NULL on failure
  */
-texture_t* new_texture(const color_t* data, const u32 width, const u32 height);
+#define Texture(func) __texture_##func
+texture_t* Texture(new)(const color_t* data, const u32 width, const u32 height);
 
 /**
  * @brief Delete a texture and free its resources.
  * @param tex Pointer to the texture to delete
  */
-void del_texture(texture_t* tex);
+void Texture(del)(texture_t* tex);
 
-void bind_texture(const texture_t* tex);
-void unbind_texture();
+void Texture(bind)(const texture_t* tex);
+void Texture(unbind)();
 
-void flush_texture(const texture_t* tex, const color_t bg);
+void Texture(flush)(const texture_t* tex, const color_t bg);
 
-void set_texture_pixel(const texture_t* tex, const color_t color, const i32 x, const i32 y);
-void draw_texture_line(const texture_t* tex, const color_t color, i32 x0, i32 y0, const i32 x1, const i32 y1);
+void Texture(set_pixel)(const texture_t* tex, const color_t color, const i32 x, const i32 y);
+void Texture(draw_line)(const texture_t* tex, const color_t color, i32 x0, i32 y0, const i32 x1, const i32 y1);
 
-color_t* load_texture(const char* path, u32* width, u32* height);
-bool gen_texture(struct texture** out, const bounding_box* box, const style_t* style);
+color_t* Texture(load_image)(const char* path, u32* width, u32* height);
+bool Texture(generate)(struct texture** out, const bounding_box* box, const style_t* style);
 
 #endif // TEXTURE_H
 
