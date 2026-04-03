@@ -30,10 +30,10 @@ typedef struct panel {
     } drag;
 } panel_t;
 
-
-panel_t* new_panel(void* parent, style_group_t* group, const bounding_box* box);
-void del_panel(panel_t* panel);
-void bind_panel(const panel_t* panel);
-void update_panel(panel_t* panel, const mat4* projection);
+#define Panel(func) __panel_##func
+panel_t* Panel(new)(void* parent, style_group_t* group, const bounding_box* box);
+void Panel(del)(panel_t* panel);
+void Panel(bind)(const panel_t* panel);
+void Panel(update)(panel_t* panel, const mat4* projection);
 
 #endif //PANEL_H

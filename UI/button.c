@@ -4,6 +4,7 @@
 #include <frame.h>
 #include <math-utils.h>
 #include <shader/ops.h>
+#include <geometry/ops.h>
 
 #include <memory.h>
 #include <glad.h>
@@ -27,7 +28,7 @@ static void __default_resize_callback(const resize_cb_param* param) {
     // panel->header.box.height += param->height;
 }
 
-button_t* new_button(void* parent, style_group_t* group, const bounding_box* box) {
+button_t* Button(new)(void* parent, style_group_t* group, const bounding_box* box) {
     buf_t buffer = {
         .size = sizeof(button_t),
         .tag = MEMTAG_BUTTON
@@ -60,18 +61,18 @@ cleanup:
     Buffer(del)(&(buf_t){.size = sizeof(button_t), .tag = MEMTAG_BUTTON, .ptr = button});
     return NULL;
 }
-void del_button(button_t* button) {
+void Button(del)(button_t* button) {
     if (!button) return;
     if (button->sprite) Sprite(del)(button->sprite);
     Buffer(del)(&(buf_t){.size = sizeof(button_t), .tag = MEMTAG_BUTTON, .ptr = button});
 }
-void bind_button(const button_t* button) {
+void Button(bind)(const button_t* button) {
     if (!button) return;
     frame_t* frame = get_root(button);
     Sprite(bind)(frame, button->sprite);
 }
 
-void update_button(button_t* button, const mat4* projection) {
+void Button(update)(button_t* button, const mat4* projection) {
     if (!button) return;
     frame_t* frame = get_root(button);
 
@@ -116,5 +117,5 @@ void update_button(button_t* button, const mat4* projection) {
     };
     Shader(set_vec4)(button->sprite->shader, "mask", &color.x);
 
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    Mesh(draw)(button->sprite->mesh);
 }

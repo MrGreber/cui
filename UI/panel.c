@@ -10,8 +10,7 @@
 #include <glad.h>
 #include <glfw3.h>
 
-// todo: create different callbacks for each case so if statements would not chock the callback pipeline
-static void __default_mouse_callback(const mouse_cb_param* param) {
+static void private(mouse_callback)(const mouse_cb_param* param) {
     panel_t* panel = param->instance;
     frame_t* frame = ((comp_node_t*)panel->header.components)->root->component.inst;
 
@@ -48,7 +47,7 @@ static void __default_mouse_callback(const mouse_cb_param* param) {
         frame->captured.tag  = 0;
     }
 }
-static void __default_resize_callback(const resize_cb_param* param) {
+static void private(resize_callback)(const resize_cb_param* param) {
     panel_t* panel = param->instance;
     panel->transform.init |= 1;
     //comp_header_t* header = get_header(panel->parent);
@@ -57,9 +56,8 @@ static void __default_resize_callback(const resize_cb_param* param) {
     // panel->header.box.height += param->height;
 }
 
-
 #define CAPTION_HEIGHT 30
-panel_t* new_panel(void* parent, style_group_t* group, const bounding_box* box) {
+panel_t* Panel(new)(void* parent, style_group_t* group, const bounding_box* box) {
     buf_t buffer = {
         .size = sizeof(panel_t),
         .tag = MEMTAG_PANEL
@@ -90,8 +88,8 @@ panel_t* new_panel(void* parent, style_group_t* group, const bounding_box* box) 
     if (!panel->sprite) goto cleanup;
     if (!Sprite(set_texture)(panel->sprite, box->width, box->height, &group->normal)) goto cleanup;
 
-    panel->header.mouse = (callback)__default_mouse_callback;
-    panel->header.resize = (callback)__default_resize_callback;
+    panel->header.mouse = (callback)private(mouse_callback);
+    panel->header.resize = (callback)private(resize_callback);
     push_comp_node(parent_header->components, panel, PANEL_COMPONENT);
     return panel;
 cleanup:
@@ -99,18 +97,18 @@ cleanup:
     Buffer(del)(&(buf_t){.size = sizeof(panel_t), .tag = MEMTAG_PANEL, .ptr = panel});
     return NULL;
 }
-void del_panel(panel_t* panel) {
+void Panel(del)(panel_t* panel) {
     if (!panel) return;
     if (panel->sprite) Sprite(del)(panel->sprite);
     Buffer(del)(&(buf_t){.size = sizeof(panel_t), .tag = MEMTAG_PANEL, .ptr = panel});
 }
-void bind_panel(const panel_t* panel) {
+void Panel(bind)(const panel_t* panel) {
     if (!panel) return;
     frame_t* frame = get_root(panel);
     Sprite(bind)(frame, panel->sprite);
 }
 
-void update_panel(panel_t* panel, const mat4* projection) {
+void Panel(update)(panel_t* panel, const mat4* projection) {
     if (!panel) return;
 
     if (panel->transform.init & 1) {

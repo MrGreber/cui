@@ -19,7 +19,7 @@
 #define CAM_KEY_E (1 << 5)
 #define CAM_KEY_R (1 << 6)
 
-static void __default_camera_handler(canvas_t* canvas) {
+static void private(camera_handler)(canvas_t* canvas) {
     const frame_t* frame = get_root(canvas);
     const f32 delta = (f32)frame->stopwatch.delta;
     camera_t* camera = canvas->camera;
@@ -46,7 +46,7 @@ static void __default_camera_handler(canvas_t* canvas) {
 #endif
 }
 
-static void __default_mouse_callback(const mouse_cb_param* param) {
+static void private(mouse_callback)(const mouse_cb_param* param) {
     canvas_t* canvas = param->instance;
     const frame_t* frame = get_root(canvas);
 
@@ -62,7 +62,7 @@ static void __default_mouse_callback(const mouse_cb_param* param) {
     }
     else canvas->prev.x = canvas->prev.y = -1;
 }
-static void __default_keyboard_callback(const keyboard_cb_param* param) {
+static void private(keyboard_callback)(const keyboard_cb_param* param) {
     canvas_t* canvas = param->instance;
     const frame_t* frame = get_root(canvas);
     camera_t* camera = canvas->camera;
@@ -85,7 +85,7 @@ static void __default_keyboard_callback(const keyboard_cb_param* param) {
     if (param->action == GLFW_PRESS || param->action == GLFW_REPEAT) camera->keys |= bit;
     else if (param->action == GLFW_RELEASE) camera->keys &= ~bit;
 }
-static void __default_scroll_callback(const scroll_cb_param* param) {
+static void private(scroll_callback)(const scroll_cb_param* param) {
     canvas_t* canvas = param->instance;
     const frame_t* frame = get_root(canvas);
     const comp_header_t* parent_header = (comp_header_t*)canvas->parent;
@@ -114,13 +114,13 @@ static void __default_scroll_callback(const scroll_cb_param* param) {
 
     canvas->transform.init |= 3;
 }
-static void __default_resize_callback(const resize_cb_param* param) {
+static void private(resize_callback)(const resize_cb_param* param) {
     canvas_t* canvas = param->instance;
     canvas->transform.init |= 3;
 }
 
 
-canvas_t* new_canvas(void* parent, const u32 width, const u32 height) {
+canvas_t* Canvas(new)(void* parent, const u32 width, const u32 height) {
     buf_t buffer = {
         .size = sizeof(canvas_t),
         .tag = MEMTAG_CANVAS
@@ -151,10 +151,10 @@ canvas_t* new_canvas(void* parent, const u32 width, const u32 height) {
     canvas->camera = new_camera();
     if (!canvas->camera) goto cleanup;
 
-    canvas->header.mouse = (callback)__default_mouse_callback;
-    canvas->header.keyboard = (callback)__default_keyboard_callback;
-    canvas->header.resize = (callback)__default_resize_callback;
-    canvas->header.scroll = (callback)__default_scroll_callback;
+    canvas->header.mouse = (callback)private(mouse_callback);
+    canvas->header.keyboard = (callback)private(keyboard_callback);
+    canvas->header.resize = (callback)private(resize_callback);
+    canvas->header.scroll = (callback)private(scroll_callback);
     push_comp_node(parent_header->components, canvas, CANVAS_COMPONENT);
     return canvas;
 cleanup:
@@ -163,29 +163,29 @@ cleanup:
     Buffer(del)(&(buf_t){.size = sizeof(canvas_t), .tag = MEMTAG_CANVAS, .ptr = canvas});
     return NULL;
 }
-void del_canvas(canvas_t* canvas) {
+void Canvas(del)(canvas_t* canvas) {
     if (!canvas) return;
     Sprite(del)(canvas->sprite);
     del_camera(canvas->camera);
     Buffer(del)(&(buf_t){.size = sizeof(canvas_t), .tag = MEMTAG_CANVAS, .ptr = canvas});
 }
-void bind_canvas(canvas_t* canvas) {
+void Canvas(bind)(canvas_t* canvas) {
     if (!canvas) return;
     const frame_t* frame = get_root(canvas);
     Sprite(bind)(frame, canvas->sprite);
 }
-void set_brush(canvas_t* canvas, const color_t color, const f32 size) {
+void Canvas(set_brush)(canvas_t* canvas, const color_t color, const f32 size) {
     if (!canvas) return;
     canvas->brush.color = color;
     canvas->brush.size = size;
 }
 
-void update_canvas(canvas_t* canvas, const mat4* projection) {
+void Canvas(update)(canvas_t* canvas, const mat4* projection) {
     if (!canvas) return;
     const frame_t* frame = ((comp_node_t*)canvas->header.components)->root->component.inst;
     const comp_header_t* parent_header = (comp_header_t*)canvas->parent;
 
-    if (frame->focused.inst == canvas && canvas->camera->keys) __default_camera_handler(canvas);
+    if (frame->focused.inst == canvas && canvas->camera->keys) private(camera_handler)(canvas);
     else canvas->camera->keys = 0;
     if (canvas->transform.init == 3) {
         const mat4 rotation = m4_rotateZ(rad(canvas->camera->roll));
@@ -216,7 +216,6 @@ void update_canvas(canvas_t* canvas, const mat4* projection) {
         parent_header->content_box.width, parent_header->content_box.height
     );
     Mesh(draw)(canvas->sprite->mesh);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
     glDisable(GL_SCISSOR_TEST);
 
     canvas->header.box.x = parent_header->content_box.x;

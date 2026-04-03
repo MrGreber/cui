@@ -39,10 +39,11 @@ typedef struct edit {
     } text;
 } edit_t;
 
-edit_t* new_edit(void* parent, const style_group_t* group, const bounding_box* box);
-void del_edit(edit_t* edit);
-void bind_edit(const edit_t* edit);
-void set_edit_text(edit_t* edit, char_t* text, const u64 length);
-void update_edit(edit_t* edit, const mat4* projection);
+#define Edit(func) __edit_##func
+edit_t* Edit(new)(void* parent, const style_group_t* group, const bounding_box* box);
+void Edit(del)(edit_t* edit);
+void Edit(bind)(const edit_t* edit);
+void Edit(set_text)(edit_t* edit, char_t* text, const u64 length);
+void Edit(update)(edit_t* edit, const mat4* projection);
 
 #endif //EDIT_H

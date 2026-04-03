@@ -19,9 +19,9 @@ static bool __init(app_t* app) {
         .normal = {
             .init = true,
             .background = {
-                .type = BG_IMAGE,
-                .image = __DIR__"\\Resources\\heisenberg.jpg",
-                .mask = WHITE
+                .type = BG_TEST,
+                //.image = __DIR__"\\Resources\\heisenberg.jpg",
+                .mask = MAGENTA
             },
             .border = {
                 .color = BLACK,
@@ -37,20 +37,18 @@ static bool __init(app_t* app) {
             }
         }
     };
-    panel_t* panel = new_panel(frame, &group, &(bounding_box){200, 100, 600, 600});
+    panel_t* panel = Panel(new)(frame, &group, &(bounding_box){200, 100, 600, 600});
     group.normal.background.type = BG_COLOR;
     group.normal.background.color = WHITE;
 
-    canvas_t* canvas = new_canvas(panel, 400, 600);
-    set_brush(canvas, RED, 1);
+    canvas_t* canvas = Canvas(new)(panel, 400, 600);
+    Canvas(set_brush)(canvas, RED, 1);
 
     group.normal.background.color = WHITE;
     group.normal.mode = WRITABLE;
-    edit_t* edit = new_edit(frame, &group, &(bounding_box){0, 0, 200, 100});
+    edit_t* edit = Edit(new)(frame, &group, &(bounding_box){0, 0, 200, 100});
     Font(set)(edit->font, __DIR__"\\Resources\\vcr_osd_mono.fnt", BLUE, TRANSP);
-    set_edit_text(edit, "shit", 4);
-
-
+    Edit(set_text)(edit, "shit", 4);
     //button_t* button = new_button(frame, &group, &(bounding_box){0, 700, 100, 100});
 
     app->frame = frame;
@@ -61,7 +59,6 @@ static bool __init(app_t* app) {
     print_comp_node(frame->header.components, 0);
     return true;
 }
-static bool flag = true;
 static void __loop(app_t* app) {
     frame_t* frame = app->frame;
     panel_t* panel = App(get)(app, 0);
@@ -74,12 +71,12 @@ static void __loop(app_t* app) {
 
     // bind_button(button);
     // update_button(button, &projection);
-    bind_panel(panel);
-    update_panel(panel, &projection);
-    bind_canvas(canvas);
-    update_canvas(canvas, &projection);
-    bind_edit(edit);
-    update_edit(edit, &projection);
+    Panel(bind)(panel);
+    Panel(update)(panel, &projection);
+    Canvas(bind)(canvas);
+    Canvas(update)(canvas, &projection);
+    Edit(bind)(edit);
+    Edit(update)(edit, &projection);
 }
 static void __exit(app_t* app) {
     frame_t* frame = app->frame;
@@ -88,9 +85,9 @@ static void __exit(app_t* app) {
     edit_t* edit = App(get)(app, 2);
     //button_t* button = get_app_var(app, 3);
 
-    del_panel(panel);
-    del_canvas(canvas);
-    del_edit(edit);
+    Panel(del)(panel);
+    Canvas(del)(canvas);
+    Edit(del)(edit);
     //del_button(button);
     Frame(del)(frame);
 }

@@ -37,10 +37,11 @@ typedef struct canvas {
     sprite_t* sprite;
 } canvas_t;
 
-canvas_t* new_canvas(void* parent, const u32 width, const u32 height);
-void del_canvas(canvas_t* canvas);
-void bind_canvas(canvas_t* canvas);
-void set_brush(canvas_t* canvas, const color_t color, const f32 size);
-void update_canvas(canvas_t* canvas, const mat4* projection);
+#define Canvas(func) __canvas_##func
+canvas_t* Canvas(new)(void* parent, const u32 width, const u32 height);
+void Canvas(del)(canvas_t* canvas);
+void Canvas(bind)(canvas_t* canvas);
+void Canvas(set_brush)(canvas_t* canvas, const color_t color, const f32 size);
+void Canvas(update)(canvas_t* canvas, const mat4* projection);
 
 #endif //CANVAS_H

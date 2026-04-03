@@ -14,7 +14,7 @@
 #define DEFAULT_CAPACITY 128
 #define QUAD_SIZE (6 * sizeof(vec4))
 
-static bool __resize_text_mesh(edit_t* edit) {
+static bool private(resize_text_mesh)(edit_t* edit) {
     if (edit->mesh.capacity == UINT64_MAX) {
         logError("__resize_text_mesh - Failed to resize text mesh, mesh reached max size %d.", UINT16_MAX);
         return false;
@@ -32,7 +32,7 @@ static bool __resize_text_mesh(edit_t* edit) {
     return true;
 }
 static void push_glyph_quad(edit_t* edit, const glyph_t* g, const f32 pen_x, const f32 pen_y) {
-    if (edit->mesh.capacity <= edit->mesh.count && !__resize_text_mesh(edit)) goto cleanup;
+    if (edit->mesh.capacity <= edit->mesh.count && !private(resize_text_mesh)(edit)) goto cleanup;
 
     vec4* ptr = edit->mesh.vertices;
     const f32 x0 = pen_x + g->offset.x;
@@ -170,7 +170,7 @@ static void private(set_caret_position)(edit_t* edit, const f64 mouse_x, const f
     glBufferSubData(GL_ARRAY_BUFFER, (edit->mesh.count - 1) * QUAD_SIZE, QUAD_SIZE, edit->mesh.vertices + 6 * (edit->mesh.count - 1));
 }
 
-static void __default_mouse_callback(const mouse_cb_param* param) {
+static void private(mouse_callback)(const mouse_cb_param* param) {
     edit_t* edit = param->instance;
     const frame_t* frame = get_root(edit);
 
@@ -178,7 +178,7 @@ static void __default_mouse_callback(const mouse_cb_param* param) {
         private(set_caret_position)(edit, param->x, param->y);
     }
 }
-static void __default_write_keyboard_callback(const keyboard_cb_param* param) {
+static void private(write_keyboard_callback)(const keyboard_cb_param* param) {
     edit_t* edit = param->instance;
     frame_t* frame = get_root(edit);
 
@@ -246,7 +246,7 @@ rebuild_text_mesh:
         build_text_mesh(edit, 0.0, 0.0);
     }
 }
-static void __default_read_keyboard_callback(const keyboard_cb_param* param) {
+static void private(read_keyboard_callback)(const keyboard_cb_param* param) {
     edit_t* edit = param->instance;
     frame_t* frame = get_root(edit);
 
@@ -292,7 +292,7 @@ static void __default_read_keyboard_callback(const keyboard_cb_param* param) {
         }
     }
 }
-static void __default_resize_callback(const resize_cb_param* param) {
+static void private(resize_callback)(const resize_cb_param* param) {
     edit_t* edit = param->instance;
     edit->transform.init |= 1;
     // comp_header_t* header = get_header(edit->parent);
@@ -300,7 +300,7 @@ static void __default_resize_callback(const resize_cb_param* param) {
     // edit->header.box.height += param->height;
 }
 
-void set_edit_text(edit_t* edit, char_t* text, const u64 length) {
+void Edit(set_text)(edit_t* edit, char_t* text, const u64 length) {
     if (!assign_str(edit->text.buffer, text, length)) {
         logError("set_text - Failed to set edit, text.");
         return;
@@ -308,7 +308,7 @@ void set_edit_text(edit_t* edit, char_t* text, const u64 length) {
     build_text_mesh(edit, 0.0, 0.0);
 }
 
-edit_t* new_edit(void* parent, const style_group_t* group, const bounding_box* box) {
+edit_t* Edit(new)(void* parent, const style_group_t* group, const bounding_box* box) {
     buf_t buffer = {
         .size = sizeof(edit_t),
         .tag = MEMTAG_EDIT
@@ -368,10 +368,10 @@ edit_t* new_edit(void* parent, const style_group_t* group, const bounding_box* b
     edit->text.buffer = new_str("", 0);
     if (!edit->text.buffer) goto cleanup;
 
-    edit->header.mouse = (callback)__default_mouse_callback;
-    if (group->normal.mode) edit->header.keyboard = (callback)__default_write_keyboard_callback;
-    else edit->header.keyboard = (callback)__default_read_keyboard_callback;
-    edit->header.resize = (callback)__default_resize_callback;
+    edit->header.mouse = (callback)private(mouse_callback);
+    if (group->normal.mode) edit->header.keyboard = (callback)private(write_keyboard_callback);
+    else edit->header.keyboard = (callback)private(read_keyboard_callback);
+    edit->header.resize = (callback)private(resize_callback);
     push_comp_node(parent_header->components, edit, EDIT_COMPONENT);
 
     build_text_mesh(edit, 0.0, 0.0);
@@ -386,7 +386,7 @@ cleanup:
     Buffer(del)(&(buf_t){.size = sizeof(edit_t), .tag = MEMTAG_EDIT, .ptr = edit});
     return NULL;
 }
-void del_edit(edit_t* edit) {
+void Edit(del)(edit_t* edit) {
     if (!edit) return;
     VertexArray(del)(edit->mesh.va);
     VertexBuffer(del)(&edit->mesh.vb);
@@ -396,14 +396,14 @@ void del_edit(edit_t* edit) {
     Font(del)(edit->font);
     Buffer(del)(&(buf_t){.size = sizeof(edit_t), .tag = MEMTAG_EDIT, .ptr = edit});
 }
-void bind_edit(const edit_t* edit) {
+void Edit(bind)(const edit_t* edit) {
     if (!edit) return;
     const frame_t* frame = get_root(edit);
     Sprite(bind)(frame, edit->sprite);
 }
 
 #define CLOCK_TIME 0.02
-void update_edit(edit_t* edit, const mat4* projection) {
+void Edit(update)(edit_t* edit, const mat4* projection) {
     if (!edit) return;
     const frame_t* frame = get_root(edit);
     const font_t* font = edit->font;
