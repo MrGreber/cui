@@ -5,35 +5,35 @@
 #include <defines.h>
 #include <utils.h>
 
-typedef enum callback_type {
-    MOUSE_CALLBACK,
-    SCROLL_CALLBACK,
-    KEYBOARD_CALLBACK
-} callback_type;
-
-typedef void (*callback)(void*);
-
-typedef enum component_tag {
-    FRAME_COMPONENT,
-    PANEL_COMPONENT,
-    BUTTON_COMPONENT,
-    EDIT_COMPONENT,
-    CANVAS_COMPONENT,
-    __COMPONENT_TAG_COUNT__
-} comp_tag;
-
 typedef enum background_type {
     BG_NONE,
     BG_TEST,
     BG_COLOR,
     BG_IMAGE,
-    BG_GRADIENT
+    BG_LINEAR_GRADIENT,
+    BG_RADIAL_GRADIENT
 } bg_type_t;
 
 typedef struct bounding_box {
     i32 x, y;
     u32 width, height;
 } bounding_box;
+
+struct gradient_metadata {
+    color_t* colors;
+    f32* positions;
+    u8 count;
+};
+typedef struct linear_gradient {
+    struct gradient_metadata metadata;
+    f32 angle;
+} linear_grad_t;
+
+typedef struct radial_gradient {
+    struct gradient_metadata metadata;
+    vec2 center;
+    vec2 radii;
+} radial_grad_t;
 
 typedef struct style {
     u8 init;
@@ -42,6 +42,8 @@ typedef struct style {
     struct {
         union {
             color_t color;
+            linear_grad_t* linear_gradient;
+            radial_grad_t* radial_gradient;
             struct texture* texture;
             const char* image;
         };
@@ -63,8 +65,22 @@ typedef struct style_group {
     style_t hover;
 } style_group_t;
 
+typedef enum callback_type {
+    MOUSE_CALLBACK,
+    SCROLL_CALLBACK,
+    KEYBOARD_CALLBACK
+} callback_type;
 
+typedef void (*callback)(void*);
 
+typedef enum component_tag {
+    FRAME_COMPONENT,
+    PANEL_COMPONENT,
+    BUTTON_COMPONENT,
+    EDIT_COMPONENT,
+    CANVAS_COMPONENT,
+    __COMPONENT_TAG_COUNT__
+} comp_tag;
 
 typedef enum event_tag {
     __MOUSE_EVENT__,

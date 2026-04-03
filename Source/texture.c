@@ -148,21 +148,44 @@ bool gen_texture(texture_t** out, const bounding_box* box, const style_t* style)
                 logError("gen_texture - Invalid parameter, box address %p.\n", NULL);
                 return false;
             }
-            u64 size = box->width * box->height * sizeof(color_t);
+            const u64 size = box->width * box->height * sizeof(color_t);
             buf_t buffer = { .size = size, .tag = MEMTAG_COLOR };
             if (!new_buf(&buffer, false)) goto cleanup;
 
             color_t* checkers = buffer.ptr;
-            color_t palette[2] = {
+            const color_t palette[2] = {
                 { .r = 0xff, .g = 0xff, .b = 0xff, .a = 0xff},
                 { .r = 127, .g = 127, .b = 127, .a = 0xff}
             };
+
+#ifndef SIMD
             for (u32 y = 0; y < box->height; y++) {
                 for (u32 x = 0; x < box->width; x++) {
                     const u32 idx = y * box->width + x;
                     checkers[idx].hex = palette[((x >> 6) + (y >> 6)) & 1].hex;
                 }
             }
+#else
+            const __m256i v8 = _mm256_set1_epi32(8);
+            const __m256i v1 = _mm256_set1_epi32(1);
+            for (u32 y = 0; y < box->height; y++) {
+                u32 x = 0;
+                const u32 offset = y * box->width;
+                const u32 end = box->width & ~7u;
+                const __m256i vy64 = _mm256_set1_epi32(y >> 6);
+                __m256i vx = _mm256_setr_epi32(0, 1, 2, 3, 4, 5, 6, 7);
+                for (; x + 8 <= end; x += 8) {
+                    const __m256i vx64 = _mm256_srli_epi32(vx, 6);
+                    const __m256i vindices = _mm256_and_si256(_mm256_add_epi32(vx64, vy64), v1);
+                    const __m256i vpalette = _mm256_i32gather_epi32((i32*)palette, vindices, sizeof(u32));
+                    _mm256_store_si256((__m256i*)&checkers[offset + x], vpalette);
+                    vx = _mm256_add_epi32(vx, v8);
+                }
+                for (; x < box->width; x++) {
+                    checkers[offset + x].hex = palette[((x >> 6) + (y >> 6)) & 1].hex;
+                }
+            }
+#endif
             *out = new_texture(checkers, box->width, box->height);
             del_buf(&(buf_t){.ptr = (void*)checkers, .size = size, .tag = MEMTAG_COLOR});
             if (!*out) goto cleanup;
@@ -194,6 +217,12 @@ bool gen_texture(texture_t** out, const bounding_box* box, const style_t* style)
             *out = new_texture(data, width, height);
             del_buf(&(buf_t){.ptr = (void*)data, .size = width * height * sizeof(color_t), .tag = MEMTAG_COLOR});
             if (!*out) goto cleanup;
+            break;
+        }
+        case BG_LINEAR_GRADIENT: {
+            break;
+        }
+        case BG_RADIAL_GRADIENT: {
             break;
         }
         default: return false;
