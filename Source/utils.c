@@ -66,7 +66,7 @@ void* load_cursor(const char* path, const u16 width, const u16 height, const u16
 
     GLFWcursor* cursor = glfwCreateCursor(&img, hotx, hoty);
     if (!cursor) return NULL;
-    del_buf(&(buf_t){.ptr = (void*)img.pixels, .size = width * height * sizeof(color_t), .tag = MEMTAG_COLOR});
+    Buffer(del)(&(buf_t){.ptr = (void*)img.pixels, .size = width * height * sizeof(color_t), .tag = MEMTAG_COLOR});
 
     return cursor;
 }

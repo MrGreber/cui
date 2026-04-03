@@ -15,7 +15,7 @@ array_t* new_array(u64 capacity, const u64 size, const element_free free) {
         .size = sizeof(array_t),
         .tag =  MEMTAG_ARRAY
     };
-    if (!new_buf(&buffer, false)) return NULL;
+    if (!Buffer(new)(&buffer, false)) return NULL;
 
     array_t* array = buffer.ptr;
     array->capacity = capacity;
@@ -27,9 +27,9 @@ array_t* new_array(u64 capacity, const u64 size, const element_free free) {
         .size = size * capacity,
         .tag = MEMTAG_POINTER
     };
-    if (!new_buf(&buffer, false)) {
+    if (!Buffer(new)(&buffer, false)) {
         logError("new_array - Failed to allocate array.");
-        del_buf(&(buf_t){.ptr = array, .size = sizeof(array_t), .tag = MEMTAG_ARRAY});
+        Buffer(del)(&(buf_t){.ptr = array, .size = sizeof(array_t), .tag = MEMTAG_ARRAY});
         return NULL;
     }
     array->elements = buffer.ptr;
@@ -47,8 +47,8 @@ void del_array(array_t* array) {
             array->free(ptr);
         }
     }
-    del_buf(&(buf_t){.ptr = array->elements, .size = array->size * array->capacity, .tag = MEMTAG_POINTER});
-    del_buf(&(buf_t){.ptr = array, .size = sizeof(array_t), .tag = MEMTAG_ARRAY});
+    Buffer(del)(&(buf_t){.ptr = array->elements, .size = array->size * array->capacity, .tag = MEMTAG_POINTER});
+    Buffer(del)(&(buf_t){.ptr = array, .size = sizeof(array_t), .tag = MEMTAG_ARRAY});
 }
 
 static bool __resize_array(array_t* array) {
@@ -63,7 +63,7 @@ static bool __resize_array(array_t* array) {
         .tag = MEMTAG_POINTER
     };
     const u64 new_cap = array->capacity << 1;
-    if (!renew_buf(&buffer, sizeof(void*) * new_cap)) return false;
+    if (!Buffer(renew)(&buffer, sizeof(void*) * new_cap)) return false;
     array->capacity = new_cap;
 
     return true;

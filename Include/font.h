@@ -54,11 +54,14 @@ typedef struct font {
     u64 count;
 } font_t;
 
-font_t* new_font(const char* path);
-void del_font(font_t* font);
-void bind_font(const font_t* font);
+#define Font(func) __font_##func
+font_t* Font(new)(const char* path);
+void Font(del)(font_t* font);
+__forceinline void Font(bind)(const font_t* font) {
+    Texture(bind)(font->atlas);
+}
 
-void set_font(font_t* font, const char* path, const color_t fg, const color_t bg);
+void Font(set)(font_t* font, const char* path, const color_t fg, const color_t bg);
 
 
 #endif //FONT_H

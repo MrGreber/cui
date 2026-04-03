@@ -14,7 +14,7 @@ texture_t* Texture(new)(const color_t* data, const u32 width, const u32 height) 
         .size = sizeof(texture_t),
         .tag = MEMTAG_TEXTURE,
     };
-    if (!new_buf(&buffer, false)) return NULL;
+    if (!Buffer(new)(&buffer, false)) return NULL;
 
     texture_t* tex = buffer.ptr;
     glcall(glGenTextures(1, &tex->id), cleanup, "new_texture - Failed to generate texture.");
@@ -50,7 +50,7 @@ texture_t* Texture(new)(const color_t* data, const u32 width, const u32 height) 
 cleanup:
     glDeleteFramebuffers(1, &tex->fb_id);
     glDeleteTextures(1, &tex->id);
-    del_buf(&(buf_t){.size = sizeof(texture_t), .tag = MEMTAG_TEXTURE, .ptr = tex});
+    Buffer(del)(&(buf_t){.size = sizeof(texture_t), .tag = MEMTAG_TEXTURE, .ptr = tex});
     return NULL;
 }
 
@@ -59,7 +59,7 @@ void Texture(del)(texture_t* tex) {
 
     glDeleteFramebuffers(1, &tex->fb_id);
     glDeleteTextures(1, &tex->id);
-    del_buf(&(buf_t){.size = sizeof(texture_t), .tag = MEMTAG_TEXTURE, .ptr = tex});
+    Buffer(del)(&(buf_t){.size = sizeof(texture_t), .tag = MEMTAG_TEXTURE, .ptr = tex});
 }
 
 void Texture(bind)(const texture_t* tex) {
@@ -69,7 +69,6 @@ void Texture(bind)(const texture_t* tex) {
 void Texture(unbind)() {
     glBindTexture(GL_TEXTURE_2D, 0);
 }
-// ToDo: change this to load a texture and not to flush a texture to a color, overall change this to a more useful function.
 void Texture(flush)(const texture_t* tex, const color_t bg) {
     glBindFramebuffer(GL_FRAMEBUFFER, tex->fb_id);
     // glViewport(0, 0, width, height);
@@ -116,7 +115,7 @@ color_t* Texture(load_image)(const char* path, u32* width, u32* height) {
         .size = (resize ? *width * *height : _width * _height) * sizeof(color_t),
         .tag = MEMTAG_COLOR
     };
-    if (!new_buf(&buffer, false)) {
+    if (!Buffer(new)(&buffer, false)) {
         stbi_image_free(data);
         logError("load_texture - Failed to allocate buffer for texture data.");
         return NULL;
@@ -150,7 +149,7 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
             }
             const u64 size = box->width * box->height * sizeof(color_t);
             buf_t buffer = { .size = size, .tag = MEMTAG_COLOR };
-            if (!new_buf(&buffer, false)) goto cleanup;
+            if (!Buffer(new)(&buffer, false)) goto cleanup;
 
             color_t* checkers = buffer.ptr;
             const color_t palette[2] = {
@@ -228,7 +227,7 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
             }
 #endif
             *out = Texture(new)(checkers, box->width, box->height);
-            del_buf(&(buf_t){.ptr = (void*)checkers, .size = size, .tag = MEMTAG_COLOR});
+            Buffer(del)(&(buf_t){.ptr = (void*)checkers, .size = size, .tag = MEMTAG_COLOR});
             if (!*out) goto cleanup;
             break;
         }
@@ -256,7 +255,7 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
                 goto cleanup;
             }
             *out = Texture(new)(data, width, height);
-            del_buf(&(buf_t){.ptr = (void*)data, .size = width * height * sizeof(color_t), .tag = MEMTAG_COLOR});
+            Buffer(del)(&(buf_t){.ptr = (void*)data, .size = width * height * sizeof(color_t), .tag = MEMTAG_COLOR});
             if (!*out) goto cleanup;
             break;
         }

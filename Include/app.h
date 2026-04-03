@@ -19,10 +19,11 @@ typedef struct app {
     app_exit_t exit;
 } app_t;
 
-app_t* new_app(const app_init_t init, const app_loop_t loop, const app_exit_t exit);
-void push_app_var(app_t* app, void* var);
-void* get_app_var(const app_t* app, const u16 index);
-void start_app(app_t* app);
-void exit_app(app_t* app);
+#define App(func) __app_##func
+app_t* App(new)(const app_init_t init, const app_loop_t loop, const app_exit_t exit);
+void App(push)(app_t* app, void* var);
+void* App(get)(const app_t* app, const u16 index);
+void App(start)(app_t* app);
+void App(exit)(app_t* app);
 
 #endif //APP_H

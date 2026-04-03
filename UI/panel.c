@@ -64,7 +64,7 @@ panel_t* new_panel(void* parent, style_group_t* group, const bounding_box* box) 
         .size = sizeof(panel_t),
         .tag = MEMTAG_PANEL
     };
-    if (!new_buf(&buffer, true)) return NULL;
+    if (!Buffer(new)(&buffer, true)) return NULL;
 
     const comp_header_t* parent_header = get_header(parent);
 
@@ -96,13 +96,13 @@ panel_t* new_panel(void* parent, style_group_t* group, const bounding_box* box) 
     return panel;
 cleanup:
     if (panel->sprite) Sprite(del)(panel->sprite);
-    del_buf(&(buf_t){.size = sizeof(panel_t), .tag = MEMTAG_PANEL, .ptr = panel});
+    Buffer(del)(&(buf_t){.size = sizeof(panel_t), .tag = MEMTAG_PANEL, .ptr = panel});
     return NULL;
 }
 void del_panel(panel_t* panel) {
     if (!panel) return;
     if (panel->sprite) Sprite(del)(panel->sprite);
-    del_buf(&(buf_t){.size = sizeof(panel_t), .tag = MEMTAG_PANEL, .ptr = panel});
+    Buffer(del)(&(buf_t){.size = sizeof(panel_t), .tag = MEMTAG_PANEL, .ptr = panel});
 }
 void bind_panel(const panel_t* panel) {
     if (!panel) return;

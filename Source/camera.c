@@ -9,7 +9,7 @@ camera_t* new_camera() {
         .size = sizeof(camera_t),
         .tag = MEMTAG_CAMERA,
     };
-    if (!new_buf(&buffer, true)) return NULL;
+    if (!Buffer(new)(&buffer, true)) return NULL;
 
     camera_t* cam = buffer.ptr;
     cam->roll = 0.0f;
@@ -20,7 +20,7 @@ camera_t* new_camera() {
 
 void del_camera(camera_t* cam) {
     if (!cam) return;
-    del_buf(&(buf_t){.size = sizeof(camera_t), .tag = MEMTAG_CAMERA, .ptr = cam});
+    Buffer(del)(&(buf_t){.size = sizeof(camera_t), .tag = MEMTAG_CAMERA, .ptr = cam});
 }
 
 void reset_camera(camera_t* cam) {

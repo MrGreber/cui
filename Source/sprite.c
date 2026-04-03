@@ -13,7 +13,7 @@ sprite_t* Sprite(new)(frame_t* frame, const shader_tag_t tag) {
         .size = sizeof(sprite_t),
         .tag = MEMTAG_SPRITE,
     };
-    if (!new_buf(&buffer, false)) return NULL;
+    if (!Buffer(new)(&buffer, false)) return NULL;
 
     sprite_t* sprite = buffer.ptr;
     sprite->mesh = Mesh(new)(frame, RECT_MESH);
@@ -24,14 +24,14 @@ sprite_t* Sprite(new)(frame_t* frame, const shader_tag_t tag) {
     if (!sprite->shader) goto cleanup;
     return sprite;
 cleanup:
-    del_buf(&(buf_t){.size = sizeof(sprite_t), .tag = MEMTAG_SPRITE, .ptr = sprite});
+    Buffer(del)(&(buf_t){.size = sizeof(sprite_t), .tag = MEMTAG_SPRITE, .ptr = sprite});
     return NULL;
 }
 
 void Sprite(del)(sprite_t* sprite) {
     if (!sprite) return;
     if (sprite->tex) Texture(del)(sprite->tex);
-    del_buf(&(buf_t){.size = sizeof(sprite_t), .tag = MEMTAG_SPRITE, .ptr = sprite});
+    Buffer(del)(&(buf_t){.size = sizeof(sprite_t), .tag = MEMTAG_SPRITE, .ptr = sprite});
 }
 
 void Sprite(bind)(const frame_t* frame, const sprite_t* sprite){

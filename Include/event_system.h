@@ -164,6 +164,7 @@ __forceinline void* get_root(const void* comp) {
     return root->component.inst;
 }
 
+#define Component(func) __component_##func
 comp_node_t* new_comp_node(void* data, const comp_tag tag);
 void del_comp_node(comp_node_t* root);
 bool push_comp_node(comp_node_t* root, void* val, const comp_tag tag);

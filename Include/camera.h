@@ -20,10 +20,7 @@ typedef struct camera {
     u16 keys;
 } camera_t;
 
-/**
- * @brief Create a new camera with default parameters.
- * @return Pointer to a newly allocated camera_t, or NULL on failure
- */
+#define Camera(func) __camera_##func
 camera_t* new_camera();
 
 /**

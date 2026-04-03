@@ -1,7 +1,7 @@
 #include <stopwatch.h>
 
 #include <glfw3.h>
-void update_stopwatch(stopwatch_t* stopwatch) {
+void Stopwatch(update)(stopwatch_t* stopwatch) {
     if (!stopwatch) return;
 
     const f64 now = glfwGetTime();

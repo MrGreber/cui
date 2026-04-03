@@ -9,6 +9,7 @@ typedef struct stopwatch{
     f64 delta;
 } stopwatch_t;
 
-void update_stopwatch(stopwatch_t* stopwatch);
+#define Stopwatch(func) __stopwatch_##func
+void Stopwatch(update)(stopwatch_t* stopwatch);
 
 #endif //STOPWATCH_H

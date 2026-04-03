@@ -26,7 +26,7 @@ static bool __resize_text_mesh(edit_t* edit) {
         .tag = MEMTAG_VECTOR
     };
     const u64 new_cap = edit->mesh.capacity << 1;
-    if (!renew_buf(&buffer, QUAD_SIZE * new_cap)) return false;
+    if (!Buffer(renew)(&buffer, QUAD_SIZE * new_cap)) return false;
     edit->mesh.vertices = buffer.ptr;
     edit->mesh.capacity = new_cap;
     return true;
@@ -119,7 +119,7 @@ static void build_text_mesh(edit_t* edit, f32 start_x, f32 start_y) {
 
     VertexArray(bind)(edit->mesh.va);
     glUseProgram(edit->mesh.shader->id);
-    bind_font(edit->font);
+    Font(bind)(edit->font);
     glBindBuffer(GL_ARRAY_BUFFER, edit->mesh.vb.gl_id);
     glBufferSubData(GL_ARRAY_BUFFER, 0, edit->mesh.count * QUAD_SIZE, edit->mesh.vertices);
 }
@@ -165,7 +165,7 @@ static void private(set_caret_position)(edit_t* edit, const f64 mouse_x, const f
 
     VertexArray(bind)(edit->mesh.va);
     glUseProgram(edit->mesh.shader->id);
-    bind_font(edit->font);
+    Font(bind)(edit->font);
     glBindBuffer(GL_ARRAY_BUFFER, edit->mesh.vb.gl_id);
     glBufferSubData(GL_ARRAY_BUFFER, (edit->mesh.count - 1) * QUAD_SIZE, QUAD_SIZE, edit->mesh.vertices + 6 * (edit->mesh.count - 1));
 }
@@ -313,7 +313,7 @@ edit_t* new_edit(void* parent, const style_group_t* group, const bounding_box* b
         .size = sizeof(edit_t),
         .tag = MEMTAG_EDIT
     };
-    if (!new_buf(&buffer, true)) return NULL;
+    if (!Buffer(new)(&buffer, true)) return NULL;
 
     const comp_header_t* parent_header = get_header(parent);
 
@@ -336,7 +336,7 @@ edit_t* new_edit(void* parent, const style_group_t* group, const bounding_box* b
     if (!Sprite(set_texture)(edit->sprite, box->width, box->height, (style_t*)&group->normal)) goto cleanup;
 
     // Loads default font
-    edit->font = new_font(__DIR__"\\Resources\\vcr_osd_mono.fnt");
+    edit->font = Font(new)(__DIR__"\\Resources\\vcr_osd_mono.fnt");
     if (!edit->font) {
         logError("new_edit - Failed to load font.");
         goto cleanup;
@@ -347,7 +347,7 @@ edit_t* new_edit(void* parent, const style_group_t* group, const bounding_box* b
         .size = QUAD_SIZE * DEFAULT_CAPACITY,
         .tag = MEMTAG_VECTOR
     };
-    if (!new_buf(&buffer, true)) goto cleanup;
+    if (!Buffer(new)(&buffer, true)) goto cleanup;
     edit->mesh.vertices = buffer.ptr;
     edit->mesh.capacity = DEFAULT_CAPACITY;
     edit->mesh.count = 0;
@@ -379,22 +379,22 @@ edit_t* new_edit(void* parent, const style_group_t* group, const bounding_box* b
 cleanup:
     if (edit->mesh.va) VertexArray(del)(edit->mesh.va);
     if (edit->mesh.vb.id) VertexBuffer(del)(&edit->mesh.vb);
-    if (edit->mesh.vertices) del_buf(&(buf_t){.ptr = edit->mesh.vertices, .size = QUAD_SIZE * DEFAULT_CAPACITY, .tag = MEMTAG_VECTOR});
+    if (edit->mesh.vertices) Buffer(del)(&(buf_t){.ptr = edit->mesh.vertices, .size = QUAD_SIZE * DEFAULT_CAPACITY, .tag = MEMTAG_VECTOR});
     if (edit->sprite) Sprite(del)(edit->sprite);
     if (edit->text.buffer) del_str(edit->text.buffer);
-    if (edit->font) del_font(edit->font);
-    del_buf(&(buf_t){.size = sizeof(edit_t), .tag = MEMTAG_EDIT, .ptr = edit});
+    if (edit->font) Font(del)(edit->font);
+    Buffer(del)(&(buf_t){.size = sizeof(edit_t), .tag = MEMTAG_EDIT, .ptr = edit});
     return NULL;
 }
 void del_edit(edit_t* edit) {
     if (!edit) return;
     VertexArray(del)(edit->mesh.va);
     VertexBuffer(del)(&edit->mesh.vb);
-    del_buf(&(buf_t){.ptr = edit->mesh.vertices, .size = QUAD_SIZE * edit->mesh.capacity, .tag = MEMTAG_VECTOR});
+    Buffer(del)(&(buf_t){.ptr = edit->mesh.vertices, .size = QUAD_SIZE * edit->mesh.capacity, .tag = MEMTAG_VECTOR});
     Sprite(del)(edit->sprite);
     del_str(edit->text.buffer);
-    del_font(edit->font);
-    del_buf(&(buf_t){.size = sizeof(edit_t), .tag = MEMTAG_EDIT, .ptr = edit});
+    Font(del)(edit->font);
+    Buffer(del)(&(buf_t){.size = sizeof(edit_t), .tag = MEMTAG_EDIT, .ptr = edit});
 }
 void bind_edit(const edit_t* edit) {
     if (!edit) return;
@@ -483,7 +483,7 @@ void update_edit(edit_t* edit, const mat4* projection) {
     );
     VertexArray(bind)(edit->mesh.va);
     glUseProgram(edit->mesh.shader->id);
-    bind_font(edit->font);
+    Font(bind)(edit->font);
     Shader(set_mat4)(edit->mesh.shader, "projection", true, projection->e);
     Shader(set_mat4)(edit->mesh.shader, "model", true, model.e);
     Shader(set_vec4)(edit->mesh.shader, "font.bg", color_v4(font->bg).e);

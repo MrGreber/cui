@@ -42,7 +42,7 @@ vert_array_t* VertexArray(new)(u64 capacity) {
         .size = sizeof(vert_array_t),
         .tag = MEMTAG_VERTEX_ARRAY
     };
-    if (!new_buf(&buffer, false)) return NULL;
+    if (!Buffer(new)(&buffer, false)) return NULL;
 
     capacity = __closest_pow2(capacity);
     vert_array_t* va = buffer.ptr;
@@ -53,7 +53,7 @@ vert_array_t* VertexArray(new)(u64 capacity) {
         .size = capacity * sizeof(vert_elem_t),
         .tag = MEMTAG_VERTEX_ARRAY_ELEMENT,
     };
-    if (!new_buf(&buffer, false)) goto cleanup;
+    if (!Buffer(new)(&buffer, false)) goto cleanup;
 
     va->stride = 0;
     va->count = 0;
@@ -63,8 +63,8 @@ vert_array_t* VertexArray(new)(u64 capacity) {
     return va;
 cleanup:
     glDeleteVertexArrays(1, &va->id);
-    if (va->elem) del_buf(&(buf_t){.size = capacity * sizeof(vert_elem_t), .tag = MEMTAG_VERTEX_ARRAY_ELEMENT, .ptr = va->elem});
-    del_buf(&(buf_t){.size = sizeof(vert_array_t), .tag = MEMTAG_VERTEX_ARRAY, .ptr = va});
+    if (va->elem) Buffer(del)(&(buf_t){.size = capacity * sizeof(vert_elem_t), .tag = MEMTAG_VERTEX_ARRAY_ELEMENT, .ptr = va->elem});
+    Buffer(del)(&(buf_t){.size = sizeof(vert_array_t), .tag = MEMTAG_VERTEX_ARRAY, .ptr = va});
     return NULL;
 }
 void VertexArray(del)(vert_array_t* va) {
@@ -73,8 +73,8 @@ void VertexArray(del)(vert_array_t* va) {
     glDeleteVertexArrays(1, &va->id);
     glBindVertexArray(0);
 
-    del_buf(&(buf_t){.size = va->capacity * sizeof(vert_elem_t), .tag = MEMTAG_VERTEX_ARRAY_ELEMENT, .ptr = va->elem});
-    del_buf(&(buf_t){.size = sizeof(vert_array_t), .tag = MEMTAG_VERTEX_ARRAY, .ptr = va});
+    Buffer(del)(&(buf_t){.size = va->capacity * sizeof(vert_elem_t), .tag = MEMTAG_VERTEX_ARRAY_ELEMENT, .ptr = va->elem});
+    Buffer(del)(&(buf_t){.size = sizeof(vert_array_t), .tag = MEMTAG_VERTEX_ARRAY, .ptr = va});
 }
 
 static bool private(resize_vertex_array)(vert_array_t* va) {
@@ -85,7 +85,7 @@ static bool private(resize_vertex_array)(vert_array_t* va) {
             .tag = MEMTAG_VERTEX_ARRAY_ELEMENT,
             .ptr = va->elem
         };
-        if (!renew_buf(&buffer, new_capacity * sizeof(vert_elem_t))) return false;
+        if (!Buffer(renew)(&buffer, new_capacity * sizeof(vert_elem_t))) return false;
 
         va->elem = buffer.ptr;
         va->capacity = new_capacity;
@@ -256,14 +256,14 @@ void Mesh(del_cache)(frame_t* frame) {
         }
         if (dynamic_mesh->eb.gl_id) ElementBuffer(del)(&dynamic_mesh->eb);
         if (dynamic_mesh->indices.data) {
-            del_buf(&(buf_t){
+            Buffer(del)(&(buf_t){
                 .ptr = dynamic_mesh->indices.data,
                 .size = dynamic_mesh->indices.capacity * sizeof(vec4),
                 .tag = MEMTAG_VECTOR
             });
         }
         if (dynamic_mesh->vertices.data) {
-            del_buf(&(buf_t){
+            Buffer(del)(&(buf_t){
                 .ptr = dynamic_mesh->vertices.data,
                 .size = dynamic_mesh->vertices.capacity * sizeof(vec4),
                 .tag = MEMTAG_VECTOR
@@ -271,7 +271,7 @@ void Mesh(del_cache)(frame_t* frame) {
         }
     }
     if (frame->cache.dynamic_meshes.data) {
-        del_buf(&(buf_t){
+        Buffer(del)(&(buf_t){
             .ptr = frame->cache.dynamic_meshes.data,
             .size = frame->cache.dynamic_meshes.capacity * sizeof(dynamic_mesh_t),
             .tag = MEMTAG_MESH

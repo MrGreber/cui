@@ -15,7 +15,7 @@ comp_node_t* new_comp_node(void* data, const comp_tag tag) {
         .size = sizeof(comp_node_t),
         .tag = MEMTAG_COMPONENT_NODE
     };
-    if (!new_buf(&buffer, true)) return NULL;
+    if (!Buffer(new)(&buffer, true)) return NULL;
 
     comp_node_t* tree = buffer.ptr;
     tree->component.inst = data;
@@ -26,7 +26,7 @@ comp_node_t* new_comp_node(void* data, const comp_tag tag) {
         .size = 4 * sizeof(comp_node_t*),
         .tag = MEMTAG_POINTER
     };
-    if (!new_buf(&buffer, true)) goto cleanup;
+    if (!Buffer(new)(&buffer, true)) goto cleanup;
     tree->nodes = buffer.ptr;
 
     if (tag == FRAME_COMPONENT && !__cursors[0]) {
@@ -40,15 +40,15 @@ comp_node_t* new_comp_node(void* data, const comp_tag tag) {
 
     return tree;
 cleanup:
-    del_buf(&(buf_t){.size = sizeof(comp_node_t), .tag = MEMTAG_COMPONENT_NODE, .ptr = tree});
+    Buffer(del)(&(buf_t){.size = sizeof(comp_node_t), .tag = MEMTAG_COMPONENT_NODE, .ptr = tree});
     return NULL;
 }
 void del_comp_node(comp_node_t* root) {
     if (!root) return;
 
     for (u64 i = 0; i < root->count; i++) del_comp_node(root->nodes[i]);
-    del_buf(&(buf_t){.size = root->capacity * sizeof(comp_node_t*), .tag = MEMTAG_POINTER, .ptr = root->nodes});
-    del_buf(&(buf_t){.size = sizeof(comp_node_t), .tag = MEMTAG_COMPONENT_NODE, .ptr = root});
+    Buffer(del)(&(buf_t){.size = root->capacity * sizeof(comp_node_t*), .tag = MEMTAG_POINTER, .ptr = root->nodes});
+    Buffer(del)(&(buf_t){.size = sizeof(comp_node_t), .tag = MEMTAG_COMPONENT_NODE, .ptr = root});
 
     for (u16 i = 1; i < __COMPONENT_TAG_COUNT__; i++) {
         if (__cursors[i]) {
@@ -65,7 +65,7 @@ static bool __resize_tree(comp_node_t* root) {
         .tag = MEMTAG_POINTER,
         .ptr = root->nodes
     };
-    if (!renew_buf(&buffer, new_cap)) return false;
+    if (!Buffer(renew)(&buffer, new_cap)) return false;
 
     root->capacity = new_cap;
     return true;

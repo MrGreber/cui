@@ -24,10 +24,10 @@ static u32 private(compile_shader)(const u32 type, const char* path) {
         logError("private(compile_shader) - shader compilation error:\n%s", msg);
         goto cleanup;
     }
-    del_buf(&buffer);
+    Buffer(del)(&buffer);
     return id;
 cleanup:
-    if (buffer.ptr) del_buf(&buffer);
+    if (buffer.ptr) Buffer(del)(&buffer);
     return 0;
 }
 static u32 private(link_shaders)(const char* vertex_path, const char* fragment_path) {
@@ -78,14 +78,14 @@ static bool private(new_uniform_hashmap)(uniform_hashmap_t* map) {
         .size = sizeof(entry_t) * DEFAULT_CAPACITY,
         .tag = MEMTAG_SHADER
     };
-    if (!new_buf(&buffer, true)) return false;
+    if (!Buffer(new)(&buffer, true)) return false;
     map->entries = buffer.ptr;
     map->capacity = DEFAULT_CAPACITY;
     map->count = 0;
     return true;
 }
 static void private(del_uniform_hashmap)(uniform_hashmap_t* map) {
-    if (map->entries) del_buf(&(buf_t){ .ptr = map->entries, .size = sizeof(entry_t) * map->capacity, .tag = MEMTAG_SHADER});
+    if (map->entries) Buffer(del)(&(buf_t){ .ptr = map->entries, .size = sizeof(entry_t) * map->capacity, .tag = MEMTAG_SHADER});
 }
 static bool private(resize_uniform_hashmap)(uniform_hashmap_t* map) {
     u32 tmp = 0;
@@ -96,7 +96,7 @@ static bool private(resize_uniform_hashmap)(uniform_hashmap_t* map) {
         .size = new_capacity * sizeof(uniform_t),
         .tag = MEMTAG_SHADER
     };
-    if (!new_buf(&buffer, true)) return false;
+    if (!Buffer(new)(&buffer, true)) return false;
 
     entry_t* new_entries = (entry_t*)buffer.ptr;
     for (u64 i = 0; i < map->capacity; i++) {
@@ -122,7 +122,7 @@ static bool private(resize_uniform_hashmap)(uniform_hashmap_t* map) {
             index = (index + 1) & module;
             probe++;
             if (probe >= new_capacity) {
-                del_buf(&(buf_t){ .ptr = new_entries, .size = sizeof(entry_t) * new_capacity, .tag = MEMTAG_SHADER});
+                Buffer(del)(&(buf_t){ .ptr = new_entries, .size = sizeof(entry_t) * new_capacity, .tag = MEMTAG_SHADER});
                 return false;
             }
         }
@@ -130,7 +130,7 @@ static bool private(resize_uniform_hashmap)(uniform_hashmap_t* map) {
         new_entries[index].uniform = uniform;
         new_entries[index].psl  = probe;
     }
-    del_buf(&(buf_t){ .ptr = map->entries, .size = sizeof(entry_t) * map->capacity, .tag = MEMTAG_SHADER});
+    Buffer(del)(&(buf_t){ .ptr = map->entries, .size = sizeof(entry_t) * map->capacity, .tag = MEMTAG_SHADER});
     map->entries  = new_entries;
     map->capacity = new_capacity;
     return true;

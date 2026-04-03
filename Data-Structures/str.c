@@ -26,7 +26,7 @@ static bool __resize_string(str_t* src) {
         .tag = MEMTAG_BYTE
     };
     const u64 new_cap = src->capacity << 1;
-    if (!renew_buf(&buffer, sizeof(char_t) * new_cap)) return false;
+    if (!Buffer(renew)(&buffer, sizeof(char_t) * new_cap)) return false;
     src->data = buffer.ptr;
     src->capacity = new_cap;
     return true;
@@ -45,7 +45,7 @@ str_t* new_str(char_t* data, u64 length) {
         .size = sizeof(str_t),
         .tag = MEMTAG_STRING
     };
-    if (!new_buf(&buffer, false)) {
+    if (!Buffer(new)(&buffer, false)) {
         logError("new_str - Failed to allocate string.");
         return NULL;
     }
@@ -58,8 +58,8 @@ str_t* new_str(char_t* data, u64 length) {
         .size = size,
         .tag = MEMTAG_BYTE
     };
-    if (!new_buf(&buffer, true)) {
-        del_buf(&(buf_t){.ptr = string, .size = sizeof(str_t), .tag = MEMTAG_BYTE});
+    if (!Buffer(new)(&buffer, true)) {
+        Buffer(del)(&(buf_t){.ptr = string, .size = sizeof(str_t), .tag = MEMTAG_BYTE});
         logError("new_str - Failed to allocate string buffer.");
         return NULL;
     }
@@ -73,8 +73,8 @@ str_t* new_str(char_t* data, u64 length) {
 
 void del_str(str_t* src) {
     if (!src) return;
-    del_buf(&(buf_t){.ptr = src->data, .size = sizeof(char_t) * src->capacity, .tag = MEMTAG_BYTE});
-    del_buf(&(buf_t){.ptr = src, .size = sizeof(str_t), .tag = MEMTAG_STRING});
+    Buffer(del)(&(buf_t){.ptr = src->data, .size = sizeof(char_t) * src->capacity, .tag = MEMTAG_BYTE});
+    Buffer(del)(&(buf_t){.ptr = src, .size = sizeof(str_t), .tag = MEMTAG_STRING});
 }
 
 

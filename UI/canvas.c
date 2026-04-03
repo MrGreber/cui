@@ -24,7 +24,7 @@ static void __default_camera_handler(canvas_t* canvas) {
     const f32 delta = (f32)frame->stopwatch.delta;
     camera_t* camera = canvas->camera;
 #ifndef SPEED
-#define SPEED 10000.0f
+#define SPEED 200.0f
     if (!camera->keys) return;
     if (camera->keys & CAM_KEY_W) camera->position.y -= SPEED * delta;
     if (camera->keys & CAM_KEY_S) camera->position.y += SPEED * delta;
@@ -125,7 +125,7 @@ canvas_t* new_canvas(void* parent, const u32 width, const u32 height) {
         .size = sizeof(canvas_t),
         .tag = MEMTAG_CANVAS
     };
-    if (!new_buf(&buffer, true)) return NULL;
+    if (!Buffer(new)(&buffer, true)) return NULL;
 
     const comp_header_t* parent_header = get_header(parent);
 
@@ -160,14 +160,14 @@ canvas_t* new_canvas(void* parent, const u32 width, const u32 height) {
 cleanup:
     if (canvas->sprite) Sprite(del)(canvas->sprite);
     if (canvas->camera) del_camera(canvas->camera);
-    del_buf(&(buf_t){.size = sizeof(canvas_t), .tag = MEMTAG_CANVAS, .ptr = canvas});
+    Buffer(del)(&(buf_t){.size = sizeof(canvas_t), .tag = MEMTAG_CANVAS, .ptr = canvas});
     return NULL;
 }
 void del_canvas(canvas_t* canvas) {
     if (!canvas) return;
     Sprite(del)(canvas->sprite);
     del_camera(canvas->camera);
-    del_buf(&(buf_t){.size = sizeof(canvas_t), .tag = MEMTAG_CANVAS, .ptr = canvas});
+    Buffer(del)(&(buf_t){.size = sizeof(canvas_t), .tag = MEMTAG_CANVAS, .ptr = canvas});
 }
 void bind_canvas(canvas_t* canvas) {
     if (!canvas) return;

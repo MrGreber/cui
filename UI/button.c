@@ -32,7 +32,7 @@ button_t* new_button(void* parent, style_group_t* group, const bounding_box* box
         .size = sizeof(button_t),
         .tag = MEMTAG_BUTTON
     };
-    if (!new_buf(&buffer, true)) return NULL;
+    if (!Buffer(new)(&buffer, true)) return NULL;
 
     const comp_header_t* parent_header = get_header(parent);
 
@@ -57,13 +57,13 @@ button_t* new_button(void* parent, style_group_t* group, const bounding_box* box
     return button;
 cleanup:
     if (button->sprite) Sprite(del)(button->sprite);
-    del_buf(&(buf_t){.size = sizeof(button_t), .tag = MEMTAG_BUTTON, .ptr = button});
+    Buffer(del)(&(buf_t){.size = sizeof(button_t), .tag = MEMTAG_BUTTON, .ptr = button});
     return NULL;
 }
 void del_button(button_t* button) {
     if (!button) return;
     if (button->sprite) Sprite(del)(button->sprite);
-    del_buf(&(buf_t){.size = sizeof(button_t), .tag = MEMTAG_BUTTON, .ptr = button});
+    Buffer(del)(&(buf_t){.size = sizeof(button_t), .tag = MEMTAG_BUTTON, .ptr = button});
 }
 void bind_button(const button_t* button) {
     if (!button) return;
