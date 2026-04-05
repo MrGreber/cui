@@ -1,6 +1,8 @@
 #include <shader/ops.h>
 #include <log.h>
 #include <memio.h>
+#include <utils.h>
+#include <frame.h>
 
 #include <glad.h>
 #include <string.h>

@@ -2,7 +2,8 @@
 
 #ifndef APP_H
 #define APP_H
-#include <frame.h>
+#include <defines.h>
+typedef struct frame frame_t;
 
 typedef bool (*app_init_t)(struct app*);
 typedef void (*app_loop_t)(struct app*);

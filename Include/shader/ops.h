@@ -2,8 +2,8 @@
 
 #ifndef SHADER_OPS_H
 #define SHADER_OPS_H
-#include <frame.h>
 #include <shader/types.h>
+typedef struct frame frame_t;
 
 #include <glad.h>
 

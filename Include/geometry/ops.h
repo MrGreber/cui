@@ -3,7 +3,7 @@
 #ifndef OPS_H
 #define OPS_H
 #include <geometry/types.h>
-#include <frame.h>
+typedef struct frame frame_t;
 
 #include <glad.h>
 
@@ -53,12 +53,7 @@ void VertexArray(push_buffer)(vert_array_t* va, vert_buf_t vb);
 #define Mesh(func) __mesh_##func
 mesh_t* Mesh(new)(frame_t* frame, const mesh_tag_t tag);
 void Mesh(del_cache)(frame_t* frame);
-__forceinline void Mesh(bind)(const frame_t* frame, const mesh_t* mesh) {
-    const mesh_metadata_t* metadata = (mesh_metadata_t*)mesh;
-    VertexArray(bind)(metadata->va);
-    if (metadata->tag < __MESH_TAG_COUNT__) ElementBuffer(bind)(frame->cache.static_meshes.eb);
-    else if (mesh->eb.id) ElementBuffer(bind)(mesh->eb);
-}
+void Mesh(bind)(const frame_t* frame, const mesh_t* mesh);
 __forceinline void Mesh(unbind)(void) {
     ElementBuffer(unbind)();
     VertexArray(unbind)();

@@ -2,6 +2,8 @@
 #include <log.h>
 #include <memio.h>
 #include <utils.h>
+#include <frame.h>
+
 vert_buf_t VertexBuffer(new)(const bool dynamic, const void* vertices, const u32 size) {
     vert_buf_t vb = { 0 };
     u32 id;
@@ -278,7 +280,12 @@ void Mesh(del_cache)(frame_t* frame) {
         });
     }
 }
-
+void Mesh(bind)(const frame_t* frame, const mesh_t* mesh) {
+    const mesh_metadata_t* metadata = (mesh_metadata_t*)mesh;
+    VertexArray(bind)(metadata->va);
+    if (metadata->tag < __MESH_TAG_COUNT__) ElementBuffer(bind)(frame->cache.static_meshes.eb);
+    else if (mesh->eb.id) ElementBuffer(bind)(mesh->eb);
+}
 void Mesh(draw)(mesh_t* mesh) {
     if (!mesh) return;
     mesh_metadata_t* metadata = &mesh->metadata;

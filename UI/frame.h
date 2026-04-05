@@ -2,12 +2,12 @@
 
 #ifndef FRAME_H
 #define FRAME_H
-#include <defines.h>
-#include <utils.h>
-#include <event_system.h>
-#include <stopwatch.h>
-#include <shader/types.h>
-#include <geometry/types.h>
+#include <../Include/defines.h>
+#include <../Include/utils.h>
+#include <../Include/event_system.h>
+#include <../Include/stopwatch.h>
+#include <../Include/shader/types.h>
+#include <../Include/geometry/types.h>
 
 typedef enum frame_flag{
     HIDE_FLAG

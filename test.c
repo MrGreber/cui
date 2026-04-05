@@ -49,13 +49,13 @@ static bool __init(app_t* app) {
     edit_t* edit = Edit(new)(frame, &group, &(bounding_box){0, 0, 200, 100});
     Font(set)(edit->font, __DIR__"\\Resources\\vcr_osd_mono.fnt", BLUE, TRANSP);
     Edit(set_text)(edit, "shit", 4);
-    //button_t* button = new_button(frame, &group, &(bounding_box){0, 700, 100, 100});
+    //button_t* button = Button(new)(frame, &group, &(bounding_box){0, 700, 100, 100});
 
     app->frame = frame;
     App(push)(app, panel);
     App(push)(app, canvas);
     App(push)(app, edit);
-    //push_app_var(app, button);
+    //App(push)(app, button);
     print_comp_node(frame->header.components, 0);
     return true;
 }
@@ -64,13 +64,13 @@ static void __loop(app_t* app) {
     panel_t* panel = App(get)(app, 0);
     canvas_t* canvas = App(get)(app, 1);
     edit_t* edit = App(get)(app, 2);
-    //button_t* button = get_app_var(app, 3);
+    //button_t* button = App(get)(app, 3);
     const mat4 projection = m4_ortho(0.0f, (f32)frame->header.box.width, (f32)frame->header.box.height, 0.0f, -1.0f, 1.0f);
     Frame(update)(frame);
 
 
-    // bind_button(button);
-    // update_button(button, &projection);
+    // Button(bind)(button);
+    // Button(update)(button, &projection);
     Panel(bind)(panel);
     Panel(update)(panel, &projection);
     Canvas(bind)(canvas);
@@ -83,12 +83,12 @@ static void __exit(app_t* app) {
     panel_t* panel = App(get)(app, 0);
     canvas_t* canvas = App(get)(app, 1);
     edit_t* edit = App(get)(app, 2);
-    //button_t* button = get_app_var(app, 3);
+    //button_t* button = App(get)(app, 3);
 
     Panel(del)(panel);
     Canvas(del)(canvas);
     Edit(del)(edit);
-    //del_button(button);
+    //Button(del)(button);
     Frame(del)(frame);
 }
 

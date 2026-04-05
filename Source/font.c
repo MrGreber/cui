@@ -2,7 +2,7 @@
 #include <memio.h>
 #include <event_system.h>
 #include <math-utils.h>
-#include <frame.h>
+#include <../UI/frame.h>
 #include <log.h>
 
 #include <stdlib.h>
