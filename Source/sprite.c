@@ -16,7 +16,7 @@ sprite_t* Sprite(new)(frame_t* frame, const shader_tag_t tag) {
     if (!Buffer(new)(&buffer, false)) return NULL;
 
     sprite_t* sprite = buffer.ptr;
-    sprite->mesh = Mesh(new)(frame, RECT_MESH);
+    sprite->mesh = Mesh(new)(frame, (mesh_param_t){.tag = RECT_MESH});
     if (!sprite->mesh) goto cleanup;
     sprite->shader = Shader(get)(frame, tag);
     sprite->tex = NULL;

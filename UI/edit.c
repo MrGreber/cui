@@ -55,7 +55,7 @@ static void push_glyph_quad(edit_t* edit, const glyph_t* g, const f32 pen_x, con
 cleanup:
     logError("push_quad - Failed to resize text mesh.");
 }
-static void build_text_mesh(edit_t* edit, f32 start_x, f32 start_y) {
+static void build_text_mesh(edit_t* edit, const f32 start_x, const f32 start_y) {
     // TODO: optimize this function,
     // every AI I know of is dumb enough to not understand how to do it even though
     // the optimization is hella simple I mean I tried to do it myself for 2 times in a row
@@ -76,8 +76,6 @@ static void build_text_mesh(edit_t* edit, f32 start_x, f32 start_y) {
         start_x,
         start_y
     };
-
-
     const f32 space_x = edit->font->glyphs[edit->font->amap(' ')].x_advance;
     for (u64 i = 0; i < buffer->length; i++) {
         const char c = buffer->data[i];

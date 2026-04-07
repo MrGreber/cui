@@ -50,8 +50,20 @@ void VertexArray(push_u32)(vert_array_t* va, const u32 count);
 void VertexArray(push_u8)(vert_array_t* va, const u32 count);
 void VertexArray(push_buffer)(vert_array_t* va, vert_buf_t vb);
 
+typedef struct mesh_parameters {
+    struct {
+        mesh_tag_t tag : 24;
+        u32 attributes : 8;
+    };
+    u32 capacity;
+} mesh_param_t;
+#define MESH_2D (1 << 0)
+#define MESH_3D (1 << 1)
+#define MESH_UV (1 << 2)
+#define MESH_NR (1 << 3)
+#define MESH_EB (1 << 7)
 #define Mesh(func) __mesh_##func
-mesh_t* Mesh(new)(frame_t* frame, const mesh_tag_t tag);
+mesh_t* Mesh(new)(frame_t* frame, const mesh_param_t params);
 bool Mesh(new_cache)(frame_t* frame);
 void Mesh(del_cache)(frame_t* frame);
 void Mesh(bind)(const frame_t* frame, const mesh_t* mesh);

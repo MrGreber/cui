@@ -158,10 +158,6 @@ void VertexArray(push_buffer)(vert_array_t* va, vert_buf_t vb) {
     }
 }
 
-#define MESH_2D 1
-#define MESH_3D 2
-#define MESH_UV 4
-#define MESH_NORM 8
 struct mesh_range {
     struct { u32 offset, count; } vert;
     struct { u32 offset, count; } idx;
@@ -180,14 +176,14 @@ const static f32 __vertices[] = {
     1.0f, 1.0f, 1.0f, 1.0f
 };
 const static struct mesh_range __mesh_table[__MESH_TAG_COUNT__] = {
-    {0, 16, 0, 6, MESH_2D | MESH_UV}
+    {0, 16, 0, 6, MESH_2D | MESH_UV | MESH_EB}
 };
 
 static const struct { u8 bit; u8 count; } __attributes_table[] = {
     { MESH_2D,   2 },
     { MESH_3D,   3 },
     { MESH_UV,   2 },
-    { MESH_NORM, 3 },
+    { MESH_NR, 3 },
 };
 static static_mesh_t* private(new_static_mesh)(frame_t* frame, const mesh_tag_t tag) {
     static_mesh_t* static_mesh = &frame->cache.static_meshes.data[tag];
@@ -229,7 +225,7 @@ static_cleanup:
     Mesh(del_cache)(frame);
     return NULL;
 }
-static dynamic_mesh_t* private(new_dynamic_mesh)(frame_t* frame) {
+static dynamic_mesh_t* private(new_dynamic_mesh)(frame_t* frame, const mesh_param_t params) {
     if (frame->cache.dynamic_meshes.count >= frame->cache.dynamic_meshes.capacity) {
         const u32 new_capacity = frame->cache.dynamic_meshes.capacity << 1;
         buf_t buffer = {
@@ -245,11 +241,46 @@ static dynamic_mesh_t* private(new_dynamic_mesh)(frame_t* frame) {
         frame->cache.dynamic_meshes.capacity = new_capacity;
     }
     dynamic_mesh_t* dynamic_mesh = &frame->cache.dynamic_meshes.data[frame->cache.dynamic_meshes.count++];
+    mesh_metadata_t* metadata = &dynamic_mesh->metadata;
+    metadata->va = VertexArray(new)(2);
+    if (!metadata->va->id) {
+        logError("Mesh(new) - Failed to create vertex array for dynamic mesh.");
+        goto dynamic_cleanup;
+    }
+
+    metadata->vb = VertexBuffer(new)(true, NULL, params.capacity * sizeof(f32));
+    if (!metadata->vb.id) {
+        logError("Mesh(new) - Failed to create vertex buffer for dynamic mesh.");
+        goto dynamic_cleanup;;
+    }
+    VertexArray(bind)(metadata->va);
+    VertexBuffer(bind)(metadata->vb);
+
+    for (u8 i = 0; i < 4; i++) {
+        if (params.attributes & __attributes_table[i].bit) {
+            VertexArray(push_f32)(metadata->va, __attributes_table[i].count);
+        }
+    }
+    VertexArray(push_buffer)(metadata->va, metadata->vb);
+
+    if (params.attributes & MESH_EB) {
+        dynamic_mesh->eb = ElementBuffer(new)(true, NULL, params.capacity * sizeof(u32));
+        if (!dynamic_mesh->eb.id) {
+            logError("Mesh(new) - Failed to create element buffer for dynamic mesh.");
+            goto dynamic_cleanup;
+        }
+        dynamic_mesh->indices.capacity = params.capacity;
+    }
+    metadata->tag = DYNAMIC_MESH;
+    dynamic_mesh->vertices.capacity = params.capacity;
     return dynamic_mesh;
+dynamic_cleanup:
+    Mesh(del_cache)(frame);
+    return NULL;
 }
-mesh_t* Mesh(new)(frame_t* frame, const mesh_tag_t tag) {
-    if (tag < __MESH_TAG_COUNT__) return (mesh_t*)private(new_static_mesh)(frame, tag);
-    else if (tag == DYNAMIC_MESH) return private(new_dynamic_mesh)(frame);
+mesh_t* Mesh(new)(frame_t* frame, const mesh_param_t params) {
+    if (params.tag < __MESH_TAG_COUNT__) return (mesh_t*)private(new_static_mesh)(frame, params.tag);
+    else if (params.tag == DYNAMIC_MESH) return private(new_dynamic_mesh)(frame, params);
     return NULL;
 }
 bool Mesh(new_cache)(frame_t* frame) {
