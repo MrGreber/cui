@@ -36,7 +36,6 @@ cleanup:
     return (elem_buf_t){ 0 };
 }
 
-
 vert_array_t* VertexArray(new)(u64 capacity) {
     if (!capacity) return NULL;
 

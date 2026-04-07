@@ -1,7 +1,5 @@
 #include <sprite.h>
 #include <memio.h>
-#include <utils.h>
-#include <log.h>
 #include <shader/ops.h>
 #include <geometry/ops.h>
 
