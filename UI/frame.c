@@ -99,9 +99,14 @@ frame_t* Frame(new)(const color_t bg, const u32 width, const u32 height, const c
         logError("new_frame - Failed to create shader cache.");
         goto cleanup;
     }
+    if (!Mesh(new_cache)(frame)) {
+        logError("Frame(new) - Failed to create mesh cache.");
+        goto cleanup;
+    }
     return frame;
 cleanup:
     if (frame->header.components) del_comp_node(frame->header.components);
+    Shader(del_cache)(frame);
     Buffer(del)(&(buf_t){.size = sizeof(frame_t), .tag = MEMTAG_FRAME, .ptr = frame});
     glfwTerminate();
     return NULL;

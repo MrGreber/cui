@@ -230,14 +230,40 @@ static_cleanup:
     return NULL;
 }
 static dynamic_mesh_t* private(new_dynamic_mesh)(frame_t* frame) {
-    return NULL;
+    if (frame->cache.dynamic_meshes.count >= frame->cache.dynamic_meshes.capacity) {
+        const u32 new_capacity = frame->cache.dynamic_meshes.capacity << 1;
+        buf_t buffer = {
+            .ptr = frame->cache.dynamic_meshes.data,
+            .size = frame->cache.dynamic_meshes.capacity * sizeof(dynamic_mesh_t),
+            .tag = MEMTAG_MESH
+        };
+        if (!Buffer(renew)(&buffer, new_capacity * sizeof(dynamic_mesh_t))) {
+            Mesh(del_cache)(frame);
+            return NULL;
+        }
+        frame->cache.dynamic_meshes.data = buffer.ptr;
+        frame->cache.dynamic_meshes.capacity = new_capacity;
+    }
+    dynamic_mesh_t* dynamic_mesh = &frame->cache.dynamic_meshes.data[frame->cache.dynamic_meshes.count++];
+    return dynamic_mesh;
 }
 mesh_t* Mesh(new)(frame_t* frame, const mesh_tag_t tag) {
-    if (tag < __MESH_TAG_COUNT__)
-        return (mesh_t*)private(new_static_mesh)(frame, tag);
-    else if (tag == DYNAMIC_MESH)
-        return private(new_dynamic_mesh)(frame);
+    if (tag < __MESH_TAG_COUNT__) return (mesh_t*)private(new_static_mesh)(frame, tag);
+    else if (tag == DYNAMIC_MESH) return private(new_dynamic_mesh)(frame);
     return NULL;
+}
+bool Mesh(new_cache)(frame_t* frame) {
+#define DEFAULT_CAPACITY 4
+    buf_t buffer = { .size = sizeof(dynamic_mesh_t) * DEFAULT_CAPACITY, .tag = MEMTAG_MESH };
+    if (!Buffer(new)(&buffer, false)) {
+        logError("Mesh(new_cache) - Failed to allocate dynamic meshes cache.");
+        return false;
+    }
+    frame->cache.dynamic_meshes.data = buffer.ptr;
+    frame->cache.dynamic_meshes.capacity = DEFAULT_CAPACITY;
+    frame->cache.dynamic_meshes.count = 0;
+    return true;
+
 }
 void Mesh(del_cache)(frame_t* frame) {
     for (mesh_tag_t i = 0; i < __MESH_TAG_COUNT__; i++) {
@@ -295,8 +321,6 @@ void Mesh(draw)(mesh_t* mesh) {
             glDrawElements(GL_TRIANGLES, range->idx.count, GL_UNSIGNED_INT, (void*)(range->idx.offset * sizeof(u32)));
         }
         else glDrawArrays(GL_TRIANGLES, 0, range->vert.count);
-
-
     }
     else {
         if (mesh->eb.gl_id) glDrawElements(GL_TRIANGLES, mesh->indices.count, GL_UNSIGNED_INT, 0);

@@ -41,7 +41,6 @@ typedef struct frame {
         } static_meshes;
         struct {
             dynamic_mesh_t* data;
-
             u16 count;
             u16 capacity;
         } dynamic_meshes;

@@ -52,6 +52,7 @@ void VertexArray(push_buffer)(vert_array_t* va, vert_buf_t vb);
 
 #define Mesh(func) __mesh_##func
 mesh_t* Mesh(new)(frame_t* frame, const mesh_tag_t tag);
+bool Mesh(new_cache)(frame_t* frame);
 void Mesh(del_cache)(frame_t* frame);
 void Mesh(bind)(const frame_t* frame, const mesh_t* mesh);
 __forceinline void Mesh(unbind)(void) {
