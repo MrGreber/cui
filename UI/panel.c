@@ -4,26 +4,27 @@
 #include <frame.h>
 #include <math-utils.h>
 #include <shader/ops.h>
+#include <geometry/ops.h>
 
 #include <memory.h>
 #include <glad.h>
 #include <glfw3.h>
 
-// todo: create different callbacks for each case so if statements would not chock the callback pipeline
-static void __default_mouse_callback(const mouse_cb_param* param) {
+static void private(mouse_callback)(const mouse_cb_param* param) {
     panel_t* panel = param->instance;
-    frame_t* frame = ((comp_node_t*)panel->header.components)->root->component.inst;
+    frame_t* frame = get_root(panel);
 
     if (param->action == GLFW_PRESS &&
         param->button == GLFW_MOUSE_BUTTON_LEFT &&
         (panel->styles.normal.mode & CAPTION) &&
-        !(panel->styles.normal.mode & STATIC_POPUP))
-    {
+        !(panel->styles.normal.mode & STATIC_POPUP) &&
+        !(bounded(param->x, param->y, panel->header.content_box.x, panel->header.content_box.y, panel->header.content_box.width, panel->header.content_box.height))
+    ) {
         panel->drag.state = true;
         panel->drag.prev.x = param->x;
         panel->drag.prev.y = param->y;
 
-        frame->captured.inst = panel;
+        frame->captured.instance = panel;
         frame->captured.tag  = PANEL_COMPONENT;
     }
     if (panel->drag.state) {
@@ -42,11 +43,11 @@ static void __default_mouse_callback(const mouse_cb_param* param) {
     }
     if (param->action == GLFW_RELEASE && param->button == GLFW_MOUSE_BUTTON_LEFT) {
         panel->drag.state = false;
-        frame->captured.inst = NULL;
+        frame->captured.instance = NULL;
         frame->captured.tag  = 0;
     }
 }
-static void __default_resize_callback(const resize_cb_param* param) {
+static void private(resize_callback)(const resize_cb_param* param) {
     panel_t* panel = param->instance;
     panel->transform.init |= 1;
     //comp_header_t* header = get_header(panel->parent);
@@ -55,14 +56,13 @@ static void __default_resize_callback(const resize_cb_param* param) {
     // panel->header.box.height += param->height;
 }
 
-
 #define CAPTION_HEIGHT 30
-panel_t* new_panel(void* parent, style_group_t* group, const bounding_box* box) {
+panel_t* Panel(new)(void* parent, style_group_t* group, const bounding_box* box) {
     buf_t buffer = {
         .size = sizeof(panel_t),
         .tag = MEMTAG_PANEL
     };
-    if (!new_buf(&buffer, true)) return NULL;
+    if (!Buffer(new)(&buffer, true)) return NULL;
 
     const comp_header_t* parent_header = get_header(parent);
 
@@ -84,31 +84,33 @@ panel_t* new_panel(void* parent, style_group_t* group, const bounding_box* box) 
     if (group->hover.init) memcpy(&panel->styles.hover, &group->hover, sizeof(style_t));
 
     frame_t* frame = get_root(parent);
-    panel->sprite = new_sprite(frame, COMP_SHADER);
+    panel->sprite = Sprite(new)(frame, COMP_SHADER);
     if (!panel->sprite) goto cleanup;
-    if (!set_sprite_texture(panel->sprite, box->width, box->height, &group->normal)) goto cleanup;
+    if (!Sprite(set_texture)(panel->sprite, box->width, box->height, &group->normal)) goto cleanup;
 
-    panel->header.mouse = (callback)__default_mouse_callback;
-    panel->header.resize = (callback)__default_resize_callback;
-    push_comp_node(parent_header->components, panel, PANEL_COMPONENT);
+    panel->header.mouse = (callback)private(mouse_callback);
+    panel->header.resize = (callback)private(resize_callback);
+    Component(push_node)(parent_header->components, panel, PANEL_COMPONENT);
     return panel;
 cleanup:
-    if (panel->sprite) del_sprite(panel->sprite);
-    del_buf(&(buf_t){.size = sizeof(panel_t), .tag = MEMTAG_PANEL, .ptr = panel});
+    if (panel->sprite) Sprite(del)(panel->sprite);
+    Buffer(del)(&(buf_t){.size = sizeof(panel_t), .tag = MEMTAG_PANEL, .ptr = panel});
     return NULL;
 }
-void del_panel(panel_t* panel) {
+void Panel(del)(panel_t* panel) {
     if (!panel) return;
-    if (panel->sprite) del_sprite(panel->sprite);
-    del_buf(&(buf_t){.size = sizeof(panel_t), .tag = MEMTAG_PANEL, .ptr = panel});
+    if (panel->sprite) Sprite(del)(panel->sprite);
+    Buffer(del)(&(buf_t){.size = sizeof(panel_t), .tag = MEMTAG_PANEL, .ptr = panel});
 }
-void bind_panel(const panel_t* panel) {
+void Panel(bind)(const panel_t* panel) {
     if (!panel) return;
-    bind_sprite(panel->sprite);
+    const frame_t* frame = get_root(panel);
+    Sprite(bind)(frame, panel->sprite);
 }
 
-void update_panel(panel_t* panel, const mat4* projection) {
+void Panel(update)(panel_t* panel, const mat4* projection) {
     if (!panel) return;
+    const frame_t* frame = get_root(panel);
 
     if (panel->transform.init & 1) {
         const mat4 scale = m4_scale((f32)panel->header.box.width, (f32)panel->header.box.height, 1.0f);
@@ -121,19 +123,30 @@ void update_panel(panel_t* panel, const mat4* projection) {
         panel->transform.model = m4_mul(&panel->transform.model, &scale);
         panel->transform.init ^= 1;
     }
-
+    Sprite(bind)(frame, panel->sprite);
     Shader(set_mat4)(panel->sprite->shader, "projection", true, projection->e);
     Shader(set_mat4)(panel->sprite->shader, "model", true, panel->transform.model.e);
 
     const style_t* style = &panel->styles.normal;
     const color_t border_color = style->border.color;
-    const vec4 color = {(f32)border_color.r / 255.0f, (f32)border_color.g / 255.0f, (f32)border_color.b / 255.0f, (f32)border_color.a / 255.0f};
+    vec4 color = {
+        byte_to_float(border_color.r),
+        byte_to_float(border_color.g),
+        byte_to_float(border_color.b),
+        byte_to_float(border_color.a)
+    };
     const vec2 dim = {(f32)panel->header.box.width, (f32)panel->header.box.height};
     Shader(set_float)(panel->sprite->shader, "border.radius", style->border.radius);
     Shader(set_float)(panel->sprite->shader, "border.thickness", style->border.thickness);
     Shader(set_vec4)(panel->sprite->shader, "border.color", color.e);
     Shader(set_vec2)(panel->sprite->shader, "size", dim.e);
-    Shader(set_vec4)(panel->sprite->shader, "mask", ((vec4){.x = 1.0f, .y = 1.0f, .z = 1.0f, .w = 1.0f}).e);
+    color = (vec4){
+        byte_to_float(panel->styles.normal.background.mask.r),
+        byte_to_float(panel->styles.normal.background.mask.g),
+        byte_to_float(panel->styles.normal.background.mask.b),
+        byte_to_float(panel->styles.normal.background.mask.a)
+    };
+    Shader(set_vec4)(panel->sprite->shader, "mask", color.e);
 
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    Mesh(draw)(panel->sprite->mesh);
 }

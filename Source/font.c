@@ -2,7 +2,7 @@
 #include <memio.h>
 #include <event_system.h>
 #include <math-utils.h>
-#include <frame.h>
+#include <shader/ops.h>
 #include <log.h>
 
 #include <stdlib.h>
@@ -82,11 +82,11 @@ struct fnt_char {
 
 #define QUAD_SIZE (6 * sizeof(vec4)) // 6 vertices size
 
-static u16 __atlas_map(const char_t c) {
+static u16 private(atlas_map)(const char_t c) {
     if (c >= ' ' && c <= '~') return 2 + c - ' ';
     return 0;
 }
-static char_t __key_map(const char_t c, const bool is_shift) {
+static char_t private(key_map)(const char_t c, const bool is_shift) {
     static const char_t __map[] = {')', '!', '@', '#', '$', '%', '^', '&', '*', '('};
 
     if (is_shift) {
@@ -109,14 +109,14 @@ static char_t __key_map(const char_t c, const bool is_shift) {
     if (c >= _C_'A' && c <= _C_'Z') return c + 32;
     return c;
 }
-static void __get_font_type(font_t* font, const char* font_name) {
+static void private(get_font_type)(font_t* font, const char* font_name) {
     if (memcmp(font_name, "VCR OSD Mono", 12) == 0) {
         font->type = VCR_OSD_MONO;
-        font->kmap = __key_map;
-        font->amap = __atlas_map;
+        font->kmap = private(key_map);
+        font->amap = private(atlas_map);
     }
 }
-static bool __parse_fnt(font_t* font, const char* path) {
+static bool private(parse_fnt)(font_t* font, const char* path) {
     if (!font) return false;
 
     FILE* stream = NULL;
@@ -138,7 +138,7 @@ static bool __parse_fnt(font_t* font, const char* path) {
     font_name[length] = 0;
 
     fread(&common, sizeof(struct fnt_common), 1, stream);
-    __get_font_type(font, (const char*)font_name);
+    private(get_font_type)(font, (const char*)font_name);
     font->size = info.font_size;
     font->line_height = common.lineHeight;
     *(u32*)&font->padding = *(u32*)&info.padding;
@@ -164,21 +164,21 @@ static bool __parse_fnt(font_t* font, const char* path) {
             .image = (const char*)pages_name
         },
     };
-    if (!gen_texture(&font->atlas, NULL, &style)) return false;
+    if (!Texture(generate)(&font->atlas, NULL, &style)) return false;
     free(pages_name);
     fread(&chars, sizeof(struct fnt_chars), 1, stream);
 
-    font->count = chars.block_size / (u32)sizeof(struct fnt_char);
+    font->glyph_count = chars.block_size / (u32)sizeof(struct fnt_char);
     buf_t buffer = {
-        .size = sizeof(glyph_t) * font->count,
+        .size = sizeof(glyph_t) * font->glyph_count,
         .tag = MEMTAG_FONT
     };
-    if (!new_buf(&buffer, true)) return false;
+    if (!Buffer(new)(&buffer, true)) return false;
     font->glyphs = buffer.ptr;
 
     glyph_t* glyph = NULL;
     struct fnt_char char_ = { 0 };
-    for (u32 i = 0; i < font->count; i++) {
+    for (u32 i = 0; i < font->glyph_count; i++) {
         fread(&char_, sizeof(struct fnt_char), 1, stream);
         glyph = &font->glyphs[i];
         glyph->id = char_.id;
@@ -195,48 +195,49 @@ static bool __parse_fnt(font_t* font, const char* path) {
 }
 
 
-font_t* new_font(const char* path) {
+font_t* Font(new)(frame_t* frame, const char* path) {
     buf_t buffer = {
         .size = sizeof(font_t),
         .tag = MEMTAG_FONT
     };
-    if (!new_buf(&buffer, false)) return NULL;
+    if (!Buffer(new)(&buffer, false)) return NULL;
     font_t* font = buffer.ptr;
 
-    if (!__parse_fnt(font, path)) goto cleanup;
+    if (!private(parse_fnt)(font, path)) goto cleanup;
+    font->shader = Shader(get)(frame, FONT_SHADER);
+    if (!font->shader) goto cleanup;
     font->bg = TRANSP;
     font->fg = BLACK;
     return font;
 cleanup:
-    del_buf(&(buf_t){.ptr = font->glyphs, .size = sizeof(glyph_t) * font->count, .tag = MEMTAG_FONT});
-    del_buf(&(buf_t){.ptr = font, .size = sizeof(font_t), .tag = MEMTAG_FONT});
+    Buffer(del)(&(buf_t){.ptr = font->glyphs, .size = sizeof(glyph_t) * font->glyph_count, .tag = MEMTAG_FONT});
+    Buffer(del)(&(buf_t){.ptr = font, .size = sizeof(font_t), .tag = MEMTAG_FONT});
     return NULL;
 }
-void del_font(font_t* font) {
+void Font(del)(font_t* font) {
     if (!font) return;
-    del_texture(font->atlas);
-    del_buf(&(buf_t){.ptr = font->glyphs, .size = sizeof(glyph_t) * font->count, .tag = MEMTAG_FONT});
-    del_buf(&(buf_t){.ptr = font, .size = sizeof(font_t), .tag = MEMTAG_FONT});
+    Texture(del)(font->atlas);
+    Buffer(del)(&(buf_t){.ptr = font->glyphs, .size = sizeof(glyph_t) * font->glyph_count, .tag = MEMTAG_FONT});
+    Buffer(del)(&(buf_t){.ptr = font, .size = sizeof(font_t), .tag = MEMTAG_FONT});
 }
-void bind_font(const font_t* font) {
-    bind_texture(font->atlas);
+void Font(bind)(const font_t* font) {
+    Shader(bind)(font->shader);
+    Texture(bind)(font->atlas);
 }
-
-void set_font(font_t* font, const char* path, const color_t fg, const color_t bg) {
+void Font(set)(font_t* font, const char* path, const color_t fg, const color_t bg) {
     if (!font) {
         logError("set_font - Invalid parameter edit, address %p edit.\n", NULL);
-        goto exit_set_font;
+        return;
     }
     if (path) {
-        del_font(font);
-        font = new_font(path);
-        if (!font) {
+        Texture(del)(font->atlas);
+        Buffer(del)(&(buf_t){.ptr = font->glyphs, .size = sizeof(glyph_t) * font->glyph_count, .tag = MEMTAG_FONT});
+        if (!private(parse_fnt)(font, path)) {
             logError("set_font - Failed to load font.");
-            goto exit_set_font;
+            return;
         }
     }
 
-    font->bg = bg;
     font->fg = fg;
-    exit_set_font:;
+    font->bg = bg;
 }

@@ -55,12 +55,12 @@ extern void __scroll_callback(GLFWwindow* window, const f64 x, const f64 scroll_
 
 #define FLAG_DEFAULT_STATE 1
 
-frame_t* new_frame(const color_t bg, const u32 width, const u32 height, const char* title) {
+frame_t* Frame(new)(const color_t bg, const u32 width, const u32 height, const char* title) {
     buf_t buffer = {
         .size = sizeof(frame_t),
         .tag = MEMTAG_FRAME,
     };
-    if (!new_buf(&buffer, true)) return NULL;
+    if (!Buffer(new)(&buffer, true)) return NULL;
 
     frame_t* frame = buffer.ptr;
 
@@ -70,7 +70,7 @@ frame_t* new_frame(const color_t bg, const u32 width, const u32 height, const ch
         logError("new_frame - Failed to create frame window.");
         goto cleanup;
     }
-    frame->header.components = new_comp_node(frame, FRAME_COMPONENT);
+    frame->header.components = Component(new_node)(frame, FRAME_COMPONENT);
     if (!frame->header.components) {
         logError("new_frame - Failed to create component system.");
         goto cleanup;
@@ -99,29 +99,34 @@ frame_t* new_frame(const color_t bg, const u32 width, const u32 height, const ch
         logError("new_frame - Failed to create shader cache.");
         goto cleanup;
     }
+    if (!Mesh(new_cache)(frame)) {
+        logError("Frame(new) - Failed to create mesh cache.");
+        goto cleanup;
+    }
     return frame;
 cleanup:
-    if (frame->header.components) del_comp_node(frame->header.components);
-    del_buf(&(buf_t){.size = sizeof(frame_t), .tag = MEMTAG_FRAME, .ptr = frame});
+    if (frame->header.components) Component(del_node)(frame->header.components);
+    Shader(del_cache)(frame);
+    Buffer(del)(&(buf_t){.size = sizeof(frame_t), .tag = MEMTAG_FRAME, .ptr = frame});
     glfwTerminate();
     return NULL;
 }
-void del_frame(frame_t* frame) {
+void Frame(del)(frame_t* frame) {
     if (!frame) return;
     Shader(del_cache)(frame);
     Mesh(del_cache)(frame);
-    if (frame->header.components) del_comp_node(frame->header.components);
-    del_buf(&(buf_t){.size = sizeof(frame_t), .tag = MEMTAG_FRAME, .ptr = frame});
+    if (frame->header.components) Component(del_node)(frame->header.components);
+    Buffer(del)(&(buf_t){.size = sizeof(frame_t), .tag = MEMTAG_FRAME, .ptr = frame});
     glfwTerminate();
 }
 
-void update_frame(frame_t* frame) {
+void Frame(update)(frame_t* frame) {
     if (!frame) return;
 
     static char caption[64] = { 0 };
     static u32 frame_count = 0;
     static f64 acc = 0.0;
-    update_stopwatch(&frame->stopwatch);
+    Stopwatch(update)(&frame->stopwatch);
     acc += frame->stopwatch.delta;
     frame_count++;
 
@@ -144,13 +149,13 @@ void update_frame(frame_t* frame) {
     );
     glClear(GL_COLOR_BUFFER_BIT);
 }
-void set_frame_position(frame_t* frame, const u16 x, const u16 y) {
+void Frame(set_position)(frame_t* frame, const u16 x, const u16 y) {
     if (!frame) return;
 
     glfwSetWindowPos(frame->ctx, x, y);
 }
 
-void set_frame_flag(frame_t* frame, const frame_flag field) {
+void Frame(set_flag)(frame_t* frame, const frame_flag field) {
     if (!frame) return;
     if (sizeof(frame->flags) <= field) return;
 

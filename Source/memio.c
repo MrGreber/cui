@@ -36,7 +36,7 @@ static char* mem_table_labels[__MEMTAG_COUNT__ - 1] = {
 };
 
 
-bool new_buf(buf_t* buffer, const bool zero) {
+bool Buffer(new)(buf_t* buffer, const bool zero) {
     if (!buffer) {
         logWarn("new_buf - Invalid address NULL.");
         return false;
@@ -63,7 +63,7 @@ bool new_buf(buf_t* buffer, const bool zero) {
     mem_table[buffer->tag - 1] += buffer->size;
     return true;
 }
-bool renew_buf(buf_t* buffer, const u64 new_size) {
+bool Buffer(renew)(buf_t* buffer, const u64 new_size) {
     if (!buffer) {
         logWarn("renew_buf - Invalid address NULL.");
         return false;
@@ -97,7 +97,7 @@ bool renew_buf(buf_t* buffer, const u64 new_size) {
     buffer->size = new_size;
     return true;
 }
-void del_buf(buf_t* buffer) {
+void Buffer(del)(buf_t* buffer) {
     if (!buffer) return;
 
     switch (buffer->tag) {
@@ -145,13 +145,13 @@ bool read_file(const char* path, buf_t* buffer) {
 
     buffer->size = pos;
     buffer->tag = MEMTAG_BYTE;
-    if (!new_buf(buffer, true)) goto cleanup;
+    if (!Buffer(new)(buffer, true)) goto cleanup;
     if ((i64)fread(buffer->ptr, 1, pos, stream) != pos) goto cleanup;
 
     fclose(stream);
     return true;
 cleanup:
     if (stream) fclose(stream);
-    if (buffer->ptr) del_buf(buffer);
+    if (buffer->ptr) Buffer(del)(buffer);
     return false;
 }

@@ -54,7 +54,8 @@ typedef struct buffer {
  * @param zero If true, zero-initialize the allocated memory
  * @return true if allocation succeeded, false otherwise
  */
-bool new_buf(buf_t* buffer, const bool zero);
+#define Buffer(func) __buffer_##func
+bool Buffer(new)(buf_t* buffer, const bool zero);
 
 /**
  * @brief Resizes an existing buffer
@@ -62,13 +63,13 @@ bool new_buf(buf_t* buffer, const bool zero);
  * @param new_size New size in bytes
  * @return true if reallocation succeeded, false otherwise
  */
-bool renew_buf(buf_t* buffer, const u64 new_size);
+bool Buffer(renew)(buf_t* buffer, const u64 new_size);
 
 /**
  * @brief Frees a memory buffer
  * @param buffer Pointer to a buffer descriptor
  */
-void del_buf(buf_t* buffer);
+void Buffer(del)(buf_t* buffer);
 
 /**
  * @brief Prints a memory usage table for all allocated buffers

@@ -26,7 +26,7 @@ hmap_t* new_hmap(u64 capacity, hash_function func) {
         .size = sizeof(hmap_t),
         .tag = MEMTAG_HASHMAP
     };
-    if (!new_buf(&buffer, true)) {
+    if (!Buffer(new)(&buffer, true)) {
         logError("new_hmap - Failed to allocate hashmap.");
         goto cleanup;
     }
@@ -36,7 +36,7 @@ hmap_t* new_hmap(u64 capacity, hash_function func) {
         .size = sizeof(kvp_t) * DEFAULT_CAPACITY,
         .tag = MEMTAG_KEY_VALUE_PAIR
     };
-    if (!new_buf(&buffer, true)) {
+    if (!Buffer(new)(&buffer, true)) {
         logError("new_hmap - Failed to allocate hashmap element array.");
         goto cleanup;
     }
@@ -46,7 +46,7 @@ hmap_t* new_hmap(u64 capacity, hash_function func) {
         .size = sizeof(kvp_t) * DEFAULT_CAPACITY,
         .tag = MEMTAG_KEY_VALUE_PAIR
     };
-    if (!new_buf(&buffer, true)) {
+    if (!Buffer(new)(&buffer, true)) {
         logError("new_hmap - Failed to allocate hashmap element array.");
         goto cleanup;
     }
@@ -56,16 +56,16 @@ hmap_t* new_hmap(u64 capacity, hash_function func) {
 
     return map;
 cleanup:
-    if (map->elem) del_buf(&(buf_t){.ptr = map->elem, .size = sizeof(kvp_t) * DEFAULT_CAPACITY, .tag = MEMTAG_KEY_VALUE_PAIR});
-    if (map->collisions.elem) del_buf(&(buf_t){.ptr = map->collisions.elem, .size = sizeof(kvp_t) * DEFAULT_CAPACITY, .tag = MEMTAG_KEY_VALUE_PAIR});
-    del_buf(&(buf_t){.ptr = map, .size = sizeof(hmap_t), .tag = MEMTAG_HASHMAP});
+    if (map->elem) Buffer(del)(&(buf_t){.ptr = map->elem, .size = sizeof(kvp_t) * DEFAULT_CAPACITY, .tag = MEMTAG_KEY_VALUE_PAIR});
+    if (map->collisions.elem) Buffer(del)(&(buf_t){.ptr = map->collisions.elem, .size = sizeof(kvp_t) * DEFAULT_CAPACITY, .tag = MEMTAG_KEY_VALUE_PAIR});
+    Buffer(del)(&(buf_t){.ptr = map, .size = sizeof(hmap_t), .tag = MEMTAG_HASHMAP});
     return NULL;
 }
 void del_hmap(hmap_t* map) {
     if (!map) return;
-    del_buf(&(buf_t){.ptr = map->elem, .size = sizeof(kvp_t) * DEFAULT_CAPACITY, .tag = MEMTAG_KEY_VALUE_PAIR});
-    del_buf(&(buf_t){.ptr = map->collisions.elem, .size = sizeof(kvp_t) * DEFAULT_CAPACITY, .tag = MEMTAG_KEY_VALUE_PAIR});
-    del_buf(&(buf_t){.ptr = map, .size = sizeof(hmap_t), .tag = MEMTAG_HASHMAP});
+    Buffer(del)(&(buf_t){.ptr = map->elem, .size = sizeof(kvp_t) * DEFAULT_CAPACITY, .tag = MEMTAG_KEY_VALUE_PAIR});
+    Buffer(del)(&(buf_t){.ptr = map->collisions.elem, .size = sizeof(kvp_t) * DEFAULT_CAPACITY, .tag = MEMTAG_KEY_VALUE_PAIR});
+    Buffer(del)(&(buf_t){.ptr = map, .size = sizeof(hmap_t), .tag = MEMTAG_HASHMAP});
 }
 
 kvp_t* search_hmap(hmap_t* map, uptr key, const u64 size) {
@@ -99,7 +99,7 @@ bool __resize_hashmap(hmap_t* map) {
         .size = map->collisions.capacity * sizeof(kvp_t),
         .tag = MEMTAG_KEY_VALUE_PAIR
     };
-    if (!renew_buf(&buffer, new_capacity * sizeof(kvp_t))) return false;
+    if (!Buffer(renew)(&buffer, new_capacity * sizeof(kvp_t))) return false;
 
     map->collisions.elem =  buffer.ptr;
     map->collisions.capacity = new_capacity;

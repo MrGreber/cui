@@ -5,34 +5,35 @@
 #include <defines.h>
 #include <utils.h>
 
-typedef enum callback_type {
-    MOUSE_CALLBACK,
-    SCROLL_CALLBACK,
-    KEYBOARD_CALLBACK
-} callback_type;
-
-typedef void (*callback)(void*);
-
-typedef enum component_tag {
-    FRAME_COMPONENT,
-    PANEL_COMPONENT,
-    BUTTON_COMPONENT,
-    EDIT_COMPONENT,
-    CANVAS_COMPONENT,
-    __COMPONENT_TAG_COUNT__
-} comp_tag;
-
 typedef enum background_type {
     BG_NONE,
+    BG_TEST,
     BG_COLOR,
     BG_IMAGE,
-    BG_GRADIENT
+    BG_LINEAR_GRADIENT,
+    BG_RADIAL_GRADIENT
 } bg_type_t;
 
 typedef struct bounding_box {
     i32 x, y;
     u32 width, height;
 } bounding_box;
+
+struct gradient_metadata {
+    color_t* colors;
+    f32* positions;
+    u8 count;
+};
+typedef struct linear_gradient {
+    struct gradient_metadata metadata;
+    f32 angle;
+} linear_grad_t;
+
+typedef struct radial_gradient {
+    struct gradient_metadata metadata;
+    vec2 center;
+    vec2 radii;
+} radial_grad_t;
 
 typedef struct style {
     u8 init;
@@ -41,6 +42,8 @@ typedef struct style {
     struct {
         union {
             color_t color;
+            linear_grad_t* linear_gradient;
+            radial_grad_t* radial_gradient;
             struct texture* texture;
             const char* image;
         };
@@ -62,8 +65,22 @@ typedef struct style_group {
     style_t hover;
 } style_group_t;
 
+typedef enum callback_type {
+    MOUSE_CALLBACK,
+    SCROLL_CALLBACK,
+    KEYBOARD_CALLBACK
+} callback_type;
 
+typedef void (*callback)(void*);
 
+typedef enum component_tag {
+    FRAME_COMPONENT,
+    PANEL_COMPONENT,
+    BUTTON_COMPONENT,
+    EDIT_COMPONENT,
+    CANVAS_COMPONENT,
+    __COMPONENT_TAG_COUNT__
+} comp_tag;
 
 typedef enum event_tag {
     __MOUSE_EVENT__,
@@ -124,7 +141,7 @@ typedef struct component_header {
 } comp_header_t;
 
 typedef struct component {
-    void* inst;
+    void* instance;
     comp_tag tag;
 } comp_t;
 
@@ -141,16 +158,17 @@ typedef struct component_node {
 
 #define get_header(COMP) ((comp_header_t*)(COMP))
 #define bounded(mx, my, x, y, w, h) (((mx) >= (x) && (mx) < ((x) + (w))) && ((my) >= (y) && (my) < ((y) + (h))))
-__forceinline void* get_root(void* comp) {
+__forceinline void* get_root(const void* comp) {
     comp_node_t* root = ((comp_node_t*)((comp_header_t*)comp)->components)->root;
-    if (root == NULL) return comp;
-    return root->component.inst;
+    if (root == NULL) return (void*)comp;
+    return root->component.instance;
 }
 
-comp_node_t* new_comp_node(void* data, const comp_tag tag);
-void del_comp_node(comp_node_t* root);
-bool push_comp_node(comp_node_t* root, void* val, const comp_tag tag);
-void print_comp_node(comp_node_t* root, u64 indent);
+#define Component(func) __component_##func
+comp_node_t* Component(new_node)(void* data, const comp_tag tag);
+void Component(del_node)(comp_node_t* root);
+bool Component(push_node)(comp_node_t* root, void* val, const comp_tag tag);
+void Component(print_node)(comp_node_t* root, u64 indent);
 
 void dispatch_event(const comp_node_t* node, event_t* event);
 

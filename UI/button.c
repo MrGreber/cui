@@ -4,6 +4,7 @@
 #include <frame.h>
 #include <math-utils.h>
 #include <shader/ops.h>
+#include <geometry/ops.h>
 
 #include <memory.h>
 #include <glad.h>
@@ -11,7 +12,7 @@
 
 static void __default_mouse_callback(const mouse_cb_param* param) {
     button_t* button = param->instance;
-    frame_t* frame = ((comp_node_t*)button->header.components)->root->component.inst;
+    frame_t* frame = get_root(button);
 
     if (param->action == GLFW_PRESS) {
         if (button->on_click) button->on_click(button);
@@ -27,12 +28,12 @@ static void __default_resize_callback(const resize_cb_param* param) {
     // panel->header.box.height += param->height;
 }
 
-button_t* new_button(void* parent, style_group_t* group, const bounding_box* box) {
+button_t* Button(new)(void* parent, style_group_t* group, const bounding_box* box) {
     buf_t buffer = {
         .size = sizeof(button_t),
         .tag = MEMTAG_BUTTON
     };
-    if (!new_buf(&buffer, true)) return NULL;
+    if (!Buffer(new)(&buffer, true)) return NULL;
 
     const comp_header_t* parent_header = get_header(parent);
 
@@ -47,32 +48,33 @@ button_t* new_button(void* parent, style_group_t* group, const bounding_box* box
     if (group->hover.init) memcpy(&button->styles.hover, &group->hover, sizeof(style_t));
 
     frame_t* frame = get_root(parent);
-    button->sprite = new_sprite(frame, COMP_SHADER);
+    button->sprite = Sprite(new)(frame, COMP_SHADER);
     if (!button->sprite) goto cleanup;
-    if (!set_sprite_texture(button->sprite, box->width, box->height, &group->normal)) goto cleanup;
+    if (!Sprite(set_texture)(button->sprite, box->width, box->height, &group->normal)) goto cleanup;
 
     button->header.mouse = (callback)__default_mouse_callback;
     button->header.resize =  (callback)__default_resize_callback;
-    push_comp_node(parent_header->components, button, BUTTON_COMPONENT);
+    Component(push_node)(parent_header->components, button, BUTTON_COMPONENT);
     return button;
 cleanup:
-    if (button->sprite) del_sprite(button->sprite);
-    del_buf(&(buf_t){.size = sizeof(button_t), .tag = MEMTAG_BUTTON, .ptr = button});
+    if (button->sprite) Sprite(del)(button->sprite);
+    Buffer(del)(&(buf_t){.size = sizeof(button_t), .tag = MEMTAG_BUTTON, .ptr = button});
     return NULL;
 }
-void del_button(button_t* button) {
+void Button(del)(button_t* button) {
     if (!button) return;
-    if (button->sprite) del_sprite(button->sprite);
-    del_buf(&(buf_t){.size = sizeof(button_t), .tag = MEMTAG_BUTTON, .ptr = button});
+    if (button->sprite) Sprite(del)(button->sprite);
+    Buffer(del)(&(buf_t){.size = sizeof(button_t), .tag = MEMTAG_BUTTON, .ptr = button});
 }
-void bind_button(const button_t* button) {
+void Button(bind)(const button_t* button) {
     if (!button) return;
-    bind_sprite(button->sprite);
+    const frame_t* frame = get_root(button);
+    Sprite(bind)(frame, button->sprite);
 }
 
-void update_button(button_t* button, const mat4* projection) {
+void Button(update)(button_t* button, const mat4* projection) {
     if (!button) return;
-    frame_t* frame = ((comp_node_t*)button->header.components)->root->component.inst;
+    const frame_t* frame = get_root(button);
 
     if (button->transform.init & 1) {
         const mat4 scale = m4_scale((f32)button->header.box.width, (f32)button->header.box.height, 1.0f);
@@ -85,6 +87,7 @@ void update_button(button_t* button, const mat4* projection) {
         button->transform.model = m4_mul(&button->transform.model, &scale);
         button->transform.init ^= 1;
     }
+    Sprite(bind)(frame, button->sprite);
     Shader(set_mat4)(button->sprite->shader, "projection", true, projection->e);
     Shader(set_mat4)(button->sprite->shader, "model", true, button->transform.model.e);
 
@@ -101,7 +104,7 @@ void update_button(button_t* button, const mat4* projection) {
     Shader(set_float)(button->sprite->shader, "border.thickness", style->border.thickness);
     Shader(set_vec4)(button->sprite->shader, "border.color", &color.x);
     Shader(set_vec2)(button->sprite->shader, "size", dim.e);
-    if (frame->hovered.inst == button) color = (vec4){
+    if (frame->hovered.instance == button) color = (vec4){
             byte_to_float(button->styles.hover.background.mask.r),
             byte_to_float(button->styles.hover.background.mask.g),
             byte_to_float(button->styles.hover.background.mask.b),
@@ -115,5 +118,5 @@ void update_button(button_t* button, const mat4* projection) {
     };
     Shader(set_vec4)(button->sprite->shader, "mask", &color.x);
 
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    Mesh(draw)(button->sprite->mesh);
 }

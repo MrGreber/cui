@@ -24,14 +24,15 @@ typedef struct button {
     texture_t* tex;
 } button_t;
 
-button_t* new_button(void* parent, style_group_t* group, const bounding_box* box);
-void del_button(button_t* button);
-void bind_button(const button_t* button);
-void update_button(button_t* button, const mat4* projection);
-__forceinline void set_button_callback(button_t* button, const button_callback callback) {
+#define Button(func) __button_##func
+button_t* Button(new)(void* parent, style_group_t* group, const bounding_box* box);
+void Button(del)(button_t* button);
+void Button(bind)(const button_t* button);
+void Button(update)(button_t* button, const mat4* projection);
+__forceinline void Button(set_callback)(button_t* button, const button_callback callback) {
     button->on_click = callback;
 }
-__forceinline void set_button_user_data(button_t* button, void* user_data) {
+__forceinline void Button(set_user_data)(button_t* button, void* user_data) {
     button->user_data = user_data;
 }
 
