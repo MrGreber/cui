@@ -5,34 +5,46 @@
 #include <defines.h>
 #include <math-utils.h>
 
-/**
- * @union color
- * @brief RGBA color representation.
- *
- * Can be accessed as individual channels or as a packed 32-bit hex value.
- */
 typedef union color {
     struct {
-        u8 r; /**< Red channel (0-255) */
-        u8 g; /**< Green channel (0-255) */
-        u8 b; /**< Blue channel (0-255) */
-        u8 a; /**< Alpha channel (0-255) */
+        u8 r;
+        u8 g;
+        u8 b;
+        u8 a;
     };
-    u32 hex; /**< Packed 32-bit representation (RGBA) */
+    u32 hex;
 } color_t;
 
+#define Color(func) __color_##func
+__forceinline color_t Color(hsv_to_rgb)(const f32 h, const f32 s, const f32 v) {
+    const f32 c = v * s;
+    const f32 x = c * (1.0f - fabsf(fmodf(h / 60.0f, 2.0f) - 1.0f));
+    const f32 m = v - c;
 
-/**
- * @brief Convert HSV color values to RGB.
- * @param h Hue component (0-360)
- * @param s Saturation component (0-1)
- * @param v Value component (0-1)
- * @return Corresponding RGB color
- */
-color_t hsv_to_rgb(const f32 h, const f32 s, const f32 v);
+    f32 r, g, b;
+    if (h < 60)  { r = c; g = x; b = 0; }
+    else if (h < 120) { r = x; g = c; b = 0; }
+    else if (h < 180) { r = 0; g = c; b = x; }
+    else if (h < 240) { r = 0; g = x; b = c; }
+    else if (h < 300) { r = x; g = 0; b = c; }
+    else { r = c; g = 0; b = x; }
 
+    color_t col;
+    col.r = (u8)((r + m) * 255.0f);
+    col.g = (u8)((g + m) * 255.0f);
+    col.b = (u8)((b + m) * 255.0f);
+    col.a = 255;
+    return col;
+}
 
-/** Common color definitions */
+__forceinline vec4 Color(to_vec4)(const color_t c) {
+    return (vec4){(f32)c.r / 255.f, (f32)c.g / 255.f, (f32)c.b / 255.f, (f32)c.a / 255.f};
+}
+__forceinline color_t Color(vec4_to_rgb)(const vec4 v) {
+    return (color_t){v.x * 255.f, v.y * 255.f, v.z * 255.f, v.w * 255.f};
+}
+
+#define color_cast(h) ((color_t){.hex = h})
 #define TRANSP          color_cast(0x0)
 #define BLACK           color_cast(0xff000000)
 #define WHITE           color_cast(0xffffffff)
@@ -52,19 +64,6 @@ color_t hsv_to_rgb(const f32 h, const f32 s, const f32 v);
 #define PURPLE          color_cast(0xff8000ff)
 #define PINK            color_cast(0xffff80ff)
 
-/**
- * @def color_cast
- * @brief Convenience macro to create a color_t from a 32-bit hex value.
- * @param h 32-bit RGBA color value
- */
-#define color_cast(h) ((color_t){.hex = h})
-
-__forceinline vec4 color_v4(const color_t c) {
-    return (vec4){(f32)c.r / 255.f, (f32)c.g / 255.f, (f32)c.b / 255.f, (f32)c.a / 255.f};
-}
-__forceinline color_t v4_color(const vec4 v) {
-    return (color_t){v.x * 255.f, v.y * 255.f, v.z * 255.f, v.w * 255.f};
-}
 
 __forceinline u64 __closest_pow2(u64 n) {
     if (n == 0) return 1;

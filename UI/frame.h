@@ -2,23 +2,35 @@
 
 #ifndef FRAME_H
 #define FRAME_H
-#include <../Include/defines.h>
-#include <../Include/utils.h>
-#include <../Include/event_system.h>
-#include <../Include/stopwatch.h>
-#include <../Include/shader/types.h>
-#include <../Include/geometry/types.h>
+#include <defines.h>
+#include <utils.h>
+#include <event_system.h>
+#include <stopwatch.h>
+#include <shader/types.h>
+#include <geometry/types.h>
 
 typedef enum frame_flag{
     HIDE_FLAG
 } frame_flag;
 
-/**
- * @struct frame
- * @brief Represents a rendering frame or window.
- *
- * Holds the window/context pointer, input callbacks, dimensions, and background color.
- */
+// Todo: add a cache for fonts, maybe even separate this struct to a different struct well idk
+struct frame_cache {
+    uniform_hashmap_t uniforms;
+    shader_t shaders[__SHADER_TAG_COUNT__];
+    struct {
+        static_mesh_t data[__MESH_TAG_COUNT__];
+        elem_buf_t eb;
+    } static_meshes;
+    struct {
+        dynamic_mesh_t* data;
+        u16 count;
+        u16 capacity;
+    } dynamic_meshes;
+    // struct {
+    //
+    // } fonts;
+};
+
 typedef struct frame {
     comp_header_t header;
     char* title;
@@ -31,20 +43,7 @@ typedef struct frame {
     comp_t focused;
     comp_t hovered;
     comp_t captured;
-
-    struct {
-        uniform_hashmap_t uniforms;
-        shader_t shaders[__SHADER_TAG_COUNT__];
-        struct {
-            static_mesh_t data[__MESH_TAG_COUNT__];
-            elem_buf_t eb;
-        } static_meshes;
-        struct {
-            dynamic_mesh_t* data;
-            u16 count;
-            u16 capacity;
-        } dynamic_meshes;
-    } cache;
+    struct frame_cache cache;
     byte flags;
 } frame_t;
 

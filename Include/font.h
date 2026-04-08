@@ -3,8 +3,10 @@
 #ifndef FONT_H
 #define FONT_H
 #include <utils.h>
-#include <sprite.h>
+#include <texture.h>
+#include <shader/types.h>
 #include <str.h>
+typedef struct frame frame_t;
 
 typedef u16 (*atlas_map)(const char_t c);
 typedef char_t (*key_map)(const char_t c, const bool is_shift);
@@ -31,6 +33,7 @@ typedef struct glyph {
 typedef struct font {
     u16 size;
     u16 line_height;
+    u32 glyph_count;
 
     struct {
         u8 vert;
@@ -51,17 +54,13 @@ typedef struct font {
     atlas_map amap;
     texture_t* atlas;
     glyph_t* glyphs;
-    u64 count;
+    shader_t* shader;
 } font_t;
 
 #define Font(func) __font_##func
-font_t* Font(new)(const char* path);
+font_t* Font(new)(frame_t* frame, const char* path);
 void Font(del)(font_t* font);
-__forceinline void Font(bind)(const font_t* font) {
-    Texture(bind)(font->atlas);
-}
-
+void Font(bind)(const font_t* font);
 void Font(set)(font_t* font, const char* path, const color_t fg, const color_t bg);
-
 
 #endif //FONT_H

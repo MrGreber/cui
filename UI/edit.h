@@ -30,7 +30,6 @@ typedef struct edit {
 
         vert_array_t* va;
         vert_buf_t vb;
-        shader_t* shader;
     } mesh;
 
     struct {

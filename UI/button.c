@@ -12,7 +12,7 @@
 
 static void __default_mouse_callback(const mouse_cb_param* param) {
     button_t* button = param->instance;
-    frame_t* frame = ((comp_node_t*)button->header.components)->root->component.inst;
+    frame_t* frame = get_root(button);
 
     if (param->action == GLFW_PRESS) {
         if (button->on_click) button->on_click(button);
@@ -54,7 +54,7 @@ button_t* Button(new)(void* parent, style_group_t* group, const bounding_box* bo
 
     button->header.mouse = (callback)__default_mouse_callback;
     button->header.resize =  (callback)__default_resize_callback;
-    push_comp_node(parent_header->components, button, BUTTON_COMPONENT);
+    Component(push_node)(parent_header->components, button, BUTTON_COMPONENT);
     return button;
 cleanup:
     if (button->sprite) Sprite(del)(button->sprite);
@@ -68,13 +68,13 @@ void Button(del)(button_t* button) {
 }
 void Button(bind)(const button_t* button) {
     if (!button) return;
-    frame_t* frame = get_root(button);
+    const frame_t* frame = get_root(button);
     Sprite(bind)(frame, button->sprite);
 }
 
 void Button(update)(button_t* button, const mat4* projection) {
     if (!button) return;
-    frame_t* frame = get_root(button);
+    const frame_t* frame = get_root(button);
 
     if (button->transform.init & 1) {
         const mat4 scale = m4_scale((f32)button->header.box.width, (f32)button->header.box.height, 1.0f);
@@ -87,6 +87,7 @@ void Button(update)(button_t* button, const mat4* projection) {
         button->transform.model = m4_mul(&button->transform.model, &scale);
         button->transform.init ^= 1;
     }
+    Sprite(bind)(frame, button->sprite);
     Shader(set_mat4)(button->sprite->shader, "projection", true, projection->e);
     Shader(set_mat4)(button->sprite->shader, "model", true, button->transform.model.e);
 
@@ -103,7 +104,7 @@ void Button(update)(button_t* button, const mat4* projection) {
     Shader(set_float)(button->sprite->shader, "border.thickness", style->border.thickness);
     Shader(set_vec4)(button->sprite->shader, "border.color", &color.x);
     Shader(set_vec2)(button->sprite->shader, "size", dim.e);
-    if (frame->hovered.inst == button) color = (vec4){
+    if (frame->hovered.instance == button) color = (vec4){
             byte_to_float(button->styles.hover.background.mask.r),
             byte_to_float(button->styles.hover.background.mask.g),
             byte_to_float(button->styles.hover.background.mask.b),

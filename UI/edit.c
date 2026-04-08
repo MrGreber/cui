@@ -16,7 +16,7 @@
 
 static bool private(resize_text_mesh)(edit_t* edit) {
     if (edit->mesh.capacity == UINT64_MAX) {
-        logError("__resize_text_mesh - Failed to resize text mesh, mesh reached max size %d.", UINT16_MAX);
+        logError("private(resize_text_mesh) - Failed to resize text mesh, mesh reached max size %d.", UINT16_MAX);
         return false;
     }
 
@@ -32,7 +32,10 @@ static bool private(resize_text_mesh)(edit_t* edit) {
     return true;
 }
 static void push_glyph_quad(edit_t* edit, const glyph_t* g, const f32 pen_x, const f32 pen_y) {
-    if (edit->mesh.capacity <= edit->mesh.count && !private(resize_text_mesh)(edit)) goto cleanup;
+    if (edit->mesh.capacity <= edit->mesh.count && !private(resize_text_mesh)(edit)) {
+        logError("push_quad - Failed to resize text mesh.");
+        return;
+    }
 
     vec4* ptr = edit->mesh.vertices;
     const f32 x0 = pen_x + g->offset.x;
@@ -51,9 +54,6 @@ static void push_glyph_quad(edit_t* edit, const glyph_t* g, const f32 pen_x, con
 
     memcpy(&ptr[6 * edit->mesh.count], quad, QUAD_SIZE);
     edit->mesh.count++;
-    return;
-cleanup:
-    logError("push_quad - Failed to resize text mesh.");
 }
 static void build_text_mesh(edit_t* edit, const f32 start_x, const f32 start_y) {
     // TODO: optimize this function,
@@ -116,7 +116,6 @@ static void build_text_mesh(edit_t* edit, const f32 start_x, const f32 start_y) 
     push_glyph_quad(edit, caret.glyph, caret.pos.x - (f32)caret.glyph->offset.x, caret.pos.y);
 
     VertexArray(bind)(edit->mesh.va);
-    glUseProgram(edit->mesh.shader->id);
     Font(bind)(edit->font);
     glBindBuffer(GL_ARRAY_BUFFER, edit->mesh.vb.gl_id);
     glBufferSubData(GL_ARRAY_BUFFER, 0, edit->mesh.count * QUAD_SIZE, edit->mesh.vertices);
@@ -162,7 +161,6 @@ static void private(set_caret_position)(edit_t* edit, const f64 mouse_x, const f
     push_glyph_quad(edit, caret_glyph, pen.x - (f32)caret_glyph->offset.x, pen.y);
 
     VertexArray(bind)(edit->mesh.va);
-    glUseProgram(edit->mesh.shader->id);
     Font(bind)(edit->font);
     glBindBuffer(GL_ARRAY_BUFFER, edit->mesh.vb.gl_id);
     glBufferSubData(GL_ARRAY_BUFFER, (edit->mesh.count - 1) * QUAD_SIZE, QUAD_SIZE, edit->mesh.vertices + 6 * (edit->mesh.count - 1));
@@ -334,7 +332,7 @@ edit_t* Edit(new)(void* parent, const style_group_t* group, const bounding_box* 
     if (!Sprite(set_texture)(edit->sprite, box->width, box->height, (style_t*)&group->normal)) goto cleanup;
 
     // Loads default font
-    edit->font = Font(new)(__DIR__"\\Resources\\vcr_osd_mono.fnt");
+    edit->font = Font(new)(frame, __DIR__"\\Resources\\vcr_osd_mono.fnt");
     if (!edit->font) {
         logError("new_edit - Failed to load font.");
         goto cleanup;
@@ -360,9 +358,6 @@ edit_t* Edit(new)(void* parent, const style_group_t* group, const bounding_box* 
     VertexArray(push_f32)(edit->mesh.va, 2);
     VertexArray(push_buffer)(edit->mesh.va, edit->mesh.vb);
 
-    edit->mesh.shader = Shader(get)(frame, TEXT_SHADER);
-    if (!edit->mesh.shader) goto cleanup;
-
     edit->text.buffer = new_str("", 0);
     if (!edit->text.buffer) goto cleanup;
 
@@ -370,7 +365,7 @@ edit_t* Edit(new)(void* parent, const style_group_t* group, const bounding_box* 
     if (group->normal.mode) edit->header.keyboard = (callback)private(write_keyboard_callback);
     else edit->header.keyboard = (callback)private(read_keyboard_callback);
     edit->header.resize = (callback)private(resize_callback);
-    push_comp_node(parent_header->components, edit, EDIT_COMPONENT);
+    Component(push_node)(parent_header->components, edit, EDIT_COMPONENT);
 
     build_text_mesh(edit, 0.0, 0.0);
     return edit;
@@ -420,6 +415,7 @@ void Edit(update)(edit_t* edit, const mat4* projection) {
         edit->transform.model = m4_mul(&edit->transform.model, &scale);
         edit->transform.init ^= 1;
     }
+    Sprite(bind)(frame, edit->sprite);
     Shader(set_mat4)(edit->sprite->shader, "projection", true, projection->e);
     Shader(set_mat4)(edit->sprite->shader, "model", true, edit->transform.model.e);
     Shader(set_float)(edit->sprite->shader, "border.radius", style->border.radius);
@@ -480,12 +476,11 @@ void Edit(update)(edit_t* edit, const mat4* projection) {
         edit->header.box.width - style->border.thickness, edit->header.box.height - style->border.thickness
     );
     VertexArray(bind)(edit->mesh.va);
-    glUseProgram(edit->mesh.shader->id);
     Font(bind)(edit->font);
-    Shader(set_mat4)(edit->mesh.shader, "projection", true, projection->e);
-    Shader(set_mat4)(edit->mesh.shader, "model", true, model.e);
-    Shader(set_vec4)(edit->mesh.shader, "font.bg", color_v4(font->bg).e);
-    Shader(set_vec4)(edit->mesh.shader, "font.fg", color_v4(font->fg).e);
-    glDrawArrays(GL_TRIANGLES, 0, 6 * (frame->focused.inst == edit ? edit->mesh.count : edit->mesh.count - 1));
+    Shader(set_mat4)(edit->font->shader, "projection", true, projection->e);
+    Shader(set_mat4)(edit->font->shader, "model", true, model.e);
+    Shader(set_vec4)(edit->font->shader, "font.bg", Color(to_vec4)(font->bg).e);
+    Shader(set_vec4)(edit->font->shader, "font.fg", Color(to_vec4)(font->fg).e);
+    glDrawArrays(GL_TRIANGLES, 0, 6 * (frame->focused.instance == edit ? edit->mesh.count : edit->mesh.count - 1));
     glDisable(GL_SCISSOR_TEST);
 }

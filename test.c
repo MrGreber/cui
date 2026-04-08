@@ -56,7 +56,7 @@ static bool __init(app_t* app) {
     App(push)(app, canvas);
     App(push)(app, edit);
     //App(push)(app, button);
-    print_comp_node(frame->header.components, 0);
+    Component(print_node)(frame->header.components, 0);
     return true;
 }
 static void __loop(app_t* app) {
@@ -69,13 +69,9 @@ static void __loop(app_t* app) {
     Frame(update)(frame);
 
 
-    // Button(bind)(button);
     // Button(update)(button, &projection);
-    Panel(bind)(panel);
     Panel(update)(panel, &projection);
-    Canvas(bind)(canvas);
     Canvas(update)(canvas, &projection);
-    Edit(bind)(edit);
     Edit(update)(edit, &projection);
 }
 static void __exit(app_t* app) {

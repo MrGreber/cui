@@ -70,7 +70,7 @@ frame_t* Frame(new)(const color_t bg, const u32 width, const u32 height, const c
         logError("new_frame - Failed to create frame window.");
         goto cleanup;
     }
-    frame->header.components = new_comp_node(frame, FRAME_COMPONENT);
+    frame->header.components = Component(new_node)(frame, FRAME_COMPONENT);
     if (!frame->header.components) {
         logError("new_frame - Failed to create component system.");
         goto cleanup;
@@ -105,7 +105,7 @@ frame_t* Frame(new)(const color_t bg, const u32 width, const u32 height, const c
     }
     return frame;
 cleanup:
-    if (frame->header.components) del_comp_node(frame->header.components);
+    if (frame->header.components) Component(del_node)(frame->header.components);
     Shader(del_cache)(frame);
     Buffer(del)(&(buf_t){.size = sizeof(frame_t), .tag = MEMTAG_FRAME, .ptr = frame});
     glfwTerminate();
@@ -115,7 +115,7 @@ void Frame(del)(frame_t* frame) {
     if (!frame) return;
     Shader(del_cache)(frame);
     Mesh(del_cache)(frame);
-    if (frame->header.components) del_comp_node(frame->header.components);
+    if (frame->header.components) Component(del_node)(frame->header.components);
     Buffer(del)(&(buf_t){.size = sizeof(frame_t), .tag = MEMTAG_FRAME, .ptr = frame});
     glfwTerminate();
 }

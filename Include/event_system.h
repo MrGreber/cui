@@ -141,7 +141,7 @@ typedef struct component_header {
 } comp_header_t;
 
 typedef struct component {
-    void* inst;
+    void* instance;
     comp_tag tag;
 } comp_t;
 
@@ -161,14 +161,14 @@ typedef struct component_node {
 __forceinline void* get_root(const void* comp) {
     comp_node_t* root = ((comp_node_t*)((comp_header_t*)comp)->components)->root;
     if (root == NULL) return (void*)comp;
-    return root->component.inst;
+    return root->component.instance;
 }
 
 #define Component(func) __component_##func
-comp_node_t* new_comp_node(void* data, const comp_tag tag);
-void del_comp_node(comp_node_t* root);
-bool push_comp_node(comp_node_t* root, void* val, const comp_tag tag);
-void print_comp_node(comp_node_t* root, u64 indent);
+comp_node_t* Component(new_node)(void* data, const comp_tag tag);
+void Component(del_node)(comp_node_t* root);
+bool Component(push_node)(comp_node_t* root, void* val, const comp_tag tag);
+void Component(print_node)(comp_node_t* root, u64 indent);
 
 void dispatch_event(const comp_node_t* node, event_t* event);
 

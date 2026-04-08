@@ -12,7 +12,7 @@
 
 static void private(mouse_callback)(const mouse_cb_param* param) {
     panel_t* panel = param->instance;
-    frame_t* frame = ((comp_node_t*)panel->header.components)->root->component.inst;
+    frame_t* frame = get_root(panel);
 
     if (param->action == GLFW_PRESS &&
         param->button == GLFW_MOUSE_BUTTON_LEFT &&
@@ -24,7 +24,7 @@ static void private(mouse_callback)(const mouse_cb_param* param) {
         panel->drag.prev.x = param->x;
         panel->drag.prev.y = param->y;
 
-        frame->captured.inst = panel;
+        frame->captured.instance = panel;
         frame->captured.tag  = PANEL_COMPONENT;
     }
     if (panel->drag.state) {
@@ -43,7 +43,7 @@ static void private(mouse_callback)(const mouse_cb_param* param) {
     }
     if (param->action == GLFW_RELEASE && param->button == GLFW_MOUSE_BUTTON_LEFT) {
         panel->drag.state = false;
-        frame->captured.inst = NULL;
+        frame->captured.instance = NULL;
         frame->captured.tag  = 0;
     }
 }
@@ -90,7 +90,7 @@ panel_t* Panel(new)(void* parent, style_group_t* group, const bounding_box* box)
 
     panel->header.mouse = (callback)private(mouse_callback);
     panel->header.resize = (callback)private(resize_callback);
-    push_comp_node(parent_header->components, panel, PANEL_COMPONENT);
+    Component(push_node)(parent_header->components, panel, PANEL_COMPONENT);
     return panel;
 cleanup:
     if (panel->sprite) Sprite(del)(panel->sprite);
@@ -104,12 +104,13 @@ void Panel(del)(panel_t* panel) {
 }
 void Panel(bind)(const panel_t* panel) {
     if (!panel) return;
-    frame_t* frame = get_root(panel);
+    const frame_t* frame = get_root(panel);
     Sprite(bind)(frame, panel->sprite);
 }
 
 void Panel(update)(panel_t* panel, const mat4* projection) {
     if (!panel) return;
+    const frame_t* frame = get_root(panel);
 
     if (panel->transform.init & 1) {
         const mat4 scale = m4_scale((f32)panel->header.box.width, (f32)panel->header.box.height, 1.0f);
@@ -122,6 +123,7 @@ void Panel(update)(panel_t* panel, const mat4* projection) {
         panel->transform.model = m4_mul(&panel->transform.model, &scale);
         panel->transform.init ^= 1;
     }
+    Sprite(bind)(frame, panel->sprite);
     Shader(set_mat4)(panel->sprite->shader, "projection", true, projection->e);
     Shader(set_mat4)(panel->sprite->shader, "model", true, panel->transform.model.e);
 

@@ -23,7 +23,7 @@ typedef struct uniform_hashmap {
 
 typedef enum shader_tag{
     COMP_SHADER = 0,
-    TEXT_SHADER,
+    FONT_SHADER,
     RECT_SHADER,
     __SHADER_TAG_COUNT__
 } shader_tag_t;

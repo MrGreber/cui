@@ -14,7 +14,7 @@ typedef struct sprite {
     shader_t* shader;
 } sprite_t;
 
-#define Sprite(func) __Sprite_##func
+#define Sprite(func) __sprite_##func
 sprite_t* Sprite(new)(frame_t* frame, const shader_tag_t tag);
 
 void Sprite(del)(sprite_t* sprite);
