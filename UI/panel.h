@@ -2,7 +2,6 @@
 
 #ifndef PANEL_H
 #define PANEL_H
-#include <utils.h>
 #include <sprite.h>
 
 #define EMBEDDED_POPUP U64(0x1)

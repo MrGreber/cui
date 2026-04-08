@@ -36,9 +36,10 @@ typedef struct radial_gradient {
 } radial_grad_t;
 
 typedef struct style {
-    u8 init;
-
-    u64 mode;
+    struct {
+        u64 mode: 63;
+        u64 init: 1;
+    };
     struct {
         union {
             color_t color;

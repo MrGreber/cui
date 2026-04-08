@@ -12,7 +12,7 @@
 #define HEIGHT 800
 
 static bool __init(app_t* app) {
-    frame_t* frame = Frame(new)(DARK_GRAY, WIDTH, HEIGHT, "Frame");
+    frame_t* frame = Frame(new)(TRANSP, WIDTH, HEIGHT, "Frame");
     if (!frame) return false;
 
     style_group_t group = {

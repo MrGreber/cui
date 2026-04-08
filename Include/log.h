@@ -73,14 +73,4 @@ void error_exit();
  * @brief Convenience macro to log a general message with file and line info
  */
 #define logInfo(format, ...) __post_error(__LOG__, __FILE__, __LINE__, format, ##__VA_ARGS__)
-
-/**
- * @brief Convenience assert macro that logs an error and jumps to a cleanup label
- * @param statement Expression to check
- * @param cleanup Label to jump to if statement is true
- * @param format printf-style message if the assertion fails
- * @param ... Additional arguments for the format string
- */
-#define assert(statement, cleanup, format, ...) if ((statement)) {logError(format, ##__VA_ARGS__); goto cleanup;}
-
 #endif // H_LOG

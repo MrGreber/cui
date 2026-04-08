@@ -2,7 +2,6 @@
 
 #ifndef EDIT_H
 #define EDIT_H
-#include <utils.h>
 #include <sprite.h>
 #include <font.h>
 #include <str.h>
