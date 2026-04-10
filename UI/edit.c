@@ -3,7 +3,7 @@
 #include <event_system.h>
 #include <math-utils.h>
 #include <frame.h>
-#include <log.h>
+#include <error.h>
 #include <shader/ops.h>
 #include <geometry/ops.h>
 
@@ -16,7 +16,7 @@
 
 static bool private(resize_text_mesh)(edit_t* edit) {
     if (edit->mesh.capacity == UINT64_MAX) {
-        logError("private(resize_text_mesh) - Failed to resize text mesh, mesh reached max size %d.", UINT16_MAX);
+        logError(ERR_HEAP_REALLOC, "Mesh reached max size %d.", UINT16_MAX);
         return false;
     }
 
@@ -33,7 +33,7 @@ static bool private(resize_text_mesh)(edit_t* edit) {
 }
 static void push_glyph_quad(edit_t* edit, const glyph_t* g, const f32 pen_x, const f32 pen_y) {
     if (edit->mesh.capacity <= edit->mesh.count && !private(resize_text_mesh)(edit)) {
-        logError("push_quad - Failed to resize text mesh.");
+        logError(ERR_HEAP_REALLOC, "Failed to resize text mesh.");
         return;
     }
 
@@ -298,7 +298,7 @@ static void private(resize_callback)(const resize_cb_param* param) {
 
 void Edit(set_text)(edit_t* edit, char_t* text, const u64 length) {
     if (!assign_str(edit->text.buffer, text, length)) {
-        logError("set_text - Failed to set edit, text.");
+        logWarn(ERR_STRING, "Failed to set edit, text.");
         return;
     }
     build_text_mesh(edit, 0.0, 0.0);
@@ -334,7 +334,7 @@ edit_t* Edit(new)(void* parent, const style_group_t* group, const bounding_box* 
     // Loads default font
     edit->font = Font(new)(frame, __DIR__"\\Resources\\vcr_osd_mono.fnt");
     if (!edit->font) {
-        logError("new_edit - Failed to load font.");
+        logError(ERR_LOADING, "Failed to load font.");
         goto cleanup;
     }
 

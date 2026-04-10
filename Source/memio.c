@@ -1,9 +1,8 @@
 #include <memio.h>
-#include <log.h>
+#include <error.h>
 
 #include <stdio.h>
 #include <malloc.h>
-#include <stdlib.h>
 #include <string.h>
 
 static u64 mem_table[__MEMTAG_COUNT__ - 1] = { 0 };
@@ -38,11 +37,11 @@ static char* mem_table_labels[__MEMTAG_COUNT__ - 1] = {
 
 bool Buffer(new)(buf_t* buffer, const bool zero) {
     if (!buffer) {
-        logWarn("new_buf - Invalid address NULL.");
+        logWarn(ERR_INVALID_PARAM, "Address 0x%p buffer.", NULL);
         return false;
     }
     if (!buffer->size || !buffer->tag) {
-        logWarn("new_buf - Missing field initializations.");
+        logWarn(ERR_INVALID_PARAM, "Missing field initializations.");
         return false;
     }
 
@@ -57,7 +56,7 @@ bool Buffer(new)(buf_t* buffer, const bool zero) {
         }
     }
     if (!buffer->ptr) {
-        logError("new_buf - Failed to allocate memory.");
+        logError(ERR_HEAP_ALLOC, "Failed to allocate %d\n", buffer->size);
         return false;
     }
     mem_table[buffer->tag - 1] += buffer->size;
@@ -65,15 +64,15 @@ bool Buffer(new)(buf_t* buffer, const bool zero) {
 }
 bool Buffer(renew)(buf_t* buffer, const u64 new_size) {
     if (!buffer) {
-        logWarn("renew_buf - Invalid address NULL.");
+        logWarn(ERR_INVALID_PARAM, "Address 0x%p buffer.", NULL);
         return false;
     }
     if (!buffer->size || !buffer->tag || !buffer->ptr) {
-        logWarn("renew_buf - Missing field initializations.");
+        logWarn(ERR_INVALID_PARAM, "Missing field initializations.");
         return false;
     }
     if (new_size <= buffer->size) {
-        logWarn("renew_buf - No Change to memory size.");
+        logWarn(ERR_HEAP_REALLOC, "No Change to memory size.");
         return false;
     }
 
@@ -89,7 +88,7 @@ bool Buffer(renew)(buf_t* buffer, const u64 new_size) {
         }
     }
     if (!new_ptr) {
-        logError("renew_buf - Failed to reallocate memory.");
+        logError(ERR_HEAP_REALLOC, "");
         return false;
     }
     buffer->ptr = new_ptr;
@@ -134,7 +133,7 @@ bool read_file(const char* path, buf_t* buffer) {
     FILE* stream = NULL;
 
     if (fopen_s(&stream, path, "rb") != 0) {
-        logError("read - Failed to open file: %s.", path);
+        logError(ERR_FILE_OPEN, "Failed to read file: %s.", path);
         return false;
     }
 

@@ -1,5 +1,5 @@
 #include <geometry/ops.h>
-#include <log.h>
+#include <error.h>
 #include <memio.h>
 #include <utils.h>
 #include <frame.h>
@@ -189,7 +189,7 @@ static static_mesh_t* private(new_static_mesh)(frame_t* frame, const mesh_tag_t 
     if (static_mesh->va) return static_mesh;
     static_mesh->va = VertexArray(new)(2);
     if (!static_mesh->va->id) {
-        logError("Mesh(new) - Failed to create vertex array for static mesh.");
+        logError(ERR_OPENGL, "Failed to create vertex array for static mesh.");
         goto static_cleanup;
     }
 
@@ -198,7 +198,7 @@ static static_mesh_t* private(new_static_mesh)(frame_t* frame, const mesh_tag_t 
     const u32 count = range->vert.count;
     static_mesh->vb = VertexBuffer(new)(false, vertices, count * sizeof(f32));
     if (!static_mesh->vb.id) {
-        logError("Mesh(new) - Failed to create vertex buffer for static mesh.");
+        logError(ERR_OPENGL, "Failed to create vertex buffer for static mesh.");
         goto static_cleanup;
     }
     VertexArray(bind)(static_mesh->va);
@@ -214,7 +214,7 @@ static static_mesh_t* private(new_static_mesh)(frame_t* frame, const mesh_tag_t 
     if (!frame->cache.static_meshes.eb.id) {
         frame->cache.static_meshes.eb = ElementBuffer(new)(false, __indices, sizeof(__indices));
         if (!frame->cache.static_meshes.eb.id) {
-            logError("Mesh(new) - Failed to create element buffer for static mesh.");
+            logError(ERR_OPENGL, "Failed to create element buffer for static mesh.");
             goto static_cleanup;
         }
     }
@@ -243,13 +243,13 @@ static dynamic_mesh_t* private(new_dynamic_mesh)(frame_t* frame, const mesh_para
     mesh_metadata_t* metadata = &dynamic_mesh->metadata;
     metadata->va = VertexArray(new)(2);
     if (!metadata->va->id) {
-        logError("Mesh(new) - Failed to create vertex array for dynamic mesh.");
+        logError(ERR_OPENGL, "Failed to create vertex array for dynamic mesh.");
         goto dynamic_cleanup;
     }
 
     metadata->vb = VertexBuffer(new)(true, NULL, params.capacity * sizeof(f32));
     if (!metadata->vb.id) {
-        logError("Mesh(new) - Failed to create vertex buffer for dynamic mesh.");
+        logError(ERR_OPENGL, "Failed to create vertex buffer for dynamic mesh.");
         goto dynamic_cleanup;;
     }
     VertexArray(bind)(metadata->va);
@@ -265,7 +265,7 @@ static dynamic_mesh_t* private(new_dynamic_mesh)(frame_t* frame, const mesh_para
     if (params.attributes & MESH_EB) {
         dynamic_mesh->eb = ElementBuffer(new)(true, NULL, params.capacity * sizeof(u32));
         if (!dynamic_mesh->eb.id) {
-            logError("Mesh(new) - Failed to create element buffer for dynamic mesh.");
+            logError(ERR_OPENGL, "Failed to create element buffer for dynamic mesh.");
             goto dynamic_cleanup;
         }
         dynamic_mesh->indices.capacity = params.capacity;
@@ -286,7 +286,7 @@ bool Mesh(new_cache)(frame_t* frame) {
 #define DEFAULT_CAPACITY 4
     buf_t buffer = { .size = sizeof(dynamic_mesh_t) * DEFAULT_CAPACITY, .tag = MEMTAG_MESH };
     if (!Buffer(new)(&buffer, false)) {
-        logError("Mesh(new_cache) - Failed to allocate dynamic meshes cache.");
+        logError(ERR_HEAP_ALLOC, "Failed to allocate dynamic meshes cache.");
         return false;
     }
     frame->cache.dynamic_meshes.data = buffer.ptr;

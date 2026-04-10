@@ -1,5 +1,5 @@
 #include <shader/ops.h>
-#include <log.h>
+#include <error.h>
 #include <memio.h>
 #include <utils.h>
 #include <frame.h>
@@ -10,20 +10,20 @@
 static u32 private(compile_shader)(const u32 type, const char* path) {
     buf_t buffer = { 0 };
     if (!read_file(path, &buffer)) {
-        logFatal("private(compile_shader) - Failed to read shader glsl file.");
+        logFatal(ERR_FILE_READ, "Failed to read shader glsl file.");
         return false;
     }
     const u32 id = glCreateShader(type);
     if (!id) goto cleanup;
-    glcall(glShaderSource(id, 1, (const GLchar**)&buffer.ptr, NULL), cleanup, "private(compile_shader) - Failed to build shader: %s.", path);
-    glcall(glCompileShader(id), cleanup, "private(compile_shader) - Failed to compile shader: %s.", path);
+    glcall(glShaderSource(id, 1, (const GLchar**)&buffer.ptr, NULL), cleanup, "Failed to build shader: %s.", path);
+    glcall(glCompileShader(id), cleanup, "Failed to compile shader: %s.", path);
 
     i32 success = 0;
-    glcall(glGetShaderiv(id, GL_COMPILE_STATUS, &success), cleanup, "private(compile_shader) - Failed to get shader: %s iv.", path);
+    glcall(glGetShaderiv(id, GL_COMPILE_STATUS, &success), cleanup, "Failed to get shader: %s iv.", path);
     if (!success) {
         char msg[512] = { 0 };
         glGetShaderInfoLog(id, 512, NULL, msg);
-        logError("private(compile_shader) - shader compilation error:\n%s", msg);
+        logError(ERR_OPENGL, "Shader compilation error:\n%s", msg);
         goto cleanup;
     }
     Buffer(del)(&buffer);
@@ -36,18 +36,18 @@ static u32 private(link_shaders)(const char* vertex_path, const char* fragment_p
     const u32 vert_id = private(compile_shader)(GL_VERTEX_SHADER, vertex_path);
     const u32 frag_id = private(compile_shader)(GL_FRAGMENT_SHADER, fragment_path);
     if (vert_id == 0 || frag_id == 0) {
-        logFatal("private(link_shader) - Failed to compile vertex/fragment shaders.");
+        logFatal(ERR_OPENGL, "Failed to compile vertex/fragment shaders.");
         goto cleanup;
     }
 
     const u32 id = glCreateProgram();
     if (!id) goto cleanup;
-    glcall(glAttachShader(id, vert_id), cleanup, "private(link_shader) - Failed to attach vertex shader.");
-    glcall(glAttachShader(id, frag_id), cleanup, "private(link_shader) - Failed to attach fragment shader.");
-    glcall(glLinkProgram(id), cleanup, "private(link_shader) - Failed to link shader.");
+    glcall(glAttachShader(id, vert_id), cleanup, "Failed to attach vertex shader.");
+    glcall(glAttachShader(id, frag_id), cleanup, "Failed to attach fragment shader.");
+    glcall(glLinkProgram(id), cleanup, "Failed to link shader.");
 
     i32 success = 0;
-    glcall(glGetProgramiv(id, GL_LINK_STATUS, &success), cleanup, "private(link_shader) - Failed to get shader iv.");
+    glcall(glGetProgramiv(id, GL_LINK_STATUS, &success), cleanup, "Failed to get shader iv.");
 
     glDeleteShader(vert_id);
     glDeleteShader(frag_id);
@@ -229,7 +229,7 @@ bool Shader(new_cache)(frame_t* frame) {
         if (shader->id == 0) {
             private(del_uniform_hashmap)(&frame->cache.uniforms);
             for (u32 i = 0; i < tag; i++) glDeleteProgram(frame->cache.shaders[i].id);
-            logFatal("Shader(new) - Failed to jerk off shader.");
+            logFatal(ERR_OPENGL, "Failed to jerk off shader.");
             return false;
         }
         glUseProgram(shader->id);
@@ -253,7 +253,7 @@ static i32 private(get_uniform)(shader_t* shader, const char* name) {
     if (uniform == NULL) {
         location = glGetUniformLocation(shader->id, name);
         if (location == -1) {
-            logFatal("private(get_uniform) - Failed to find uniform: %s.", name);
+            logFatal(ERR_OPENGL, "Failed to find uniform: %s.", name);
             return -1;
         }
 
@@ -266,7 +266,7 @@ bool Shader(set_mat4_array)(shader_t* shader, const char* name, const u32 count,
     const i32 location = private(get_uniform)(shader, name);
     if (location == -1) return false;
 
-    glcall(glUniformMatrix4fv(location, count, transpose, elements), cleanup, "Shader(set_mat4_array) - Failed to set matrix uniform.");
+    glcall(glUniformMatrix4fv(location, count, transpose, elements), cleanup, "Failed to set matrix uniform.");
     return true;
 cleanup:
     return false;
@@ -276,7 +276,7 @@ bool Shader(set_float)(shader_t* shader, const char* name, const f32 value) {
     const i32 location = private(get_uniform)(shader, name);
     if (location == -1) return false;
 
-    glcall(glUniform1f(location, value), cleanup, "Shader(set_float) - Failed to set float uniform.");
+    glcall(glUniform1f(location, value), cleanup, "Failed to set float uniform.");
     return true;
 cleanup:
     return false;
@@ -286,7 +286,7 @@ bool Shader(set_vec2_array)(shader_t* shader, const char* name, const u32 count,
     const i32 location = private(get_uniform)(shader, name);
     if (location == -1) return false;
 
-    glcall(glUniform2fv(location, count, elements), cleanup, "Shader(set_vec2_array) - Failed to set vector uniform.");
+    glcall(glUniform2fv(location, count, elements), cleanup, "Failed to set vector uniform.");
     return true;
 cleanup:
     return false;
@@ -296,7 +296,7 @@ bool Shader(set_vec4_array)(shader_t* shader, const char* name, const u32 count,
     const i32 location = private(get_uniform)(shader, name);
     if (location == -1) return false;
 
-    glcall(glUniform4fv(location, count, elements), cleanup, "Shader(set_vec2_array) - Failed to set vector uniform.");
+    glcall(glUniform4fv(location, count, elements), cleanup, "Failed to set vector uniform.");
     return true;
 cleanup:
     return false;

@@ -1,7 +1,7 @@
 #include <texture.h>
 #include <memio.h>
 #include <utils.h>
-#include <log.h>
+#include <error.h>
 
 #include <glad.h>
 #define STB_IMAGE_IMPLEMENTATION
@@ -107,7 +107,7 @@ color_t* Texture(load_image)(const char* path, u32* width, u32* height) {
     i32 channels = 0, _width, _height;
     byte* data = stbi_load(path, &_width, &_height, &channels, 4);
     if (data == NULL) {
-        logError("load_texture - Failed to load image:\n\t%s", stbi_failure_reason());
+        logError(ERR_FILE_READ, "Failed to load image:\n\t%s", stbi_failure_reason());
         return NULL;
     }
 
@@ -117,7 +117,7 @@ color_t* Texture(load_image)(const char* path, u32* width, u32* height) {
     };
     if (!Buffer(new)(&buffer, false)) {
         stbi_image_free(data);
-        logError("load_texture - Failed to allocate buffer for texture data.");
+        logError(ERR_HEAP_ALLOC, "Failed to allocate buffer for texture data.");
         return NULL;
     }
 
@@ -144,7 +144,7 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
     switch (style->background.type) {
         case BG_TEST: {
             if (!box) {
-                logError("gen_texture - Invalid parameter, box address %p.\n", NULL);
+                logError(ERR_INVALID_PARAM, "Address %p box.\n", NULL);
                 return false;
             }
             const u64 size = box->width * box->height * sizeof(color_t);
@@ -233,7 +233,7 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
         }
         case BG_COLOR: {
             if (!box) {
-                logError("gen_texture - Invalid parameter, box address %p.\n", NULL);
+                logError(ERR_INVALID_PARAM, "Address %p box.\n", NULL);
                 return false;
             }
             *out = Texture(new)(NULL, box->width, box->height);
@@ -251,7 +251,7 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
 
             const color_t* data = Texture(load_image)(style->background.image, &width, &height);
             if (!data) {
-                logError("gen_texture - Failed to load texture.");
+                logError(ERR_LOADING, "Failed to load texture.");
                 goto cleanup;
             }
             *out = Texture(new)(data, width, height);
@@ -270,6 +270,6 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
 
     return true;
 cleanup:
-    logError("gen_texture - Failed to generate texture.");
+    logError(ERR_GENERATION, "Failed to generate texture.");
     return false;
 }

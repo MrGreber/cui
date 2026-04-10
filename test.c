@@ -1,6 +1,6 @@
 #include <memio.h>
 #include <frame.h>
-#include <log.h>
+#include <error.h>
 #include <panel.h>
 #include <app.h>
 #include <edit.h>
@@ -90,17 +90,13 @@ static void __exit(app_t* app) {
 
 
 void test(void) {
-    open_logging("__log__.dat", true);
-    set_exitFlag(false);
-
+    Error(init)(NULL);
     app_t* app = App(new)((app_init_t)__init, (app_loop_t)__loop, (app_exit_t)__exit);
     if (app) {
         App(start)(app);
         App(exit)(app);
     }
     print_memtable();
-    set_exitFlag(true);
-    close_logging();
 }
 
 

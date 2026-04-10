@@ -1,7 +1,7 @@
+#include <frame.h>
 #include <camera.h>
 #include <event_system.h>
-#include <frame.h>
-#include <log.h>
+#include <error.h>
 #include <memio.h>
 #include <shader/ops.h>
 #include <geometry/ops.h>
@@ -17,7 +17,7 @@ static bool __init_glfw(void) {
     static bool flag = false;
     if (!flag) {
         if (!glfwInit()) {
-            logFatal("init_glfw - Failed to initialize GLFW");
+            logFatal(ERR_GLFW, "Failed to initialize GLFW");
             return false;
         }
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -34,7 +34,7 @@ static bool __init_glfw(void) {
 }
 static bool __init_glad(void) {
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        logError("__init_glad - Failed to initialize GLAD function.");
+        logError(ERR_GLFW, "Failed to initialize GLAD function.");
         return false;
     }
 
@@ -67,12 +67,12 @@ frame_t* Frame(new)(const color_t bg, const u32 width, const u32 height, const c
     if (!__init_glfw()) goto cleanup;
     frame->ctx = glfwCreateWindow(width, height, title, 0, 0);
     if (!frame->ctx) {
-        logError("new_frame - Failed to create frame window.");
+        logError(ERR_GLFW, "Failed to create frame window.");
         goto cleanup;
     }
     frame->header.components = Component(new_node)(frame, FRAME_COMPONENT);
     if (!frame->header.components) {
-        logError("new_frame - Failed to create component system.");
+        logError(ERR_COMPONENT_SYSTEM, "Failed to create component system.");
         goto cleanup;
     }
 
@@ -96,11 +96,11 @@ frame_t* Frame(new)(const color_t bg, const u32 width, const u32 height, const c
     frame->title = (char*)title;
     frame->flags = FLAG_DEFAULT_STATE;
     if (!Shader(new_cache)(frame)) {
-        logError("new_frame - Failed to create shader cache.");
+        logError(ERR_SHADER_CACHE, "Failed to create shader cache.");
         goto cleanup;
     }
     if (!Mesh(new_cache)(frame)) {
-        logError("Frame(new) - Failed to create mesh cache.");
+        logError(ERR_MESH_CACHE, "Failed to create mesh cache.");
         goto cleanup;
     }
     return frame;

@@ -1,6 +1,6 @@
 #include <app.h>
 #include <memio.h>
-#include <log.h>
+#include <error.h>
 #include <frame.h>
 
 #include <glfw3.h>
@@ -48,7 +48,7 @@ void App(start)(app_t* app) {
 }
 static bool private(resize_var_array)(app_t* app) {
     if (app->capacity == UINT16_MAX) {
-        logError("__resize_app_vars - Failed to resize vars app, vars reached max size %d.", UINT16_MAX);
+        logWarn(ERR_HEAP_REALLOC, "Failed to resize vars app, vars reached max size %d.", UINT16_MAX);
         return false;
     }
 
@@ -66,16 +66,16 @@ static bool private(resize_var_array)(app_t* app) {
 void App(push)(app_t* app, void* var) {
     if (!app) return;
 
-    if (app->capacity <= app->count && !private(resize_var_array)(app)) goto cleanup;
+    if (app->capacity <= app->count && !private(resize_var_array)(app)) {
+        logError(ERR_HEAP_REALLOC, "Failed to resize app vars.");
+        return;
+    }
     ((u64*)app->vars)[app->count++] = (u64)var;
-    return;
-cleanup:
-    logError("push_app_var - Failed to resize app vars.");
 }
 void* App(get)(const app_t* app, const u16 index) {
     if (!app) return NULL;
     if (index >= app->count) {
-        logError("get_app_var - Failed to get app var, index %d out of bound.", index);
+        logWarn(ERR_OUT_OF_BOUNDS, "Failed to get app var %d.", index);
         return NULL;
     }
 

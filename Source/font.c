@@ -3,7 +3,7 @@
 #include <event_system.h>
 #include <math-utils.h>
 #include <shader/ops.h>
-#include <log.h>
+#include <error.h>
 
 #include <stdlib.h>
 #include <memory.h>
@@ -226,14 +226,14 @@ void Font(bind)(const font_t* font) {
 }
 void Font(set)(font_t* font, const char* path, const color_t fg, const color_t bg) {
     if (!font) {
-        logError("set_font - Invalid parameter edit, address %p edit.\n", NULL);
+        logWarn(ERR_INVALID_PARAM, "address %p edit.\n", NULL);
         return;
     }
     if (path) {
         Texture(del)(font->atlas);
         Buffer(del)(&(buf_t){.ptr = font->glyphs, .size = sizeof(glyph_t) * font->glyph_count, .tag = MEMTAG_FONT});
         if (!private(parse_fnt)(font, path)) {
-            logError("set_font - Failed to load font.");
+            logError(ERR_LOADING, "Failed to load font.");
             return;
         }
     }

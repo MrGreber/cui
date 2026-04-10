@@ -1,5 +1,4 @@
 #include <utils.h>
-#include <log.h>
 #include <memio.h>
 #include <texture.h>
 
@@ -7,7 +6,6 @@
 #include <stdio.h>
 #include <glfw3.h>
 #include <immintrin.h>
-#include <omp.h>
 
 
 void __gl_clear_error(void) {

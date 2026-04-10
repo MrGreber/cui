@@ -1,6 +1,6 @@
 #include <str.h>
 #include <memio.h>
-#include <log.h>
+#include <error.h>
 
 #include <memory.h>
 #include <string.h>
@@ -16,7 +16,7 @@ static u64 __static_length(char_t* data) {
 }
 static bool __resize_string(str_t* src) {
     if (src->capacity == UINT64_MAX) {
-        logError("__resize_app_vars - Failed to resize vars app, vars reached max size %d.", UINT16_MAX);
+        logError(ERR_HEAP_REALLOC, "vars reached max size %d.", UINT16_MAX);
         return false;
     }
 
@@ -46,7 +46,7 @@ str_t* new_str(char_t* data, u64 length) {
         .tag = MEMTAG_STRING
     };
     if (!Buffer(new)(&buffer, false)) {
-        logError("new_str - Failed to allocate string.");
+        logError(ERR_HEAP_ALLOC, "Failed to allocate string.");
         return NULL;
     }
     str_t* string = buffer.ptr;
@@ -60,7 +60,7 @@ str_t* new_str(char_t* data, u64 length) {
     };
     if (!Buffer(new)(&buffer, true)) {
         Buffer(del)(&(buf_t){.ptr = string, .size = sizeof(str_t), .tag = MEMTAG_BYTE});
-        logError("new_str - Failed to allocate string buffer.");
+        logError(ERR_HEAP_ALLOC, "Failed to allocate string buffer.");
         return NULL;
     }
     string->data = buffer.ptr;
@@ -116,7 +116,7 @@ bool push_char(str_t* src, const char_t c) {
     src->data[src->length++] = c;
     return true;
 cleanup:
-    logError("push_char - Failed to resize string buffer.");
+    logError(ERR_HEAP_REALLOC, "Failed to resize string buffer.");
     return false;
 }
 bool insert_char(str_t* src, const u64 index, const char_t c) {
@@ -130,7 +130,7 @@ bool insert_char(str_t* src, const u64 index, const char_t c) {
     src->length++;
     return true;
 cleanup:
-    logError("insert_char - Failed to resize string buffer.");
+    logError(ERR_HEAP_REALLOC, "Failed to resize string buffer.");
     return false;
 }
 bool concat_str(str_t* dst, str_t* src) {

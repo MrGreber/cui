@@ -93,12 +93,10 @@ do { \
     call; \
     GLenum err = glGetError(); \
     if (err != GL_NO_ERROR) { \
-        logFatal("Function call failed: %s, OpenGL error: %d.\n"msg, #call, err, ##__VA_ARGS__); \
+        logFatal(ERR_OPENGL, "Function call failed: %s, OpenGL error: %d.\n"msg, #call, err, ##__VA_ARGS__); \
         goto cleanup; \
     } \
 } while (0)
-
-#define foreach(X, ITER) for(byte* X = ITER; *X != 0; X += sizeof(*ITER))
 
 void aligned_memset(u32* buffer, const u32 val, const u64 size);
 
