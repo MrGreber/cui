@@ -7,9 +7,9 @@
 vert_buf_t VertexBuffer(new)(const bool dynamic, const void* vertices, const u32 size) {
     vert_buf_t vb = { 0 };
     u32 id;
-    glcall(glGenBuffers(1, &id), cleanup, "VertexBuffer(new) - Failed to allocate vertex buffer.");
+    glcall(glGenBuffers(1, &id), cleanup, "Failed to allocate vertex buffer.");
     glBindBuffer(GL_ARRAY_BUFFER, id);
-    glcall(glBufferData(GL_ARRAY_BUFFER, size, vertices, dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW), cleanup, "VertexBuffer(new) - Failed to copy vertex buffer data.");
+    glcall(glBufferData(GL_ARRAY_BUFFER, size, vertices, dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW), cleanup, "Failed to copy vertex buffer data.");
     vb.gl_id = id;
     vb.dynamic = dynamic;
     return vb;
@@ -23,9 +23,9 @@ cleanup:
 elem_buf_t ElementBuffer(new)(const bool dynamic, const u32* indices, const u32 size) {
     elem_buf_t eb = { 0 };
     u32 id;
-    glcall(glGenBuffers(1, &id), cleanup, "ElementBuffer(new) - Failed to allocate element buffer.");
+    glcall(glGenBuffers(1, &id), cleanup, "Failed to allocate element buffer.");
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id);
-    glcall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, indices, dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW), cleanup, "ElementBuffer(new) - Failed to copy element buffer data.");
+    glcall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, indices, dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW), cleanup, "Failed to copy element buffer data.");
     eb.gl_id = id;
     eb.dynamic = dynamic;
     return eb;
@@ -48,7 +48,7 @@ vert_array_t* VertexArray(new)(u64 capacity) {
     capacity = __closest_pow2(capacity);
     vert_array_t* va = buffer.ptr;
     va->elem = 0;
-    glcall(glGenVertexArrays(1, &va->id), cleanup, "VertexArray(new) - Failed to allocate vertex array.");
+    glcall(glGenVertexArrays(1, &va->id), cleanup, "Failed to allocate vertex array.");
 
     buffer = (buf_t){
         .size = capacity * sizeof(vert_elem_t),
@@ -162,27 +162,16 @@ struct mesh_range {
     struct { u32 offset, count; } idx;
     u8 attributes;
 };
-const static u32 __indices[] = {
-    // rectangle
-    2,1,0,
-    2,3,1
-};
-const static f32 __vertices[] = {
-    // rectangle
-    0.0f, 0.0f, 0.0f, 0.0f,
-    1.0f, 0.0f, 1.0f, 0.0f,
-    0.0f, 1.0f, 0.0f, 1.0f,
-    1.0f, 1.0f, 1.0f, 1.0f
-};
 const static struct mesh_range __mesh_table[__MESH_TAG_COUNT__] = {
     {0, 16, 0, 6, MESH_2D | MESH_UV | MESH_EB}
 };
+#include <geometry/static_meshes.h>
 
 static const struct { u8 bit; u8 count; } __attributes_table[] = {
-    { MESH_2D,   2 },
-    { MESH_3D,   3 },
-    { MESH_UV,   2 },
-    { MESH_NR, 3 },
+    { MESH_2D, 2 },
+    { MESH_3D, 3 },
+    { MESH_UV, 2 },
+    { MESH_NORM, 3 },
 };
 static static_mesh_t* private(new_static_mesh)(frame_t* frame, const mesh_tag_t tag) {
     static_mesh_t* static_mesh = &frame->cache.static_meshes.data[tag];

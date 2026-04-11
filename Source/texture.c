@@ -17,12 +17,12 @@ texture_t* Texture(new)(const color_t* data, const u32 width, const u32 height) 
     if (!Buffer(new)(&buffer, false)) return NULL;
 
     texture_t* tex = buffer.ptr;
-    glcall(glGenTextures(1, &tex->id), cleanup, "new_texture - Failed to generate texture.");
-    glcall(glBindTexture(GL_TEXTURE_2D, tex->id), cleanup, "new_texture - Failed to bind texture");
-    glcall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE), cleanup, "new_texture - Failed to set texture parameter WRAP_S.");
-    glcall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE), cleanup, "new_texture - Failed to set texture parameter WRAP_T.");
-    glcall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST), cleanup, "new_texture - Failed to set texture parameter MIN_FILTER.");
-    glcall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST), cleanup, "new_texture - Failed to set texture parameter MAG_FILTER.");
+    glcall(glGenTextures(1, &tex->id), cleanup, "Failed to generate texture.");
+    glcall(glBindTexture(GL_TEXTURE_2D, tex->id), cleanup, "nFailed to bind texture");
+    glcall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE), cleanup, "Failed to set texture parameter WRAP_S.");
+    glcall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE), cleanup, "Failed to set texture parameter WRAP_T.");
+    glcall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST), cleanup, "Failed to set texture parameter MIN_FILTER.");
+    glcall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST), cleanup, "Failed to set texture parameter MAG_FILTER.");
 
     glcall(glTexImage2D(
         GL_TEXTURE_2D,
@@ -33,18 +33,17 @@ texture_t* Texture(new)(const color_t* data, const u32 width, const u32 height) 
         GL_RGBA,
         GL_UNSIGNED_BYTE,
         data
-    ), cleanup, "new_texture - Failed to allocate texture.");
+    ), cleanup, "Failed to allocate texture.");
 
-    glcall(glGenFramebuffers(1, &tex->fb_id), cleanup, "new_texture - Failed to generate frame buffer.");
-    glcall(glBindFramebuffer(GL_FRAMEBUFFER, tex->fb_id), cleanup, "new_texture - Failed to bind frame buffer.");
+    glcall(glGenFramebuffers(1, &tex->fb_id), cleanup, "Failed to generate frame buffer.");
+    glcall(glBindFramebuffer(GL_FRAMEBUFFER, tex->fb_id), cleanup, "Failed to bind frame buffer.");
     glcall(glFramebufferTexture2D(
         GL_FRAMEBUFFER,
         GL_COLOR_ATTACHMENT0,
         GL_TEXTURE_2D,
         tex->id,
         0
-    ), cleanup, "new_texture - Failed to set frame buffer texture");
-    glcall(glDrawBuffers(1, (u32[1]){ GL_COLOR_ATTACHMENT0 }), cleanup, "new_texture - Failed to set color attachment.");
+    ), cleanup, "Failed to set frame buffer texture");
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     return tex;
 cleanup:
