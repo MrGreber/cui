@@ -92,6 +92,7 @@ static void __exit(app_t* app) {
 void test(void) {
     Error(init)(NULL);
     app_t* app = App(new)((app_init_t)__init, (app_loop_t)__loop, (app_exit_t)__exit);
+    Error(dump)();
     if (app) {
         App(start)(app);
         App(exit)(app);

@@ -12,6 +12,6 @@ uniform mat4 model;
 out vec2 o_tpos;
 
 void main(void) {
-    gl_Position =  projection * model * vec4(gpos, 0.0, 1.0);
+    gl_Position = projection * model * vec4(gpos, 0.0, 1.0);
     o_tpos = i_tpos;
 }

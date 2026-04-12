@@ -15,6 +15,6 @@ uniform Font font;
 void main(void) {
     vec4 texture_color = texture(tex, o_tpos);
     //out_color = texture_color;
-    if (texture_color.rgb == 0.0) out_color = texture_color * font.bg;
+    if (texture_color.r == 0.0 && texture_color.g == 0.0 && texture_color.b == 0.0) out_color = texture_color * font.bg;
     else out_color = texture_color * font.fg;
 }

@@ -48,7 +48,6 @@ static u32 private(link_shaders)(const char* vertex_path, const char* fragment_p
 
     i32 success = 0;
     glcall(glGetProgramiv(id, GL_LINK_STATUS, &success), cleanup, "Failed to get shader iv.");
-
     glDeleteShader(vert_id);
     glDeleteShader(frag_id);
     return id;
@@ -87,7 +86,10 @@ static bool private(new_uniform_hashmap)(uniform_hashmap_t* map) {
     return true;
 }
 static void private(del_uniform_hashmap)(uniform_hashmap_t* map) {
-    if (map->entries) Buffer(del)(&(buf_t){ .ptr = map->entries, .size = sizeof(entry_t) * map->capacity, .tag = MEMTAG_SHADER});
+    if (map->entries) {
+        Buffer(del)(&(buf_t){ .ptr = map->entries, .size = sizeof(entry_t) * map->capacity, .tag = MEMTAG_SHADER});
+        map->entries = NULL;
+    }
 }
 static bool private(resize_uniform_hashmap)(uniform_hashmap_t* map) {
     u32 tmp = 0;
@@ -226,6 +228,7 @@ bool Shader(new_cache)(frame_t* frame) {
         const char* tag_label = __shader_paths[tag].tag;
         if (frame->cache.uniforms.entries == NULL && !private(new_uniform_hashmap)(&frame->cache.uniforms)) return false;
         shader->id = private(link_shaders)(vertex_path, fragment_path);
+
         if (shader->id == 0) {
             private(del_uniform_hashmap)(&frame->cache.uniforms);
             for (u32 i = 0; i < tag; i++) glDeleteProgram(frame->cache.shaders[i].id);
