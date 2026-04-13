@@ -28,7 +28,7 @@ typedef struct button {
 button_t* Button(new)(void* parent, style_group_t* group, const bounding_box* box);
 void Button(del)(button_t* button);
 void Button(bind)(const button_t* button);
-void Button(update)(button_t* button, const mat4* projection);
+void Button(update)(button_t* button);
 __forceinline void Button(set_callback)(button_t* button, const button_callback callback) {
     button->on_click = callback;
 }

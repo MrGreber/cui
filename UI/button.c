@@ -72,7 +72,7 @@ void Button(bind)(const button_t* button) {
     Sprite(bind)(frame, button->sprite);
 }
 
-void Button(update)(button_t* button, const mat4* projection) {
+void Button(update)(button_t* button) {
     if (!button) return;
     const frame_t* frame = get_root(button);
 
@@ -88,7 +88,7 @@ void Button(update)(button_t* button, const mat4* projection) {
         button->transform.init ^= 1;
     }
     Sprite(bind)(frame, button->sprite);
-    Shader(set_mat4)(button->sprite->shader, "projection", true, projection->e);
+    Shader(set_mat4)(button->sprite->shader, "projection", true, frame->cache.projection.e);
     Shader(set_mat4)(button->sprite->shader, "model", true, button->transform.model.e);
 
     const style_t* style = &button->styles.normal;

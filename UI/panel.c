@@ -108,7 +108,7 @@ void Panel(bind)(const panel_t* panel) {
     Sprite(bind)(frame, panel->sprite);
 }
 
-void Panel(update)(panel_t* panel, const mat4* projection) {
+void Panel(update)(panel_t* panel) {
     if (!panel) return;
     const frame_t* frame = get_root(panel);
 
@@ -124,7 +124,7 @@ void Panel(update)(panel_t* panel, const mat4* projection) {
         panel->transform.init ^= 1;
     }
     Sprite(bind)(frame, panel->sprite);
-    Shader(set_mat4)(panel->sprite->shader, "projection", true, projection->e);
+    Shader(set_mat4)(panel->sprite->shader, "projection", true, frame->cache.projection.e);
     Shader(set_mat4)(panel->sprite->shader, "model", true, panel->transform.model.e);
 
     const style_t* style = &panel->styles.normal;

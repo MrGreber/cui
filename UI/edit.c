@@ -396,7 +396,7 @@ void Edit(bind)(const edit_t* edit) {
 }
 
 #define CLOCK_TIME 0.02
-void Edit(update)(edit_t* edit, const mat4* projection) {
+void Edit(update)(edit_t* edit) {
     if (!edit) return;
     const frame_t* frame = get_root(edit);
     const font_t* font = edit->font;
@@ -416,7 +416,7 @@ void Edit(update)(edit_t* edit, const mat4* projection) {
         edit->transform.init ^= 1;
     }
     Sprite(bind)(frame, edit->sprite);
-    Shader(set_mat4)(edit->sprite->shader, "projection", true, projection->e);
+    Shader(set_mat4)(edit->sprite->shader, "projection", true, frame->cache.projection.e);
     Shader(set_mat4)(edit->sprite->shader, "model", true, edit->transform.model.e);
     Shader(set_float)(edit->sprite->shader, "border.radius", style->border.radius);
     Shader(set_float)(edit->sprite->shader, "border.thickness", style->border.thickness);
@@ -477,7 +477,7 @@ void Edit(update)(edit_t* edit, const mat4* projection) {
     );
     VertexArray(bind)(edit->mesh.va);
     Font(bind)(edit->font);
-    Shader(set_mat4)(edit->font->shader, "projection", true, projection->e);
+    Shader(set_mat4)(edit->font->shader, "projection", true, frame->cache.projection.e);
     Shader(set_mat4)(edit->font->shader, "model", true, model.e);
     Shader(set_vec4)(edit->font->shader, "font.bg", Color(to_vec4)(font->bg).e);
     Shader(set_vec4)(edit->font->shader, "font.fg", Color(to_vec4)(font->fg).e);

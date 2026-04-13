@@ -42,6 +42,6 @@ canvas_t* Canvas(new)(void* parent, const u32 width, const u32 height);
 void Canvas(del)(canvas_t* canvas);
 void Canvas(bind)(canvas_t* canvas);
 void Canvas(set_brush)(canvas_t* canvas, const color_t color, const f32 size);
-void Canvas(update)(canvas_t* canvas, const mat4* projection);
+void Canvas(update)(canvas_t* canvas);
 
 #endif //CANVAS_H

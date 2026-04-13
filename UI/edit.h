@@ -42,6 +42,6 @@ edit_t* Edit(new)(void* parent, const style_group_t* group, const bounding_box* 
 void Edit(del)(edit_t* edit);
 void Edit(bind)(const edit_t* edit);
 void Edit(set_text)(edit_t* edit, char_t* text, const u64 length);
-void Edit(update)(edit_t* edit, const mat4* projection);
+void Edit(update)(edit_t* edit);
 
 #endif //EDIT_H

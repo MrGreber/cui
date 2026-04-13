@@ -65,14 +65,12 @@ static void __loop(app_t* app) {
     canvas_t* canvas = App(get)(app, 1);
     edit_t* edit = App(get)(app, 2);
     //button_t* button = App(get)(app, 3);
-    const mat4 projection = m4_ortho(0.0f, (f32)frame->header.box.width, (f32)frame->header.box.height, 0.0f, -1.0f, 1.0f);
     Frame(update)(frame);
 
-
-    // Button(update)(button, &projection);
-    Panel(update)(panel, &projection);
-    Canvas(update)(canvas, &projection);
-    Edit(update)(edit, &projection);
+    // Button(update)(button);
+    Panel(update)(panel);
+    Canvas(update)(canvas);
+    Edit(update)(edit);
 }
 static void __exit(app_t* app) {
     frame_t* frame = app->frame;

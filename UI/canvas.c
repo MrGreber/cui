@@ -176,7 +176,7 @@ void Canvas(set_brush)(canvas_t* canvas, const color_t color, const f32 size) {
     canvas->brush.size = size;
 }
 
-void Canvas(update)(canvas_t* canvas, const mat4* projection) {
+void Canvas(update)(canvas_t* canvas) {
     if (!canvas) return;
     const frame_t* frame = get_root(canvas);
     const comp_header_t* parent_header = (comp_header_t*)canvas->parent;
@@ -204,7 +204,7 @@ void Canvas(update)(canvas_t* canvas, const mat4* projection) {
     }
 
     Sprite(bind)(frame, canvas->sprite);
-    Shader(set_mat4)(canvas->sprite->shader, "projection", true, projection->e);
+    Shader(set_mat4)(canvas->sprite->shader, "projection", true, frame->cache.projection.e);
     Shader(set_mat4)(canvas->sprite->shader, "model", true, canvas->transform.model.e);
 
     glEnable(GL_SCISSOR_TEST);

@@ -59,9 +59,11 @@ typedef struct mesh_parameters {
 } mesh_param_t;
 #define MESH_2D         (1 << 0)
 #define MESH_3D         (1 << 1)
-#define MESH_UV         (1 << 2)
-#define MESH_NORM       (1 << 3)
-#define MESH_TEX_IDX    (1 << 6)
+#define MESH_UV0        (1 << 2)
+#define MESH_UV1        (1 << 3)
+#define MESH_TEX_IDX    (1 << 4)
+#define MESH_COLOR      (1 << 5)
+#define MESH_NORM       (1 << 6)
 #define MESH_EB         (1 << 7)
 #define Mesh(func) __mesh_##func
 mesh_t* Mesh(new)(frame_t* frame, const mesh_param_t params);

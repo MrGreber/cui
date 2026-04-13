@@ -163,14 +163,14 @@ struct mesh_range {
     u8 attributes;
 };
 const static struct mesh_range __mesh_table[__MESH_TAG_COUNT__] = {
-    {0, 16, 0, 6, MESH_2D | MESH_UV | MESH_EB}
+    {0, 16, 0, 6, MESH_2D | MESH_UV0 | MESH_EB}
 };
 #include <geometry/static_meshes.h>
 
 static const struct { u8 bit; u8 count; } __attributes_table[] = {
     { MESH_2D, 2 },
     { MESH_3D, 3 },
-    { MESH_UV, 2 },
+    { MESH_UV0, 2 },
     { MESH_NORM, 3 },
 };
 static static_mesh_t* private(new_static_mesh)(frame_t* frame, const mesh_tag_t tag) {

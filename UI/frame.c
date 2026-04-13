@@ -103,6 +103,7 @@ frame_t* Frame(new)(const color_t bg, const u32 width, const u32 height, const c
         logError(ERR_MESH_CACHE, "Failed to create mesh cache.");
         goto cleanup;
     }
+    frame->cache.projection = m4_ortho(0.0f, (f32)frame->header.box.width, (f32)frame->header.box.height, 0.0f, -1.0f, 1.0f);
     return frame;
 cleanup:
     if (frame->header.components) Component(del_node)(frame->header.components);

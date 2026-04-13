@@ -33,6 +33,6 @@ typedef struct panel {
 panel_t* Panel(new)(void* parent, style_group_t* group, const bounding_box* box);
 void Panel(del)(panel_t* panel);
 void Panel(bind)(const panel_t* panel);
-void Panel(update)(panel_t* panel, const mat4* projection);
+void Panel(update)(panel_t* panel);
 
 #endif //PANEL_H
