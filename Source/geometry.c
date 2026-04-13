@@ -239,7 +239,7 @@ static dynamic_mesh_t* private(new_dynamic_mesh)(frame_t* frame, const mesh_para
     metadata->vb = VertexBuffer(new)(true, NULL, params.capacity * sizeof(f32));
     if (!metadata->vb.id) {
         logError(ERR_OPENGL, "Failed to create vertex buffer for dynamic mesh.");
-        goto dynamic_cleanup;;
+        goto dynamic_cleanup;
     }
     VertexArray(bind)(metadata->va);
     VertexBuffer(bind)(metadata->vb);
