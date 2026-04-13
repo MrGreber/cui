@@ -354,6 +354,10 @@ __forceinline vec4 mv4_mul(const mat4* M, const vec4* v) {
     return out;
 }
 
+__forceinline vec4 v4_scale(vec4 v, const f32 s) {
+    return (vec4){v.x * s, v.y * s, v.z * s, v.w * s};
+}
+
 __forceinline void print_m4(const mat4* matrix) {
     const f32* m = matrix->e;
 

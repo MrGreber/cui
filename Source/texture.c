@@ -259,6 +259,27 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
             break;
         }
         case BG_LINEAR_GRADIENT: {
+            if (!box) {
+                logError(ERR_INVALID_PARAM, "Address %p box.\n", NULL);
+                return false;
+            }
+            const u64 size = box->width * box->height * sizeof(color_t);
+            buf_t buffer = { .size = size, .tag = MEMTAG_COLOR };
+            if (!Buffer(new)(&buffer, false)) goto cleanup;
+
+            color_t* gradient = buffer.ptr;
+            const vec4 c = Color(to_vec4)(style->background.linear_gradient->metadata.colors[0]);
+            for (u32 y = 0; y < box->height; y++) {
+                const f32 grad_factor = (f32)y / (f32)box->height;
+                const vec4 grad = v4_scale(c, grad_factor);
+                for (u32 x = 0; x < box->width; x++) {
+                    const u32 idx = y * box->width + x;
+                    gradient[idx].hex = Color(vec4_to_rgb)(grad).hex;
+                }
+            }
+            *out = Texture(new)(gradient, box->width, box->height);
+            Buffer(del)(&(buf_t){.ptr = (void*)gradient, .size = size, .tag = MEMTAG_COLOR});
+            if (!*out) goto cleanup;
             break;
         }
         case BG_RADIAL_GRADIENT: {
@@ -269,6 +290,6 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
 
     return true;
 cleanup:
-    logError(ERR_GENERATION, "Failed to generate texture.");
+    logError(ERR_GENERATION, "Failed to generate texture of type %d.", style->background.type);
     return false;
 }

@@ -15,12 +15,15 @@ static bool __init(app_t* app) {
     frame_t* frame = Frame(new)(DARK_GRAY, WIDTH, HEIGHT, "Frame");
     if (!frame) return false;
 
+    linear_grad_t gradient = {
+        .metadata = {.colors = (color_t[1]){ RED }}
+    };
     style_group_t group = {
         .normal = {
             .init = true,
             .background = {
                 .type = BG_TEST,
-                //.image = __DIR__"\\Resources\\heisenberg.jpg",
+                //.image = __DIR__"\\Resources\\heisenberg.jpg"
                 .mask = MAGENTA
             },
             .border = {
