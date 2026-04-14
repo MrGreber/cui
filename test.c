@@ -16,15 +16,16 @@ static bool __init(app_t* app) {
     if (!frame) return false;
 
     linear_grad_t gradient = {
-        .metadata = {.colors = (color_t[1]){ RED }}
+        .metadata = {.colors = (color_t[3]){ RED , BLUE , MAGENTA}}
     };
     style_group_t group = {
         .normal = {
             .init = true,
             .background = {
-                .type = BG_TEST,
+                .type = BG_LINEAR_GRADIENT,
                 //.image = __DIR__"\\Resources\\heisenberg.jpg"
-                .mask = MAGENTA
+                .linear_gradient = &gradient,
+                .mask = WHITE
             },
             .border = {
                 .color = BLACK,

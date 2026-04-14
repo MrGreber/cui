@@ -268,13 +268,20 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
             if (!Buffer(new)(&buffer, false)) goto cleanup;
 
             color_t* gradient = buffer.ptr;
-            const vec4 c = Color(to_vec4)(style->background.linear_gradient->metadata.colors[0]);
+            const vec4 c1 = Color(to_vec4)(style->background.linear_gradient->metadata.colors[0]);
+            const vec4 c2 = Color(to_vec4)(style->background.linear_gradient->metadata.colors[1]);
+            const vec4 c3 = Color(to_vec4)(style->background.linear_gradient->metadata.colors[2]);
+            f32 inv_height = 1.0f / (f32)box->height;
             for (u32 y = 0; y < box->height; y++) {
-                const f32 grad_factor = (f32)y / (f32)box->height;
-                const vec4 grad = v4_scale(c, grad_factor);
+                const f32 grad = y * inv_height;
                 for (u32 x = 0; x < box->width; x++) {
                     const u32 idx = y * box->width + x;
-                    gradient[idx].hex = Color(vec4_to_rgb)(grad).hex;
+                    gradient[idx].hex = Color(vec4_to_rgb)((vec4){
+                        .x = grad * (c2.x - c1.x) + c1.x,
+                        .y = grad * (c2.y - c1.y) + c1.y,
+                        .z = grad * (c2.z - c1.z) + c1.z,
+                        .w = 1.0f
+                    }).hex;
                 }
             }
             *out = Texture(new)(gradient, box->width, box->height);
