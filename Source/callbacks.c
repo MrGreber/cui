@@ -20,6 +20,7 @@ void __resize_callback(GLFWwindow* window, const i32 width, const i32 height) {
     frame->header.box.width = (u32)width;
     frame->header.box.height = (u32)height;
 
+    frame->cache.projection = m4_ortho(0.0f, (f32)frame->header.box.width, (f32)frame->header.box.height, 0.0f, -1.0f, 1.0f);
     event_t event = {
         .param.resize = {.height = delta_height, .width = delta_width},
         .tag = __RESIZE_EVENT__

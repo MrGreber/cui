@@ -16,7 +16,11 @@ static bool __init(app_t* app) {
     if (!frame) return false;
 
     linear_grad_t gradient = {
-        .metadata = {.colors = (color_t[3]){ RED , BLUE , MAGENTA}}
+        .metadata = {
+            .colors = (color_t[4]){ RED , BLUE , MAGENTA, GREEN},
+            .positions = (f32[4]){0.0f, 0.2f, 0.8f, 1.0f},
+            .count = 4
+        }
     };
     style_group_t group = {
         .normal = {

@@ -267,25 +267,41 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
             buf_t buffer = { .size = size, .tag = MEMTAG_COLOR };
             if (!Buffer(new)(&buffer, false)) goto cleanup;
 
-            color_t* gradient = buffer.ptr;
-            const vec4 c1 = Color(to_vec4)(style->background.linear_gradient->metadata.colors[0]);
-            const vec4 c2 = Color(to_vec4)(style->background.linear_gradient->metadata.colors[1]);
-            const vec4 c3 = Color(to_vec4)(style->background.linear_gradient->metadata.colors[2]);
-            f32 inv_height = 1.0f / (f32)box->height;
+            const struct gradient_metadata* meta = &style->background.linear_gradient->metadata;
+            const u8 n = meta->count;
+
+            vec4 palette[n];
+            f32 positions[n];
+            for (u8 i = 0; i < n; i++) palette[i] = Color(to_vec4)(meta->colors[i]);
+            if (meta->positions) for (u8 i = 0; i < n; i++) positions[i] = meta->positions[i];
+            else for (u8 i = 0; i < n; i++) positions[i] = (n > 1) ? (f32)i / (f32)(n - 1) : 0.0f;
+            const f32 inv_height = 1.0f / (f32)box->height;
+
+            color_t* pixels = buffer.ptr;
+            u8 seg = 1;
+
             for (u32 y = 0; y < box->height; y++) {
-                const f32 grad = y * inv_height;
-                for (u32 x = 0; x < box->width; x++) {
-                    const u32 idx = y * box->width + x;
-                    gradient[idx].hex = Color(vec4_to_rgb)((vec4){
-                        .x = grad * (c2.x - c1.x) + c1.x,
-                        .y = grad * (c2.y - c1.y) + c1.y,
-                        .z = grad * (c2.z - c1.z) + c1.z,
-                        .w = 1.0f
-                    }).hex;
-                }
+                const f32 t = y * inv_height;
+
+                while (seg < n - 1 && t > positions[seg]) seg++;
+
+                const f32 seg_len = positions[seg] - positions[seg - 1];
+                const f32 local_t = (seg_len > 0.0f) ? (t - positions[seg - 1]) / seg_len : 1.0f;
+
+                const vec4* a = &palette[seg - 1];
+                const vec4* b = &palette[seg];
+                const color_t c = Color(vec4_to_rgb)((vec4){
+                    .x = local_t * (b->x - a->x) + a->x,
+                    .y = local_t * (b->y - a->y) + a->y,
+                    .z = local_t * (b->z - a->z) + a->z,
+                    .w = local_t * (b->w - a->w) + a->w,
+                });
+
+                for (u32 x = 0; x < box->width; x++)
+                    pixels[y * box->width + x].hex = c.hex;
             }
-            *out = Texture(new)(gradient, box->width, box->height);
-            Buffer(del)(&(buf_t){.ptr = (void*)gradient, .size = size, .tag = MEMTAG_COLOR});
+            *out = Texture(new)(pixels, box->width, box->height);
+            Buffer(del)(&(buf_t){.ptr = (void*)pixels, .size = size, .tag = MEMTAG_COLOR});
             if (!*out) goto cleanup;
             break;
         }

@@ -44,7 +44,7 @@ __forceinline color_t Color(vec4_to_rgb)(const vec4 v) {
     return (color_t){v.x * 255.f, v.y * 255.f, v.z * 255.f, v.w * 255.f};
 }
 
-#define color_cast(h) ((color_t){.hex = h})
+#define color_cast(h) ((color_t)h##u)
 #define TRANSP          color_cast(0x0)
 #define BLACK           color_cast(0xff000000)
 #define WHITE           color_cast(0xffffffff)

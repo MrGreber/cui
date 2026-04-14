@@ -50,10 +50,10 @@ static void private(mouse_callback)(const mouse_cb_param* param) {
 static void private(resize_callback)(const resize_cb_param* param) {
     panel_t* panel = param->instance;
     panel->transform.init |= 1;
-    //comp_header_t* header = get_header(panel->parent);
-
-    // panel->header.box.width += param->width;
-    // panel->header.box.height += param->height;
+    // comp_header_t* header = get_header(panel->parent);
+    //
+    // header->box.width += param->width;
+    // header->box.height += param->height;
 }
 
 #define CAPTION_HEIGHT 30
