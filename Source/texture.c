@@ -150,7 +150,7 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
             buf_t buffer = { .size = size, .tag = MEMTAG_COLOR };
             if (!Buffer(new)(&buffer, false)) goto cleanup;
 
-            color_t* checkers = buffer.ptr;
+            color_t* pixels = buffer.ptr;
             const color_t palette[2] = {
                 { .r = 0xff, .g = 0xff, .b = 0xff, .a = 0xff},
                 { .r = 127, .g = 127, .b = 127, .a = 0xff}
@@ -160,7 +160,7 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
             for (u32 y = 0; y < box->height; y++) {
                 for (u32 x = 0; x < box->width; x++) {
                     const u32 idx = y * box->width + x;
-                    checkers[idx].hex = palette[((x >> 6) + (y >> 6)) & 1].hex;
+                    pixels[idx].hex = palette[((x >> 6) + (y >> 6)) & 1].hex;
                 }
             }
 #else
@@ -183,26 +183,26 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
                     const __m256i vindices = _mm256_and_si256(_mm256_add_epi32(vx64, vy64), v1);
                     const __m256i mask = _mm256_cmpeq_epi32(vindices, _mm256_setzero_si256());
                     const __m256i vpalette = _mm256_blendv_epi8(p1, p0, mask);
-                    _mm256_store_si256((__m256i*)&checkers[_mm256_extract_epi32(voffset, 0) + x], vpalette);
-                    _mm256_store_si256((__m256i*)&checkers[_mm256_extract_epi32(voffset, 1) + x], vpalette);
-                    _mm256_store_si256((__m256i*)&checkers[_mm256_extract_epi32(voffset, 2) + x], vpalette);
-                    _mm256_store_si256((__m256i*)&checkers[_mm256_extract_epi32(voffset, 3) + x], vpalette);
-                    _mm256_store_si256((__m256i*)&checkers[_mm256_extract_epi32(voffset, 4) + x], vpalette);
-                    _mm256_store_si256((__m256i*)&checkers[_mm256_extract_epi32(voffset, 5) + x], vpalette);
-                    _mm256_store_si256((__m256i*)&checkers[_mm256_extract_epi32(voffset, 6) + x], vpalette);
-                    _mm256_store_si256((__m256i*)&checkers[_mm256_extract_epi32(voffset, 7) + x], vpalette);
+                    _mm256_store_si256((__m256i*)&pixels[_mm256_extract_epi32(voffset, 0) + x], vpalette);
+                    _mm256_store_si256((__m256i*)&pixels[_mm256_extract_epi32(voffset, 1) + x], vpalette);
+                    _mm256_store_si256((__m256i*)&pixels[_mm256_extract_epi32(voffset, 2) + x], vpalette);
+                    _mm256_store_si256((__m256i*)&pixels[_mm256_extract_epi32(voffset, 3) + x], vpalette);
+                    _mm256_store_si256((__m256i*)&pixels[_mm256_extract_epi32(voffset, 4) + x], vpalette);
+                    _mm256_store_si256((__m256i*)&pixels[_mm256_extract_epi32(voffset, 5) + x], vpalette);
+                    _mm256_store_si256((__m256i*)&pixels[_mm256_extract_epi32(voffset, 6) + x], vpalette);
+                    _mm256_store_si256((__m256i*)&pixels[_mm256_extract_epi32(voffset, 7) + x], vpalette);
                     vx = _mm256_add_epi32(vx, v8);
                 }
                 for (; x < box->width; x++) {
                     const u32 x64 = (x >> 6);
-                    checkers[_mm256_extract_epi32(voffset, 0) + x].hex = palette[(x64 + _mm256_extract_epi32(vy64, 0)) & 1].hex;
-                    checkers[_mm256_extract_epi32(voffset, 1) + x].hex = palette[(x64 + _mm256_extract_epi32(vy64, 1)) & 1].hex;
-                    checkers[_mm256_extract_epi32(voffset, 2) + x].hex = palette[(x64 + _mm256_extract_epi32(vy64, 2)) & 1].hex;
-                    checkers[_mm256_extract_epi32(voffset, 3) + x].hex = palette[(x64 + _mm256_extract_epi32(vy64, 3)) & 1].hex;
-                    checkers[_mm256_extract_epi32(voffset, 4) + x].hex = palette[(x64 + _mm256_extract_epi32(vy64, 4)) & 1].hex;
-                    checkers[_mm256_extract_epi32(voffset, 5) + x].hex = palette[(x64 + _mm256_extract_epi32(vy64, 5)) & 1].hex;
-                    checkers[_mm256_extract_epi32(voffset, 6) + x].hex = palette[(x64 + _mm256_extract_epi32(vy64, 6)) & 1].hex;
-                    checkers[_mm256_extract_epi32(voffset, 7) + x].hex = palette[(x64 + _mm256_extract_epi32(vy64, 7)) & 1].hex;
+                    pixels[_mm256_extract_epi32(voffset, 0) + x].hex = palette[(x64 + _mm256_extract_epi32(vy64, 0)) & 1].hex;
+                    pixels[_mm256_extract_epi32(voffset, 1) + x].hex = palette[(x64 + _mm256_extract_epi32(vy64, 1)) & 1].hex;
+                    pixels[_mm256_extract_epi32(voffset, 2) + x].hex = palette[(x64 + _mm256_extract_epi32(vy64, 2)) & 1].hex;
+                    pixels[_mm256_extract_epi32(voffset, 3) + x].hex = palette[(x64 + _mm256_extract_epi32(vy64, 3)) & 1].hex;
+                    pixels[_mm256_extract_epi32(voffset, 4) + x].hex = palette[(x64 + _mm256_extract_epi32(vy64, 4)) & 1].hex;
+                    pixels[_mm256_extract_epi32(voffset, 5) + x].hex = palette[(x64 + _mm256_extract_epi32(vy64, 5)) & 1].hex;
+                    pixels[_mm256_extract_epi32(voffset, 6) + x].hex = palette[(x64 + _mm256_extract_epi32(vy64, 6)) & 1].hex;
+                    pixels[_mm256_extract_epi32(voffset, 7) + x].hex = palette[(x64 + _mm256_extract_epi32(vy64, 7)) & 1].hex;
                 }
                 vy = _mm256_add_epi32(vy, v8);
             }
@@ -217,16 +217,16 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
                     const __m256i vx64 = _mm256_srli_epi32(vx, 6);
                     const __m256i vindices = _mm256_and_si256(_mm256_add_epi32(vx64, vy64), v1);
                     const __m256i vpalette = _mm256_i32gather_epi32((i32*)palette, vindices, sizeof(u32));
-                    _mm256_store_si256((__m256i*)&checkers[offset + x], vpalette);
+                    _mm256_store_si256((__m256i*)&pixels[offset + x], vpalette);
                     vx = _mm256_add_epi32(vx, v8);
                 }
                 for (; x < box->width; x++) {
-                    checkers[offset + x].hex = palette[((x >> 6) + (y >> 6)) & 1].hex;
+                    pixels[offset + x].hex = palette[((x >> 6) + (y >> 6)) & 1].hex;
                 }
             }
 #endif
-            *out = Texture(new)(checkers, box->width, box->height);
-            Buffer(del)(&(buf_t){.ptr = (void*)checkers, .size = size, .tag = MEMTAG_COLOR});
+            *out = Texture(new)(pixels, box->width, box->height);
+            Buffer(del)(&(buf_t){.ptr = (void*)pixels, .size = size, .tag = MEMTAG_COLOR});
             if (!*out) goto cleanup;
             break;
         }
@@ -248,13 +248,13 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
                 height = box->height;
             }
 
-            const color_t* data = Texture(load_image)(style->background.image, &width, &height);
-            if (!data) {
+            const color_t* pixels = Texture(load_image)(style->background.image, &width, &height);
+            if (!pixels) {
                 logError(ERR_LOADING, "Failed to load texture.");
                 goto cleanup;
             }
-            *out = Texture(new)(data, width, height);
-            Buffer(del)(&(buf_t){.ptr = (void*)data, .size = width * height * sizeof(color_t), .tag = MEMTAG_COLOR});
+            *out = Texture(new)(pixels, width, height);
+            Buffer(del)(&(buf_t){.ptr = (void*)pixels, .size = width * height * sizeof(color_t), .tag = MEMTAG_COLOR});
             if (!*out) goto cleanup;
             break;
         }
@@ -266,7 +266,7 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
             const u64 size = box->width * box->height * sizeof(color_t);
             buf_t buffer = { .size = size, .tag = MEMTAG_COLOR };
             if (!Buffer(new)(&buffer, false)) goto cleanup;
-
+#ifndef SIMD
             const struct gradient_metadata* meta = &style->background.linear_gradient->metadata;
             const u8 n = meta->count;
 
@@ -297,9 +297,50 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
                     .w = local_t * (b->w - a->w) + a->w,
                 });
 
-                for (u32 x = 0; x < box->width; x++)
-                    pixels[y * box->width + x].hex = c.hex;
+                for (u32 x = 0; x < box->width; x++) pixels[y * box->width + x].hex = c.hex;
             }
+#else
+            const struct gradient_metadata* meta = &style->background.linear_gradient->metadata;
+            const u8 n = meta->count;
+
+            vec4 palette[n];
+            f32 positions[n];
+            for (u8 i = 0; i < n; i++) palette[i] = Color(to_vec4)(meta->colors[i]);
+            if (meta->positions) for (u8 i = 0; i < n; i++) positions[i] = meta->positions[i];
+            else for (u8 i = 0; i < n; i++) positions[i] = (n > 1) ? (f32)i / (f32)(n - 1) : 0.0f;
+            const f32 inv_height = 1.0f / (f32)box->height;
+
+            color_t* pixels = buffer.ptr;
+            u8 seg = 1;
+            const __m256i v8 = _mm256_set1_epi32(8);
+            const __m256i vinc = _mm256_setr_epi32(0, 1, 2, 3, 4, 5, 6, 7);
+            for (u32 y = 0; y < box->height; y++) {
+                const f32 t = y * inv_height;
+
+                while (seg < n - 1 && t > positions[seg]) seg++;
+
+                const f32 seg_len = positions[seg] - positions[seg - 1];
+                const f32 local_t = (seg_len > 0.0f) ? (t - positions[seg - 1]) / seg_len : 1.0f;
+
+                const vec4* a = &palette[seg - 1];
+                const vec4* b = &palette[seg];
+                const color_t c = Color(vec4_to_rgb)((vec4){
+                    .x = local_t * (b->x - a->x) + a->x,
+                    .y = local_t * (b->y - a->y) + a->y,
+                    .z = local_t * (b->z - a->z) + a->z,
+                    .w = local_t * (b->w - a->w) + a->w,
+                });
+
+                //for (u32 x = 0; x < box->width; x++) pixels[y * box->width + x].hex = c.hex;
+
+                const __m256i vcolor = _mm256_set1_epi32(c.hex);
+                u32 x = 0;
+                for (; x + 8 <= (box->width & ~7u); x += 8) {
+                    _mm256_store_epi32(&pixels[y * box->width], vcolor);
+                }
+
+            }
+#endif
             *out = Texture(new)(pixels, box->width, box->height);
             Buffer(del)(&(buf_t){.ptr = (void*)pixels, .size = size, .tag = MEMTAG_COLOR});
             if (!*out) goto cleanup;
