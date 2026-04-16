@@ -52,7 +52,6 @@ cleanup:
     Buffer(del)(&(buf_t){.size = sizeof(texture_t), .tag = MEMTAG_TEXTURE, .ptr = tex});
     return NULL;
 }
-
 void Texture(del)(texture_t* tex) {
     if (!tex) return;
 
@@ -173,12 +172,12 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
             const __m256i vwidth = _mm256_set1_epi32(box->width);
             __m256i vy = vinc;
             u32 y = 0;
-            for (; y + 8 <= (box->height & ~7u); y += 8) {
+            for (; y + 8 <= box->height; y += 8) {
                 const __m256i voffset = _mm256_mullo_epi32(vy, vwidth);
                 const __m256i vy64 = _mm256_set1_epi32(y >> 6);
                 __m256i vx = vinc;
                 u32 x = 0;
-                for (; x + 8 <= (box->width & ~7u); x += 8) {
+                for (; x + 8 <= box->width; x += 8) {
                     const __m256i vx64 = _mm256_srli_epi32(vx, 6);
                     const __m256i vindices = _mm256_and_si256(_mm256_add_epi32(vx64, vy64), v1);
                     const __m256i mask = _mm256_cmpeq_epi32(vindices, _mm256_setzero_si256());
@@ -309,16 +308,13 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
             if (meta->positions) for (u8 i = 0; i < n; i++) positions[i] = meta->positions[i];
             else for (u8 i = 0; i < n; i++) positions[i] = (n > 1) ? (f32)i / (f32)(n - 1) : 0.0f;
             const f32 inv_height = 1.0f / (f32)box->height;
-
+// todo: optimize this shit further, the Y dimension is still not optimized with SIMD
             color_t* pixels = buffer.ptr;
             u8 seg = 1;
-            const __m256i v8 = _mm256_set1_epi32(8);
-            const __m256i vinc = _mm256_setr_epi32(0, 1, 2, 3, 4, 5, 6, 7);
             for (u32 y = 0; y < box->height; y++) {
                 const f32 t = y * inv_height;
 
                 while (seg < n - 1 && t > positions[seg]) seg++;
-
                 const f32 seg_len = positions[seg] - positions[seg - 1];
                 const f32 local_t = (seg_len > 0.0f) ? (t - positions[seg - 1]) / seg_len : 1.0f;
 
@@ -330,15 +326,10 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
                     .z = local_t * (b->z - a->z) + a->z,
                     .w = local_t * (b->w - a->w) + a->w,
                 });
-
-                //for (u32 x = 0; x < box->width; x++) pixels[y * box->width + x].hex = c.hex;
-
                 const __m256i vcolor = _mm256_set1_epi32(c.hex);
                 u32 x = 0;
-                for (; x + 8 <= (box->width & ~7u); x += 8) {
-                    _mm256_store_epi32(&pixels[y * box->width], vcolor);
-                }
-
+                for (; x + 8 <= box->width; x += 8) _mm256_store_si256((__m256i*)&pixels[y * box->width + x], vcolor);
+                for (; x < box->width; x++) pixels[y * box->width + x].hex = c.hex;
             }
 #endif
             *out = Texture(new)(pixels, box->width, box->height);
