@@ -8,7 +8,6 @@
 #include <stb_image.h>
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 #include <stb_image_resize2.h>
-#include <smmintrin.h>
 
 texture_t* Texture(new)(const color_t* data, const u32 width, const u32 height) {
     buf_t buffer = {
@@ -363,7 +362,7 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
                         z.x = z.x * z.x - z.y * z.y + c.x;
                         z.y = xy + xy + c.y;
                         if (z.x * z.x + z.y * z.y > 4.0f) {
-                            pixels[y * box->width + x] = (color_t){i, 0, 0, 255};
+                            pixels[y * box->width + x] = (color_t){i, i, i, 255};
                             bounded_flag = false;
                             break;
                         }

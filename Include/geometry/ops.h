@@ -74,6 +74,8 @@ __forceinline void Mesh(unbind)(void) {
     ElementBuffer(unbind)();
     VertexArray(unbind)();
 }
+void Mesh(write)(mesh_t* mesh, const bool is_vertices, const u32 offset, const void* data, const u32 count);
+void Mesh(push)(mesh_t* mesh, const bool is_vertices, const void* data, const u32 count);
 void Mesh(draw)(mesh_t* mesh);
 
 #endif // OPS_H

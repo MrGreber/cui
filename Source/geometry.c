@@ -126,7 +126,7 @@ void VertexArray(push_u8)(vert_array_t* va, const u32 count) {
     va->stride += sizeof(u8) * count;
 }
 
-static u32 private(gl_sizeof)(const u32 type) {
+__forceinline u32 private(gl_sizeof)(const u32 type) {
     switch (type) {
         case GL_FLOAT:
         case GL_UNSIGNED_INT: return 4;
@@ -167,11 +167,17 @@ const static struct mesh_range __mesh_table[__MESH_TAG_COUNT__] = {
 };
 #include <geometry/static_meshes.h>
 
-static const struct { u8 bit; u8 count; } __attributes_table[] = {
+static const struct {
+    u8 bit;
+    u8 count;
+} __attributes_table[] = {
     { MESH_2D, 2 },
     { MESH_3D, 3 },
     { MESH_UV0, 2 },
-    { MESH_NORM, 3 },
+    { MESH_UV1, 2 },
+    { MESH_TEX_IDX, 1 },
+    { MESH_COLOR, 4 },
+    { MESH_NORM, 3 }
 };
 static static_mesh_t* private(new_static_mesh)(frame_t* frame, const mesh_tag_t tag) {
     static_mesh_t* static_mesh = &frame->cache.static_meshes.data[tag];
@@ -193,7 +199,7 @@ static static_mesh_t* private(new_static_mesh)(frame_t* frame, const mesh_tag_t 
     VertexArray(bind)(static_mesh->va);
     VertexBuffer(bind)(static_mesh->vb);
 
-    for (u8 i = 0; i < 4; i++) {
+    for (u8 i = 0; i < 7; i++) {
         if (range->attributes & __attributes_table[i].bit) {
             VertexArray(push_f32)(static_mesh->va, __attributes_table[i].count);
         }
@@ -244,7 +250,7 @@ static dynamic_mesh_t* private(new_dynamic_mesh)(frame_t* frame, const mesh_para
     VertexArray(bind)(metadata->va);
     VertexBuffer(bind)(metadata->vb);
 
-    for (u8 i = 0; i < 4; i++) {
+    for (u8 i = 0; i < 7; i++) {
         if (params.attributes & __attributes_table[i].bit) {
             VertexArray(push_f32)(metadata->va, __attributes_table[i].count);
         }
@@ -330,6 +336,12 @@ void Mesh(bind)(const frame_t* frame, const mesh_t* mesh) {
     VertexArray(bind)(metadata->va);
     if (metadata->tag < __MESH_TAG_COUNT__) ElementBuffer(bind)(frame->cache.static_meshes.eb);
     else if (mesh->eb.id) ElementBuffer(bind)(mesh->eb);
+}
+void Mesh(write)(mesh_t* mesh, const bool is_vertices, const u32 offset, const void* data, const u32 count) {
+    
+}
+void Mesh(push)(mesh_t* mesh, const bool is_vertices, const void* data, const u32 count) {
+
 }
 void Mesh(draw)(mesh_t* mesh) {
     if (!mesh) return;
