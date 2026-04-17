@@ -8,6 +8,7 @@
 #include <stb_image.h>
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 #include <stb_image_resize2.h>
+#include <smmintrin.h>
 
 texture_t* Texture(new)(const color_t* data, const u32 width, const u32 height) {
     buf_t buffer = {
@@ -308,7 +309,6 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
             if (meta->positions) for (u8 i = 0; i < n; i++) positions[i] = meta->positions[i];
             else for (u8 i = 0; i < n; i++) positions[i] = (n > 1) ? (f32)i / (f32)(n - 1) : 0.0f;
             const f32 inv_height = 1.0f / (f32)box->height;
-// todo: optimize this shit further, the Y dimension is still not optimized with SIMD
             color_t* pixels = buffer.ptr;
             u8 seg = 1;
             for (u32 y = 0; y < box->height; y++) {
@@ -320,16 +320,14 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
 
                 const vec4* a = &palette[seg - 1];
                 const vec4* b = &palette[seg];
-                const color_t c = Color(vec4_to_rgb)((vec4){
-                    .x = local_t * (b->x - a->x) + a->x,
-                    .y = local_t * (b->y - a->y) + a->y,
-                    .z = local_t * (b->z - a->z) + a->z,
-                    .w = local_t * (b->w - a->w) + a->w,
-                });
-                const __m256i vcolor = _mm256_set1_epi32(c.hex);
+
+                const __m128 vt = _mm_set1_ps(local_t);
+                const vec4 vgrad = {.v = _mm_fmadd_ps(vt, _mm_sub_ps(b->v, a->v), a->v)};
+                const color_t color = Color(vec4_to_rgb)(vgrad);
+                const __m256i vcolor = _mm256_set1_epi32(color.hex);
                 u32 x = 0;
                 for (; x + 8 <= box->width; x += 8) _mm256_store_si256((__m256i*)&pixels[y * box->width + x], vcolor);
-                for (; x < box->width; x++) pixels[y * box->width + x].hex = c.hex;
+                for (; x < box->width; x++) pixels[y * box->width + x].hex = color.hex;
             }
 #endif
             *out = Texture(new)(pixels, box->width, box->height);
@@ -338,6 +336,45 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
             break;
         }
         case BG_RADIAL_GRADIENT: {
+            break;
+        }
+        case BG_MANDELBROT: {
+            if (!box) {
+                logError(ERR_INVALID_PARAM, "Address %p box.\n", NULL);
+                return false;
+            }
+            const u64 size = box->width * box->height * sizeof(color_t);
+            buf_t buffer = { .size = size, .tag = MEMTAG_COLOR };
+            if (!Buffer(new)(&buffer, false)) goto cleanup;
+            color_t* pixels = buffer.ptr;
+
+            const f32 scale = 2.5f / (f32)box->width;
+            const f32 y_offset = scale * (f32)box->height * 0.5f;
+            for (u32 y = 0; y < box->height; y++) {
+                for (u32 x = 0; x < box->width; x++) {
+                    const f32 re = (f32)x * scale - 2.0f;
+                    const f32 im = (f32)y * scale - y_offset;
+                    const vec2 c = {re, im};
+                    vec2 z = { 0 };
+                    bool bounded_flag = true;
+
+                    for (u8 i = 0; i < 255; i++) {
+                        f32 xy = z.x * z.y;
+                        z.x = z.x * z.x - z.y * z.y + c.x;
+                        z.y = xy + xy + c.y;
+                        if (z.x * z.x + z.y * z.y > 4.0f) {
+                            pixels[y * box->width + x] = (color_t){i, 0, 0, 255};
+                            bounded_flag = false;
+                            break;
+                        }
+                    }
+                    if (bounded_flag) pixels[y * box->width + x] = BLACK;
+                }
+            }
+
+            *out = Texture(new)(pixels, box->width, box->height);
+            Buffer(del)(&(buf_t){.ptr = (void*)pixels, .size = size, .tag = MEMTAG_COLOR});
+            if (!*out) goto cleanup;
             break;
         }
         default: return false;

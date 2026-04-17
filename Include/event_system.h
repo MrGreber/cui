@@ -11,7 +11,8 @@ typedef enum background_type {
     BG_COLOR,
     BG_IMAGE,
     BG_LINEAR_GRADIENT,
-    BG_RADIAL_GRADIENT
+    BG_RADIAL_GRADIENT,
+    BG_MANDELBROT
 } bg_type_t;
 
 typedef struct bounding_box {

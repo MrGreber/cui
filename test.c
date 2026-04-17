@@ -27,7 +27,6 @@ static bool __init(app_t* app) {
             .init = true,
             .background = {
                 .type = BG_LINEAR_GRADIENT,
-                //.image = __DIR__"\\Resources\\heisenberg.jpg"
                 .linear_gradient = &gradient,
                 .mask = WHITE
             },
