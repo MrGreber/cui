@@ -68,7 +68,7 @@ typedef struct dynamic_mesh {
     struct {
         u32 count;
         u32 capacity;
-        vec4* data;
+        f32* data;
     } vertices;
 } dynamic_mesh_t, mesh_t;
 

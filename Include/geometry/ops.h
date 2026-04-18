@@ -57,6 +57,14 @@ typedef struct mesh_parameters {
     };
     u32 capacity;
 } mesh_param_t;
+typedef struct mesh_buffer {
+    struct {
+        u32 count : 31;
+        u32 is_vertices : 1;
+    };
+    u32 offset;
+    const void* data;
+} mesh_buf_t;
 #define MESH_2D         (1 << 0)
 #define MESH_3D         (1 << 1)
 #define MESH_UV0        (1 << 2)
@@ -74,8 +82,8 @@ __forceinline void Mesh(unbind)(void) {
     ElementBuffer(unbind)();
     VertexArray(unbind)();
 }
-void Mesh(write)(mesh_t* mesh, const bool is_vertices, const u32 offset, const void* data, const u32 count);
-void Mesh(push)(mesh_t* mesh, const bool is_vertices, const void* data, const u32 count);
+bool Mesh(write)(mesh_t* mesh, const mesh_buf_t* mesh_buffer);
+bool Mesh(push)(mesh_t* mesh, const mesh_buf_t* mesh_buffer);
 void Mesh(draw)(mesh_t* mesh);
 
 #endif // OPS_H

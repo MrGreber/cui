@@ -4,6 +4,8 @@
 #include <utils.h>
 #include <frame.h>
 
+#include <memory.h>
+
 vert_buf_t VertexBuffer(new)(const bool dynamic, const void* vertices, const u32 size) {
     vert_buf_t vb = { 0 };
     u32 id;
@@ -242,6 +244,16 @@ static dynamic_mesh_t* private(new_dynamic_mesh)(frame_t* frame, const mesh_para
         goto dynamic_cleanup;
     }
 
+    buf_t buffer = {
+        .size = params.capacity * sizeof(f32),
+        .tag = MEMTAG_MESH,
+    };
+    if (!Buffer(new)(&buffer, false)) {
+        logError(ERR_HEAP_ALLOC, "Failed to allocate dynamic mesh vertices array.");
+        goto dynamic_cleanup;
+    }
+    dynamic_mesh->vertices.data = buffer.ptr;
+
     metadata->vb = VertexBuffer(new)(true, NULL, params.capacity * sizeof(f32));
     if (!metadata->vb.id) {
         logError(ERR_OPENGL, "Failed to create vertex buffer for dynamic mesh.");
@@ -249,6 +261,8 @@ static dynamic_mesh_t* private(new_dynamic_mesh)(frame_t* frame, const mesh_para
     }
     VertexArray(bind)(metadata->va);
     VertexBuffer(bind)(metadata->vb);
+
+
 
     for (u8 i = 0; i < 7; i++) {
         if (params.attributes & __attributes_table[i].bit) {
@@ -263,7 +277,16 @@ static dynamic_mesh_t* private(new_dynamic_mesh)(frame_t* frame, const mesh_para
             logError(ERR_OPENGL, "Failed to create element buffer for dynamic mesh.");
             goto dynamic_cleanup;
         }
+        buffer = (buf_t){
+            .size = params.capacity * sizeof(u32),
+            .tag = MEMTAG_MESH,
+        };
+        if (!Buffer(new)(&buffer, false)) {
+            logError(ERR_HEAP_ALLOC, "Failed to allocate dynamic mesh indices array.");
+            goto dynamic_cleanup;
+        }
         dynamic_mesh->indices.capacity = params.capacity;
+        dynamic_mesh->indices.data = buffer.ptr;
     }
     metadata->tag = DYNAMIC_MESH;
     dynamic_mesh->vertices.capacity = params.capacity;
@@ -337,11 +360,100 @@ void Mesh(bind)(const frame_t* frame, const mesh_t* mesh) {
     if (metadata->tag < __MESH_TAG_COUNT__) ElementBuffer(bind)(frame->cache.static_meshes.eb);
     else if (mesh->eb.id) ElementBuffer(bind)(mesh->eb);
 }
-void Mesh(write)(mesh_t* mesh, const bool is_vertices, const u32 offset, const void* data, const u32 count) {
-    
-}
-void Mesh(push)(mesh_t* mesh, const bool is_vertices, const void* data, const u32 count) {
 
+bool Mesh(write)(mesh_t* mesh, const mesh_buf_t* mesh_buffer) {
+    const u32 stride = mesh_buffer->count - mesh_buffer->offset;
+
+    if (mesh_buffer->is_vertices) {
+        if (mesh->vertices.count + stride >= mesh->vertices.capacity) {
+            u32 new_capacity = mesh->vertices.capacity << 1;
+            while (new_capacity > mesh->vertices.count + stride) new_capacity <<= 1;
+
+            buf_t buffer = {
+                .size = mesh->vertices.capacity * sizeof(f32),
+                .tag = MEMTAG_MESH,
+                .ptr = mesh->vertices.data
+            };
+            if (!Buffer(renew)(&buffer, new_capacity * sizeof(f32))) {
+                logError(ERR_HEAP_REALLOC, "Failed to reallocate dynamic mesh vertices array.");
+                return false;
+            }
+
+            mesh->vertices.data = buffer.ptr;
+            mesh->vertices.capacity = new_capacity;
+        }
+
+        memcpy(mesh->vertices.data + mesh_buffer->offset, mesh_buffer->data, mesh_buffer->count * sizeof(f32));
+        mesh->vertices.count += stride;
+    }
+    else {
+        if (mesh->indices.count + stride >= mesh->indices.capacity) {
+            u32 new_capacity = mesh->indices.capacity << 1;
+            while (new_capacity > mesh->indices.count + stride) new_capacity <<= 1;
+            buf_t buffer = {
+                .size = mesh->indices.capacity * sizeof(u32),
+                .tag = MEMTAG_MESH,
+                .ptr = mesh->indices.data
+            };
+            if (!Buffer(renew)(&buffer, new_capacity * sizeof(u32))) {
+                logError(ERR_HEAP_REALLOC, "Failed to reallocate dynamic mesh indices array.");
+                return false;
+            }
+
+            mesh->indices.data = buffer.ptr;
+            mesh->indices.capacity = new_capacity;
+        }
+
+        memcpy(mesh->vertices.data + mesh_buffer->offset, mesh_buffer->data, mesh_buffer->count * sizeof(u32));
+        mesh->vertices.count += stride;
+    }
+    return true;
+}
+bool Mesh(push)(mesh_t* mesh, const mesh_buf_t* mesh_buffer) {
+    if (mesh_buffer->is_vertices) {
+        if (mesh->vertices.count + mesh_buffer->count >= mesh->vertices.capacity) {
+            u32 new_capacity = mesh->vertices.capacity << 1;
+            while (new_capacity > mesh->vertices.count + mesh_buffer->count) new_capacity <<= 1;
+
+            buf_t buffer = {
+                .size = mesh->vertices.capacity * sizeof(f32),
+                .tag = MEMTAG_MESH,
+                .ptr = mesh->vertices.data
+            };
+            if (!Buffer(renew)(&buffer, new_capacity * sizeof(f32))) {
+                logError(ERR_HEAP_REALLOC, "Failed to reallocate dynamic mesh vertices array.");
+                return false;
+            }
+
+            mesh->vertices.data = buffer.ptr;
+            mesh->vertices.capacity = new_capacity;
+        }
+
+        memcpy(mesh->vertices.data + mesh->vertices.count, mesh_buffer->data, mesh_buffer->count * sizeof(f32));
+        mesh->vertices.count += mesh_buffer->count;
+    }
+    else {
+        if (mesh->indices.count + mesh_buffer->count >= mesh->indices.capacity) {
+            u32 new_capacity = mesh->indices.capacity << 1;
+            while (new_capacity > mesh->indices.count + mesh_buffer->count) new_capacity <<= 1;
+            buf_t buffer = {
+                .size = mesh->indices.capacity * sizeof(u32),
+                .tag = MEMTAG_MESH,
+                .ptr = mesh->indices.data
+            };
+            if (!Buffer(renew)(&buffer, new_capacity * sizeof(u32))) {
+                logError(ERR_HEAP_REALLOC, "Failed to reallocate dynamic mesh indices array.");
+                return false;
+            }
+
+            mesh->indices.data = buffer.ptr;
+            mesh->indices.capacity = new_capacity;
+        }
+
+        memcpy(mesh->vertices.data + mesh->indices.count, mesh_buffer->data, mesh_buffer->count * sizeof(u32));
+        mesh->vertices.count += mesh_buffer->count;
+    }
+    return true;
 }
 void Mesh(draw)(mesh_t* mesh) {
     if (!mesh) return;
