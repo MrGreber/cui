@@ -346,13 +346,13 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
             buf_t buffer = { .size = size, .tag = MEMTAG_COLOR };
             if (!Buffer(new)(&buffer, false)) goto cleanup;
             color_t* pixels = buffer.ptr;
-
+#ifndef SIMD
             const f32 scale = 2.5f / (f32)box->width;
             const f32 y_offset = scale * (f32)box->height * 0.5f;
             for (u32 y = 0; y < box->height; y++) {
+                const f32 im = (f32)y * scale - y_offset;
                 for (u32 x = 0; x < box->width; x++) {
                     const f32 re = (f32)x * scale - 2.0f;
-                    const f32 im = (f32)y * scale - y_offset;
                     const vec2 c = {re, im};
                     vec2 z = { 0 };
                     bool bounded_flag = true;
@@ -370,6 +370,62 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
                     if (bounded_flag) pixels[y * box->width + x] = BLACK;
                 }
             }
+#else
+            const f32 scale = 2.5f / (f32)box->width;
+            const f32 y_offset = scale * (f32)box->height * 0.5f;
+
+            const color_t palette[2] = {
+                BLACK,
+                WHITE
+            };
+            const __m256 v0 = _mm256_set1_ps(0.0f);
+            const __m256 v2 = _mm256_set1_ps(2.0f);
+            const __m256 v4 = _mm256_set1_ps(4.0f);
+            const __m256 v8 = _mm256_set1_ps(8.0f);
+            const __m256 vscale = _mm256_set1_ps(scale);
+            const __m256 vinc = _mm256_setr_ps(0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f);
+            for (u32 y = 0; y < box->height; y++) {
+                const f32 im = (f32)y * scale - y_offset;
+                const u32 offset = y * box->width;
+                // __m256 vx = vinc;
+                // __m256 vim = v0;
+                // const __m256 c_vim = _mm256_set1_ps(im);
+                u32 x = 0;
+                // for (; x + 8 < box->width; x += 8) {
+                //     const __m256 c_vre = _mm256_fmsub_ps(vscale, vx, v2);
+                //     __m256 vre = v0;
+                //
+                //     for (u8 i = 0; i < 255; i++) {
+                //         vre = _mm256_fmsub_ps(vre, vre, _mm256_fmsub_ps(vim, vim, c_vre));
+                //         vim = _mm256_mul_ps(vre, vim);
+                //         vim = _mm256_add_ps(_mm256_add_ps(vim, vim), c_vim);
+                //     }
+                //     const __m256 vmag2 = _mm256_fmadd_ps(vre, vre, _mm256_mul_ps(vim, vim));
+                //     const __m256i vindices = _mm256_castps_si256(_mm256_cmp_ps(vmag2, v4, _CMP_GT_OQ));
+                //     const __m256i vpalette = _mm256_i32gather_epi32((i32*)palette, vindices, sizeof(u32));
+                //     _mm256_store_si256((__m256i*)&pixels[offset + x], vpalette);
+                //     vx = _mm256_add_ps(vx, v8);
+                // }
+
+                for (; x < box->width; x++) {
+                    const f32 re = (f32)x * scale - 2.0f;
+                    const vec2 c = {re, im};
+                    vec2 z = { 0 };
+                    bool bounded_flag = true;
+                    for (u8 i = 0; i < 255; i++) {
+                        f32 xy = z.x * z.y;
+                        z.x = z.x * z.x - z.y * z.y + c.x;
+                        z.y = xy + xy + c.y;
+                        if (z.x * z.x + z.y * z.y > 4.0f) {
+                            pixels[offset + x] = (color_t){i, i, i, 255};
+                            bounded_flag = false;
+                            break;
+                        }
+                    }
+                    if (bounded_flag) pixels[offset + x] = BLACK;
+                }
+            }
+#endif
 
             *out = Texture(new)(pixels, box->width, box->height);
             Buffer(del)(&(buf_t){.ptr = (void*)pixels, .size = size, .tag = MEMTAG_COLOR});

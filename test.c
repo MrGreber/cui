@@ -26,8 +26,8 @@ static bool __init(app_t* app) {
         .normal = {
             .init = true,
             .background = {
-                .type = BG_LINEAR_GRADIENT,
-                .linear_gradient = &gradient,
+                .type = BG_MANDELBROT,
+                //.linear_gradient = &gradient,
                 .mask = WHITE
             },
             .border = {
