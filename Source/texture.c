@@ -397,18 +397,25 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
                     __m256 vre = v0;
                     __m256 vim = v0;
 
-                    __m256 vi = v0;
+                    __m256 vbounded = v0;
+                    __m256 vp = v0;
                     for (u16 i = 0; i < 256; i++) {
                         const __m256 vri = _mm256_mul_ps(vre, vim);
                         vre = _mm256_fmsub_ps(vre, vre, _mm256_fmsub_ps(vim, vim, c_vre));
                         vim = _mm256_add_ps(_mm256_add_ps(vri, vri), c_vim);
                         const __m256 vmag2 = _mm256_fmadd_ps(vre, vre, _mm256_mul_ps(vim, vim));
                         const __m256 vcmp = _mm256_cmp_ps(vmag2, v4, _CMP_GT_OQ);
-                        vi = _mm256_or_ps(vi, vcmp);
-                        if (_mm256_movemask_ps(vi) == 0xFF) break;
+                        const __m256 viter = _mm256_set1_ps((f32)i);
+
+                        __m256 vmask = _mm256_cmp_ps(vbounded, v0, _CMP_NEQ_OQ);
+                        vp = _mm256_or_ps(vp, _mm256_and_ps(vmask, viter));
+
+                        vbounded = _mm256_or_ps(vbounded, vcmp);
+                        if (_mm256_movemask_ps(vbounded) == 0xFF) break;
                     }
-                    __m256i vindices = _mm256_and_si256(_mm256_castps_si256(vi), vi1);
-                    const __m256i vpalette = _mm256_i32gather_epi32((i32*)palette, vindices, sizeof(u32));
+
+                    __m256i vi = _mm256_and_si256(_mm256_castps_si256(vbounded), vi1);
+                    const __m256i vpalette = _mm256_i32gather_epi32((i32*)palette, vi, sizeof(u32));
                     _mm256_store_si256((__m256i*)&pixels[offset + x], vpalette);
                     vx = _mm256_add_ps(vx, v8);
                 }
