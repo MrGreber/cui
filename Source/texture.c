@@ -378,6 +378,8 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
                 BLACK,
                 WHITE
             };
+            const __m256i vi0 = _mm256_set1_epi32(0);
+            const __m256i vi1 = _mm256_set1_epi32(1);
             const __m256 v0 = _mm256_set1_ps(0.0f);
             const __m256 v2 = _mm256_set1_ps(2.0f);
             const __m256 v4 = _mm256_set1_ps(4.0f);
@@ -385,38 +387,42 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
             const __m256 vscale = _mm256_set1_ps(scale);
             const __m256 vinc = _mm256_setr_ps(0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f);
             for (u32 y = 0; y < box->height; y++) {
-                const f32 im = (f32)y * scale - y_offset;
-                const u32 offset = y * box->width;
-                // __m256 vx = vinc;
-                // __m256 vim = v0;
-                // const __m256 c_vim = _mm256_set1_ps(im);
                 u32 x = 0;
-                // for (; x + 8 < box->width; x += 8) {
-                //     const __m256 c_vre = _mm256_fmsub_ps(vscale, vx, v2);
-                //     __m256 vre = v0;
-                //
-                //     for (u8 i = 0; i < 255; i++) {
-                //         vre = _mm256_fmsub_ps(vre, vre, _mm256_fmsub_ps(vim, vim, c_vre));
-                //         vim = _mm256_mul_ps(vre, vim);
-                //         vim = _mm256_add_ps(_mm256_add_ps(vim, vim), c_vim);
-                //     }
-                //     const __m256 vmag2 = _mm256_fmadd_ps(vre, vre, _mm256_mul_ps(vim, vim));
-                //     const __m256i vindices = _mm256_castps_si256(_mm256_cmp_ps(vmag2, v4, _CMP_GT_OQ));
-                //     const __m256i vpalette = _mm256_i32gather_epi32((i32*)palette, vindices, sizeof(u32));
-                //     _mm256_store_si256((__m256i*)&pixels[offset + x], vpalette);
-                //     vx = _mm256_add_ps(vx, v8);
-                // }
+                const f32 c_im = (f32)y * scale - y_offset;
+                const u32 offset = y * box->width;
+                __m256 vx = vinc;
+                const __m256 c_vim = _mm256_set1_ps(c_im);
+                for (; x + 8 < box->width; x += 8) {
+                    const __m256 c_vre = _mm256_fmsub_ps(vscale, vx, v2);
+                    __m256 vre = v0;
+                    __m256 vim = v0;
+
+                    __m256 vi = v0;
+                    for (u16 i = 0; i < 256; i++) {
+                        const __m256 vri = _mm256_mul_ps(vre, vim);
+                        vre = _mm256_fmsub_ps(vre, vre, _mm256_fmsub_ps(vim, vim, c_vre));
+                        vim = _mm256_add_ps(_mm256_add_ps(vri, vri), c_vim);
+                        const __m256 vmag2 = _mm256_fmadd_ps(vre, vre, _mm256_mul_ps(vim, vim));
+                        const __m256 vcmp = _mm256_cmp_ps(vmag2, v4, _CMP_GT_OQ);
+                        vi = _mm256_or_ps(vi, vcmp);
+                        if (_mm256_movemask_ps(vi) == 0xFF) break;
+                    }
+                    __m256i vindices = _mm256_and_si256(_mm256_castps_si256(vi), vi1);
+                    const __m256i vpalette = _mm256_i32gather_epi32((i32*)palette, vindices, sizeof(u32));
+                    _mm256_store_si256((__m256i*)&pixels[offset + x], vpalette);
+                    vx = _mm256_add_ps(vx, v8);
+                }
 
                 for (; x < box->width; x++) {
-                    const f32 re = (f32)x * scale - 2.0f;
-                    const vec2 c = {re, im};
-                    vec2 z = { 0 };
+                    const f32 c_re = (f32)x * scale - 2.0f;
+                    f32 re = 0.0f;
+                    f32 im = 0.0f;
                     bool bounded_flag = true;
-                    for (u8 i = 0; i < 255; i++) {
-                        f32 xy = z.x * z.y;
-                        z.x = z.x * z.x - z.y * z.y + c.x;
-                        z.y = xy + xy + c.y;
-                        if (z.x * z.x + z.y * z.y > 4.0f) {
+                    for (u16 i = 0; i < 256; i++) {
+                        f32 xy = re * im;
+                        re = re * re - im * im + c_re;
+                        im = xy + xy + c_im;
+                        if (re * re + im * im > 4.0f) {
                             pixels[offset + x] = (color_t){i, i, i, 255};
                             bounded_flag = false;
                             break;
