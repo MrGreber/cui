@@ -137,6 +137,7 @@ color_t* Texture(load_image)(const char* path, u32* width, u32* height) {
 
     return (color_t*)data;
 }
+
 bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* style) {
     if (!out || !style) return false;
     switch (style->background.type) {
@@ -374,12 +375,8 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
             const f32 scale = 2.5f / (f32)box->width;
             const f32 y_offset = scale * (f32)box->height * 0.5f;
 
-            const color_t palette[2] = {
-                BLACK,
-                WHITE
-            };
-            const __m256i vi0 = _mm256_set1_epi32(0);
-            const __m256i vi1 = _mm256_set1_epi32(1);
+            const __m256i v01 = _mm256_set1_epi32(0x01010101);
+            const __m256i valpha = _mm256_set1_epi32(0xff000000);
             const __m256 v0 = _mm256_set1_ps(0.0f);
             const __m256 v2 = _mm256_set1_ps(2.0f);
             const __m256 v4 = _mm256_set1_ps(4.0f);
@@ -407,15 +404,16 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
                         const __m256 vcmp = _mm256_cmp_ps(vmag2, v4, _CMP_GT_OQ);
                         const __m256 viter = _mm256_set1_ps((f32)i);
 
-                        __m256 vmask = _mm256_cmp_ps(vbounded, v0, _CMP_NEQ_OQ);
+                        __m256 vmask = _mm256_cmp_ps(vbounded, v0, _CMP_EQ_OQ);
+                        vmask = _mm256_and_ps(vmask, vcmp);
                         vp = _mm256_or_ps(vp, _mm256_and_ps(vmask, viter));
 
                         vbounded = _mm256_or_ps(vbounded, vcmp);
                         if (_mm256_movemask_ps(vbounded) == 0xFF) break;
                     }
-
-                    __m256i vi = _mm256_and_si256(_mm256_castps_si256(vbounded), vi1);
-                    const __m256i vpalette = _mm256_i32gather_epi32((i32*)palette, vi, sizeof(u32));
+                    __m256i vpalette = _mm256_cvtps_epi32(vp);
+                    vpalette = _mm256_mullo_epi32(vpalette, v01);
+                    vpalette = _mm256_or_si256(vpalette, valpha);
                     _mm256_store_si256((__m256i*)&pixels[offset + x], vpalette);
                     vx = _mm256_add_ps(vx, v8);
                 }
