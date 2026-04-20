@@ -70,6 +70,7 @@ typedef struct dynamic_mesh {
         u32 capacity;
         f32* data;
     } vertices;
+    u16 alignment;
 } dynamic_mesh_t, mesh_t;
 
 #endif // TYPES_H

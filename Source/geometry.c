@@ -189,8 +189,12 @@ static static_mesh_t* private(new_static_mesh)(frame_t* frame, const mesh_tag_t 
         logError(ERR_OPENGL, "Failed to create vertex array for static mesh.");
         goto static_cleanup;
     }
-
     const struct mesh_range* range = &__mesh_table[tag];
+    for (u8 i = 0; i < 7; i++) {
+        if (range->attributes & __attributes_table[i].bit) {
+            VertexArray(push_f32)(static_mesh->va, __attributes_table[i].count);
+        }
+    }
     const f32* vertices = (f32*)__vertices + range->vert.offset;
     const u32 count = range->vert.count;
     static_mesh->vb = VertexBuffer(new)(false, vertices, count * sizeof(f32));
@@ -200,12 +204,6 @@ static static_mesh_t* private(new_static_mesh)(frame_t* frame, const mesh_tag_t 
     }
     VertexArray(bind)(static_mesh->va);
     VertexBuffer(bind)(static_mesh->vb);
-
-    for (u8 i = 0; i < 7; i++) {
-        if (range->attributes & __attributes_table[i].bit) {
-            VertexArray(push_f32)(static_mesh->va, __attributes_table[i].count);
-        }
-    }
     VertexArray(push_buffer)(static_mesh->va, static_mesh->vb);
 
     if (!frame->cache.static_meshes.eb.id) {
@@ -243,9 +241,17 @@ static dynamic_mesh_t* private(new_dynamic_mesh)(frame_t* frame, const mesh_para
         logError(ERR_OPENGL, "Failed to create vertex array for dynamic mesh.");
         goto dynamic_cleanup;
     }
+    dynamic_mesh->alignment = 0;
+
+    for (u8 i = 0; i < 7; i++) {
+        if (params.attributes & __attributes_table[i].bit) {
+            VertexArray(push_f32)(metadata->va, __attributes_table[i].count);
+            dynamic_mesh->alignment += __attributes_table[i].count;
+        }
+    }
 
     buf_t buffer = {
-        .size = params.capacity * sizeof(f32),
+        .size = params.capacity * sizeof(f32) * dynamic_mesh->alignment,
         .tag = MEMTAG_MESH,
     };
     if (!Buffer(new)(&buffer, false)) {
@@ -254,21 +260,13 @@ static dynamic_mesh_t* private(new_dynamic_mesh)(frame_t* frame, const mesh_para
     }
     dynamic_mesh->vertices.data = buffer.ptr;
 
-    metadata->vb = VertexBuffer(new)(true, NULL, params.capacity * sizeof(f32));
+    metadata->vb = VertexBuffer(new)(true, NULL, params.capacity * sizeof(f32) * dynamic_mesh->alignment);
     if (!metadata->vb.id) {
         logError(ERR_OPENGL, "Failed to create vertex buffer for dynamic mesh.");
         goto dynamic_cleanup;
     }
     VertexArray(bind)(metadata->va);
     VertexBuffer(bind)(metadata->vb);
-
-
-
-    for (u8 i = 0; i < 7; i++) {
-        if (params.attributes & __attributes_table[i].bit) {
-            VertexArray(push_f32)(metadata->va, __attributes_table[i].count);
-        }
-    }
     VertexArray(push_buffer)(metadata->va, metadata->vb);
 
     if (params.attributes & MESH_EB) {
@@ -370,11 +368,11 @@ bool Mesh(write)(mesh_t* mesh, const mesh_buf_t* mesh_buffer) {
             while (new_capacity > mesh->vertices.count + stride) new_capacity <<= 1;
 
             buf_t buffer = {
-                .size = mesh->vertices.capacity * sizeof(f32),
+                .size = mesh->vertices.capacity * sizeof(f32) * mesh->alignment,
                 .tag = MEMTAG_MESH,
                 .ptr = mesh->vertices.data
             };
-            if (!Buffer(renew)(&buffer, new_capacity * sizeof(f32))) {
+            if (!Buffer(renew)(&buffer, new_capacity * sizeof(f32) * mesh->alignment)) {
                 logError(ERR_HEAP_REALLOC, "Failed to reallocate dynamic mesh vertices array.");
                 return false;
             }
@@ -383,7 +381,7 @@ bool Mesh(write)(mesh_t* mesh, const mesh_buf_t* mesh_buffer) {
             mesh->vertices.capacity = new_capacity;
         }
 
-        memcpy(mesh->vertices.data + mesh_buffer->offset, mesh_buffer->data, mesh_buffer->count * sizeof(f32));
+        memcpy(mesh->vertices.data + mesh_buffer->offset * mesh->alignment, mesh_buffer->data, mesh_buffer->count * sizeof(f32) * mesh->alignment);
         mesh->vertices.count += stride;
     }
     else {
@@ -416,11 +414,11 @@ bool Mesh(push)(mesh_t* mesh, const mesh_buf_t* mesh_buffer) {
             while (new_capacity > mesh->vertices.count + mesh_buffer->count) new_capacity <<= 1;
 
             buf_t buffer = {
-                .size = mesh->vertices.capacity * sizeof(f32),
+                .size = mesh->vertices.capacity * sizeof(f32) * mesh->alignment,
                 .tag = MEMTAG_MESH,
                 .ptr = mesh->vertices.data
             };
-            if (!Buffer(renew)(&buffer, new_capacity * sizeof(f32))) {
+            if (!Buffer(renew)(&buffer, new_capacity * sizeof(f32) * mesh->alignment)) {
                 logError(ERR_HEAP_REALLOC, "Failed to reallocate dynamic mesh vertices array.");
                 return false;
             }
@@ -429,7 +427,7 @@ bool Mesh(push)(mesh_t* mesh, const mesh_buf_t* mesh_buffer) {
             mesh->vertices.capacity = new_capacity;
         }
 
-        memcpy(mesh->vertices.data + mesh->vertices.count, mesh_buffer->data, mesh_buffer->count * sizeof(f32));
+        memcpy(mesh->vertices.data + mesh->vertices.count * mesh->alignment, mesh_buffer->data, mesh_buffer->count * sizeof(f32) * mesh->alignment);
         mesh->vertices.count += mesh_buffer->count;
     }
     else {
