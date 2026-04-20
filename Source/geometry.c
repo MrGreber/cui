@@ -107,7 +107,7 @@ void VertexArray(push_f32)(vert_array_t* va, const u32 count) {
 }
 void VertexArray(push_u32)(vert_array_t* va, const u32 count) {
     if (!va || !count) return;
-    if (private(resize_vertex_array)(va)) return;
+    if (!private(resize_vertex_array)(va)) return;
 
     vert_elem_t* elem = &va->elem[va->count];
     elem->count = count;
@@ -118,7 +118,7 @@ void VertexArray(push_u32)(vert_array_t* va, const u32 count) {
 }
 void VertexArray(push_u8)(vert_array_t* va, const u32 count) {
     if (!va || !count) return;
-    if (private(resize_vertex_array)(va)) return;
+    if (!private(resize_vertex_array)(va)) return;
 
     vert_elem_t* elem = &va->elem[va->count];
     elem->count = count;
