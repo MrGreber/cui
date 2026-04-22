@@ -242,6 +242,7 @@ static dynamic_mesh_t* private(new_dynamic_mesh)(frame_t* frame, const mesh_para
         goto dynamic_cleanup;
     }
     dynamic_mesh->alignment = 0;
+    dynamic_mesh->eb.id = 0;
 
     for (u8 i = 0; i < 7; i++) {
         if (params.attributes & __attributes_table[i].bit) {
@@ -251,8 +252,8 @@ static dynamic_mesh_t* private(new_dynamic_mesh)(frame_t* frame, const mesh_para
     }
 
     buf_t buffer = {
-        .size = params.capacity * sizeof(f32) * dynamic_mesh->alignment,
-        .tag = MEMTAG_MESH,
+        .size = params.capacity * dynamic_mesh->alignment * sizeof(f32) ,
+        .tag = MEMTAG_VERTEX,
     };
     if (!Buffer(new)(&buffer, false)) {
         logError(ERR_HEAP_ALLOC, "Failed to allocate dynamic mesh vertices array.");
@@ -260,7 +261,7 @@ static dynamic_mesh_t* private(new_dynamic_mesh)(frame_t* frame, const mesh_para
     }
     dynamic_mesh->vertices.data = buffer.ptr;
 
-    metadata->vb = VertexBuffer(new)(true, NULL, params.capacity * sizeof(f32) * dynamic_mesh->alignment);
+    metadata->vb = VertexBuffer(new)(true, NULL, params.capacity * dynamic_mesh->alignment * sizeof(f32));
     if (!metadata->vb.id) {
         logError(ERR_OPENGL, "Failed to create vertex buffer for dynamic mesh.");
         goto dynamic_cleanup;
@@ -277,7 +278,7 @@ static dynamic_mesh_t* private(new_dynamic_mesh)(frame_t* frame, const mesh_para
         }
         buffer = (buf_t){
             .size = params.capacity * sizeof(u32),
-            .tag = MEMTAG_MESH,
+            .tag = MEMTAG_VERTEX,
         };
         if (!Buffer(new)(&buffer, false)) {
             logError(ERR_HEAP_ALLOC, "Failed to allocate dynamic mesh indices array.");
@@ -333,14 +334,14 @@ void Mesh(del_cache)(frame_t* frame) {
             Buffer(del)(&(buf_t){
                 .ptr = dynamic_mesh->indices.data,
                 .size = dynamic_mesh->indices.capacity * sizeof(vec4),
-                .tag = MEMTAG_VECTOR
+                .tag = MEMTAG_VERTEX
             });
         }
         if (dynamic_mesh->vertices.data) {
             Buffer(del)(&(buf_t){
                 .ptr = dynamic_mesh->vertices.data,
                 .size = dynamic_mesh->vertices.capacity * sizeof(vec4),
-                .tag = MEMTAG_VECTOR
+                .tag = MEMTAG_VERTEX
             });
         }
     }
@@ -359,17 +360,17 @@ void Mesh(bind)(const frame_t* frame, const mesh_t* mesh) {
     else if (mesh->eb.id) ElementBuffer(bind)(mesh->eb);
 }
 
-bool Mesh(write)(mesh_t* mesh, const mesh_buf_t* mesh_buffer) {
-    const u32 stride = mesh_buffer->count - mesh_buffer->offset;
+bool Mesh(write)(mesh_t* mesh, const mesh_buf_t mesh_buffer) {
+    const u32 stride = mesh_buffer.count - mesh_buffer.offset;
 
-    if (mesh_buffer->is_vertices) {
+    if (mesh_buffer.is_vertices) {
         if (mesh->vertices.count + stride >= mesh->vertices.capacity) {
             u32 new_capacity = mesh->vertices.capacity << 1;
             while (new_capacity > mesh->vertices.count + stride) new_capacity <<= 1;
 
             buf_t buffer = {
-                .size = mesh->vertices.capacity * sizeof(f32) * mesh->alignment,
-                .tag = MEMTAG_MESH,
+                .size = mesh->vertices.capacity * mesh->alignment * sizeof(f32),
+                .tag = MEMTAG_VERTEX,
                 .ptr = mesh->vertices.data
             };
             if (!Buffer(renew)(&buffer, new_capacity * sizeof(f32) * mesh->alignment)) {
@@ -381,7 +382,7 @@ bool Mesh(write)(mesh_t* mesh, const mesh_buf_t* mesh_buffer) {
             mesh->vertices.capacity = new_capacity;
         }
 
-        memcpy(mesh->vertices.data + mesh_buffer->offset * mesh->alignment, mesh_buffer->data, mesh_buffer->count * sizeof(f32) * mesh->alignment);
+        memcpy(mesh->vertices.data + mesh_buffer.offset * mesh->alignment, mesh_buffer.data, mesh_buffer.count * mesh->alignment * sizeof(f32));
         mesh->vertices.count += stride;
     }
     else {
@@ -390,7 +391,7 @@ bool Mesh(write)(mesh_t* mesh, const mesh_buf_t* mesh_buffer) {
             while (new_capacity > mesh->indices.count + stride) new_capacity <<= 1;
             buf_t buffer = {
                 .size = mesh->indices.capacity * sizeof(u32),
-                .tag = MEMTAG_MESH,
+                .tag = MEMTAG_VERTEX,
                 .ptr = mesh->indices.data
             };
             if (!Buffer(renew)(&buffer, new_capacity * sizeof(u32))) {
@@ -402,23 +403,23 @@ bool Mesh(write)(mesh_t* mesh, const mesh_buf_t* mesh_buffer) {
             mesh->indices.capacity = new_capacity;
         }
 
-        memcpy(mesh->vertices.data + mesh_buffer->offset, mesh_buffer->data, mesh_buffer->count * sizeof(u32));
+        memcpy(mesh->vertices.data + mesh_buffer.offset, mesh_buffer.data, mesh_buffer.count * sizeof(u32));
         mesh->vertices.count += stride;
     }
     return true;
 }
-bool Mesh(push)(mesh_t* mesh, const mesh_buf_t* mesh_buffer) {
-    if (mesh_buffer->is_vertices) {
-        if (mesh->vertices.count + mesh_buffer->count >= mesh->vertices.capacity) {
+bool Mesh(push)(mesh_t* mesh, const mesh_buf_t mesh_buffer) {
+    if (mesh_buffer.is_vertices) {
+        if (mesh->vertices.count + mesh_buffer.count >= mesh->vertices.capacity) {
             u32 new_capacity = mesh->vertices.capacity << 1;
-            while (new_capacity > mesh->vertices.count + mesh_buffer->count) new_capacity <<= 1;
+            while (new_capacity > mesh->vertices.count + mesh_buffer.count) new_capacity <<= 1;
 
             buf_t buffer = {
-                .size = mesh->vertices.capacity * sizeof(f32) * mesh->alignment,
-                .tag = MEMTAG_MESH,
+                .size = mesh->vertices.capacity * mesh->alignment * sizeof(f32),
+                .tag = MEMTAG_VERTEX,
                 .ptr = mesh->vertices.data
             };
-            if (!Buffer(renew)(&buffer, new_capacity * sizeof(f32) * mesh->alignment)) {
+            if (!Buffer(renew)(&buffer, new_capacity * mesh->alignment * sizeof(f32))) {
                 logError(ERR_HEAP_REALLOC, "Failed to reallocate dynamic mesh vertices array.");
                 return false;
             }
@@ -427,16 +428,16 @@ bool Mesh(push)(mesh_t* mesh, const mesh_buf_t* mesh_buffer) {
             mesh->vertices.capacity = new_capacity;
         }
 
-        memcpy(mesh->vertices.data + mesh->vertices.count * mesh->alignment, mesh_buffer->data, mesh_buffer->count * sizeof(f32) * mesh->alignment);
-        mesh->vertices.count += mesh_buffer->count;
+        memcpy(mesh->vertices.data + mesh->vertices.count * mesh->alignment, mesh_buffer.data, mesh_buffer.count * mesh->alignment * sizeof(f32));
+        mesh->vertices.count += mesh_buffer.count;
     }
     else {
-        if (mesh->indices.count + mesh_buffer->count >= mesh->indices.capacity) {
+        if (mesh->indices.count + mesh_buffer.count >= mesh->indices.capacity) {
             u32 new_capacity = mesh->indices.capacity << 1;
-            while (new_capacity > mesh->indices.count + mesh_buffer->count) new_capacity <<= 1;
+            while (new_capacity > mesh->indices.count + mesh_buffer.count) new_capacity <<= 1;
             buf_t buffer = {
                 .size = mesh->indices.capacity * sizeof(u32),
-                .tag = MEMTAG_MESH,
+                .tag = MEMTAG_VERTEX,
                 .ptr = mesh->indices.data
             };
             if (!Buffer(renew)(&buffer, new_capacity * sizeof(u32))) {
@@ -448,11 +449,24 @@ bool Mesh(push)(mesh_t* mesh, const mesh_buf_t* mesh_buffer) {
             mesh->indices.capacity = new_capacity;
         }
 
-        memcpy(mesh->vertices.data + mesh->indices.count, mesh_buffer->data, mesh_buffer->count * sizeof(u32));
-        mesh->vertices.count += mesh_buffer->count;
+        memcpy(mesh->vertices.data + mesh->indices.count, mesh_buffer.data, mesh_buffer.count * sizeof(u32));
+        mesh->vertices.count += mesh_buffer.count;
     }
     return true;
 }
+
+void Mesh(upload)(const mesh_t* mesh, const u32 count, const u32 offset) {
+    const u32 _alignment = sizeof(f32) * mesh->alignment;
+    glBindBuffer(GL_ARRAY_BUFFER, mesh->metadata.vb.gl_id);
+    glBufferSubData(
+        GL_ARRAY_BUFFER,
+        _alignment * offset,
+        _alignment * count,
+        mesh->vertices.data + mesh->alignment * offset
+    );
+}
+
+
 void Mesh(draw)(mesh_t* mesh) {
     if (!mesh) return;
     mesh_metadata_t* metadata = &mesh->metadata;
