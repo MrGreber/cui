@@ -12,28 +12,48 @@
 #include <glfw3.h>
 
 #define DEFAULT_CAPACITY 128
-#define QUAD 6
+#define QUAD_SIZE (6 * sizeof(vec4))
 
+static bool private(resize_text_mesh)(edit_t* edit) {
+    if (edit->mesh.capacity == UINT64_MAX) {
+        logError(ERR_HEAP_REALLOC, "Mesh reached max size %d.", UINT16_MAX);
+        return false;
+    }
+
+    buf_t buffer = {
+        .ptr = edit->mesh.vertices,
+        .size = QUAD_SIZE * edit->mesh.capacity,
+        .tag = MEMTAG_VECTOR
+    };
+    const u64 new_cap = edit->mesh.capacity << 1;
+    if (!Buffer(renew)(&buffer, QUAD_SIZE * new_cap)) return false;
+    edit->mesh.vertices = buffer.ptr;
+    edit->mesh.capacity = new_cap;
+    return true;
+}
 static void push_glyph_quad(edit_t* edit, const glyph_t* g, const f32 pen_x, const f32 pen_y) {
+    if (edit->mesh.capacity <= edit->mesh.count && !private(resize_text_mesh)(edit)) {
+        logError(ERR_HEAP_REALLOC, "Failed to resize text mesh.");
+        return;
+    }
 
+    vec4* ptr = edit->mesh.vertices;
     const f32 x0 = pen_x + g->offset.x;
     const f32 y0 = pen_y + g->offset.y;
     const f32 x1 = x0 + g->dim.width;
     const f32 y1 = y0 + g->dim.height;
 
-    const f32 quad[24] = {
-        x0, y1, g->x0, g->y1,
-        x1, y0, g->x1, g->y0,
-        x0, y0, g->x0, g->y0,
-        x0, y1, g->x0, g->y1,
-        x1, y1, g->x1, g->y1,
-        x1, y0, g->x1, g->y0
+    const vec4 quad[6] = {
+        {x0, y1, g->x0, g->y1},
+        {x1, y0, g->x1, g->y0},
+        {x0, y0, g->x0, g->y0},
+        {x0, y1, g->x0, g->y1},
+        {x1, y1, g->x1, g->y1},
+        {x1, y0, g->x1, g->y0}
     };
-    Mesh(push)(edit->mesh, (mesh_buf_t){
-        .data = quad,
-        .count = QUAD,
-        .is_vertices = true
-    });
+
+    memcpy(&ptr[6 * edit->mesh.count], quad, QUAD_SIZE);
+    edit->mesh.count++;
 }
 static void build_text_mesh(edit_t* edit, const f32 start_x, const f32 start_y) {
     // TODO: optimize this function,
@@ -50,7 +70,7 @@ static void build_text_mesh(edit_t* edit, const f32 start_x, const f32 start_y) 
     } caret = {
         .glyph = &edit->font->glyphs[edit->font->amap('|')]
     };
-    edit->mesh->vertices.count = 0;
+    edit->mesh.count = 0;
 
     vec2 pen = {
         start_x,
@@ -95,15 +115,16 @@ static void build_text_mesh(edit_t* edit, const f32 start_x, const f32 start_y) 
     }
     push_glyph_quad(edit, caret.glyph, caret.pos.x - (f32)caret.glyph->offset.x, caret.pos.y);
 
-    Mesh(bind)(get_root(edit->parent), edit->mesh);
+    VertexArray(bind)(edit->mesh.va);
     Font(bind)(edit->font);
-    Mesh(upload)(edit->mesh, edit->mesh->vertices.count, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, edit->mesh.vb.gl_id);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, edit->mesh.count * QUAD_SIZE, edit->mesh.vertices);
 }
 static void private(set_caret_position)(edit_t* edit, const f64 mouse_x, const f64 mouse_y) {
     const str_t* buffer = edit->text.buffer;
 
-    const glyph_t* caret_glyph = &edit->font->glyphs[edit->font->amap('|')];
-    if (edit->mesh->vertices.count >= QUAD) edit->mesh->vertices.count -= QUAD;
+    glyph_t* caret_glyph = &edit->font->glyphs[edit->font->amap('|')];
+    edit->mesh.count--;
 
     vec2 pen = { 0 };
     const f32 space_x = edit->font->glyphs[edit->font->amap(' ')].x_advance;
@@ -136,11 +157,13 @@ static void private(set_caret_position)(edit_t* edit, const f64 mouse_x, const f
         }
         else break;
     }
+
     push_glyph_quad(edit, caret_glyph, pen.x - (f32)caret_glyph->offset.x, pen.y);
 
-    Mesh(bind)(get_root(edit->parent), edit->mesh);
+    VertexArray(bind)(edit->mesh.va);
     Font(bind)(edit->font);
-    Mesh(upload)(edit->mesh, QUAD, edit->mesh->vertices.count - QUAD);
+    glBindBuffer(GL_ARRAY_BUFFER, edit->mesh.vb.gl_id);
+    glBufferSubData(GL_ARRAY_BUFFER, (edit->mesh.count - 1) * QUAD_SIZE, QUAD_SIZE, edit->mesh.vertices + 6 * (edit->mesh.count - 1));
 }
 
 static void private(mouse_callback)(const mouse_cb_param* param) {
@@ -314,15 +337,26 @@ edit_t* Edit(new)(void* parent, const style_group_t* group, const bounding_box* 
         logError(ERR_LOADING, "Failed to load font.");
         goto cleanup;
     }
-    edit->mesh = Mesh(new)(frame, (mesh_param_t){
-        .tag = DYNAMIC_MESH,
-        .attributes = MESH_2D | MESH_UV0,
-        .capacity = QUAD * DEFAULT_CAPACITY
-    });
-    if (!edit->mesh) {
-        logError(ERR_COMPONENT_SYSTEM, "Failed to create edit text mesh.");
-        goto cleanup;
-    }
+
+    buffer = (buf_t){
+        .ptr = NULL,
+        .size = QUAD_SIZE * DEFAULT_CAPACITY,
+        .tag = MEMTAG_VECTOR
+    };
+    if (!Buffer(new)(&buffer, true)) goto cleanup;
+    edit->mesh.vertices = buffer.ptr;
+    edit->mesh.capacity = DEFAULT_CAPACITY;
+    edit->mesh.count = 0;
+
+    edit->mesh.va = VertexArray(new)(2);
+    edit->mesh.vb = VertexBuffer(new)(true, NULL, QUAD_SIZE * DEFAULT_CAPACITY);
+    if (!edit->mesh.va || !edit->mesh.vb.id) goto cleanup;
+    VertexArray(bind)(edit->mesh.va);
+    VertexBuffer(bind)(edit->mesh.vb);
+
+    VertexArray(push_f32)(edit->mesh.va, 2);
+    VertexArray(push_f32)(edit->mesh.va, 2);
+    VertexArray(push_buffer)(edit->mesh.va, edit->mesh.vb);
 
     edit->text.buffer = new_str("", 0);
     if (!edit->text.buffer) goto cleanup;
@@ -336,6 +370,9 @@ edit_t* Edit(new)(void* parent, const style_group_t* group, const bounding_box* 
     build_text_mesh(edit, 0.0, 0.0);
     return edit;
 cleanup:
+    if (edit->mesh.va) VertexArray(del)(edit->mesh.va);
+    if (edit->mesh.vb.id) VertexBuffer(del)(&edit->mesh.vb);
+    if (edit->mesh.vertices) Buffer(del)(&(buf_t){.ptr = edit->mesh.vertices, .size = QUAD_SIZE * DEFAULT_CAPACITY, .tag = MEMTAG_VECTOR});
     if (edit->sprite) Sprite(del)(edit->sprite);
     if (edit->text.buffer) del_str(edit->text.buffer);
     if (edit->font) Font(del)(edit->font);
@@ -344,6 +381,9 @@ cleanup:
 }
 void Edit(del)(edit_t* edit) {
     if (!edit) return;
+    VertexArray(del)(edit->mesh.va);
+    VertexBuffer(del)(&edit->mesh.vb);
+    Buffer(del)(&(buf_t){.ptr = edit->mesh.vertices, .size = QUAD_SIZE * edit->mesh.capacity, .tag = MEMTAG_VECTOR});
     Sprite(del)(edit->sprite);
     del_str(edit->text.buffer);
     Font(del)(edit->font);
@@ -435,12 +475,12 @@ void Edit(update)(edit_t* edit) {
         edit->header.box.x , frame->header.box.height - edit->header.box.y - edit->header.box.height + style->border.thickness,
         edit->header.box.width - style->border.thickness, edit->header.box.height - style->border.thickness
     );
-    Mesh(bind)(frame, edit->mesh);
+    VertexArray(bind)(edit->mesh.va);
     Font(bind)(edit->font);
     Shader(set_mat4)(edit->font->shader, "projection", true, frame->cache.projection.e);
     Shader(set_mat4)(edit->font->shader, "model", true, model.e);
     Shader(set_vec4)(edit->font->shader, "font.bg", Color(to_vec4)(font->bg).e);
     Shader(set_vec4)(edit->font->shader, "font.fg", Color(to_vec4)(font->fg).e);
-    Mesh(sub_draw)(edit->mesh, (frame->focused.instance == edit ? edit->mesh->vertices.count : edit->mesh->vertices.count - QUAD), 0);
+    glDrawArrays(GL_TRIANGLES, 0, 6 * (frame->focused.instance == edit ? edit->mesh.count : edit->mesh.count - 1));
     glDisable(GL_SCISSOR_TEST);
 }

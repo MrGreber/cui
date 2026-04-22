@@ -22,16 +22,14 @@ typedef struct edit {
         u8 init;
     } transform;
 
-    // struct {
-    //     u64 count;
-    //     u64 capacity;
-    //     vec4* vertices;
-    //
-    //     vert_array_t* va;
-    //     vert_buf_t vb;
-    // } mesh;
+    struct {
+        u64 count;
+        u64 capacity;
+        vec4* vertices;
 
-    mesh_t* mesh;
+        vert_array_t* va;
+        vert_buf_t vb;
+    } mesh;
 
     struct {
         str_t* buffer;
