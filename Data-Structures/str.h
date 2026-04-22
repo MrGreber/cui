@@ -19,21 +19,21 @@ typedef struct string {
     u64 capacity;
 } str_t;
 
+#define String(func) __string_##func
+str_t* String(new)(char_t* data, u64 length);
+bool String(set)(str_t* dst, char_t* src, const u64 length);
+void String(del)(str_t* src);
+bool String(popC)(str_t* src, const u64 index);
+bool String(del_sub)(str_t* src, const u64 start, const u64 end);
+str_t* String(get_sub)(str_t* src, const u64 start, const u64 end);
+bool String(pushC)(str_t* src, const char_t c);
+bool String(insertC)(str_t* src, const u64 index, const char_t c);
+bool String(concat)(str_t* dst, str_t* src);
+u64 String(findC)(str_t* src, const u64 start, const char_t c);
+u64 String(rfindC)(str_t* src, const u64 start, const char_t c);
 
-str_t* new_str(char_t* data, u64 length);
-bool assign_str(str_t* dst, char_t* src, const u64 length);
-void del_str(str_t* src);
-bool pop_char(str_t* src, const u64 index);
-bool del_substr(str_t* src, const u64 start, const u64 end);
-str_t* get_substr(str_t* src, const u64 start, const u64 end);
-bool push_char(str_t* src, const char_t c);
-bool insert_char(str_t* src, const u64 index, const char_t c);
-bool concat_str(str_t* dst, str_t* src);
-u64 find_char(str_t* src, const u64 start, const char_t c);
-u64 rfind_char(str_t* src, const u64 start, const char_t c);
 
-
-void prints(const str_t* src, const bool new_line);
+void String(print)(const str_t* src, const bool new_line);
 
 
 #endif //STR_H

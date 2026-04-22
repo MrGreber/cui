@@ -158,16 +158,16 @@ static void private(write_keyboard_callback)(const keyboard_cb_param* param) {
     if (param->action == GLFW_PRESS || param->action == GLFW_REPEAT) {
         switch (param->key) {
             case GLFW_KEY_ENTER: {
-                insert_char(edit->text.buffer, edit->text.index++, _C_'\n');
+                String(insertC)(edit->text.buffer, edit->text.index++, _C_'\n');
                 goto rebuild_text_mesh;
             }
             case GLFW_KEY_TAB: {
-                insert_char(edit->text.buffer, edit->text.index++, _C_'\t');
+                String(insertC)(edit->text.buffer, edit->text.index++, _C_'\t');
                 goto rebuild_text_mesh;
             }
             default: {
                 const char_t key = edit->font->kmap(param->key, param->modes == GLFW_MOD_SHIFT);
-                insert_char(edit->text.buffer, edit->text.index++, key);
+                String(insertC)(edit->text.buffer, edit->text.index++, key);
                 goto rebuild_text_mesh;
             }
             case GLFW_KEY_LEFT_CONTROL:
@@ -176,11 +176,11 @@ static void private(write_keyboard_callback)(const keyboard_cb_param* param) {
             case GLFW_KEY_LEFT_SHIFT:
             case GLFW_KEY_RIGHT_SHIFT: return;
             case GLFW_KEY_HOME: {
-                edit->text.index = rfind_char(edit->text.buffer, edit->text.index, '\n');
+                edit->text.index = String(rfindC)(edit->text.buffer, edit->text.index, '\n');
                 goto rebuild_text_mesh;
             }
             case GLFW_KEY_END: {
-                edit->text.index = find_char(edit->text.buffer, edit->text.index, '\n');
+                edit->text.index = String(findC)(edit->text.buffer, edit->text.index, '\n');
                 goto rebuild_text_mesh;
             }
             case GLFW_KEY_LEFT: {
@@ -204,7 +204,7 @@ static void private(write_keyboard_callback)(const keyboard_cb_param* param) {
             }
             case GLFW_KEY_BACKSPACE: {
                 if (edit->text.index) {
-                    pop_char(edit->text.buffer, --edit->text.index);
+                    String(popC)(edit->text.buffer, --edit->text.index);
                     goto rebuild_text_mesh;
                 }
                 break;
@@ -231,12 +231,12 @@ static void private(read_keyboard_callback)(const keyboard_cb_param* param) {
             case GLFW_KEY_LEFT_SHIFT:
             case GLFW_KEY_RIGHT_SHIFT: return;
             case GLFW_KEY_HOME: {
-                edit->text.index = rfind_char(edit->text.buffer, edit->text.index, '\n');
+                edit->text.index = String(rfindC)(edit->text.buffer, edit->text.index, '\n');
                 private(build_mesh)(edit, 0.0, 0.0);
                 break;
             }
             case GLFW_KEY_END: {
-                edit->text.index = find_char(edit->text.buffer, edit->text.index, '\n');
+                edit->text.index = String(findC)(edit->text.buffer, edit->text.index, '\n');
                 private(build_mesh)(edit, 0.0, 0.0);
                 break;
             }
@@ -273,7 +273,7 @@ static void private(resize_callback)(const resize_cb_param* param) {
 }
 
 void Edit(set_text)(edit_t* edit, char_t* text, const u64 length) {
-    if (!assign_str(edit->text.buffer, text, length)) {
+    if (!String(set)(edit->text.buffer, text, length)) {
         logWarn(ERR_STRING, "Failed to set edit, text.");
         return;
     }
@@ -323,7 +323,7 @@ edit_t* Edit(new)(void* parent, const style_group_t* group, const bounding_box* 
         goto cleanup;
     }
 
-    edit->text.buffer = new_str("", 0);
+    edit->text.buffer = String(new)("", 0);
     if (!edit->text.buffer) goto cleanup;
 
     edit->header.mouse = (callback)private(mouse_callback);
@@ -336,7 +336,7 @@ edit_t* Edit(new)(void* parent, const style_group_t* group, const bounding_box* 
     return edit;
 cleanup:
     if (edit->sprite) Sprite(del)(edit->sprite);
-    if (edit->text.buffer) del_str(edit->text.buffer);
+    if (edit->text.buffer) String(del)(edit->text.buffer);
     if (edit->font) Font(del)(edit->font);
     Buffer(del)(&(buf_t){.size = sizeof(edit_t), .tag = MEMTAG_EDIT, .ptr = edit});
     return NULL;
@@ -344,7 +344,7 @@ cleanup:
 void Edit(del)(edit_t* edit) {
     if (!edit) return;
     Sprite(del)(edit->sprite);
-    del_str(edit->text.buffer);
+    String(del)(edit->text.buffer);
     Font(del)(edit->font);
     Buffer(del)(&(buf_t){.size = sizeof(edit_t), .tag = MEMTAG_EDIT, .ptr = edit});
 }

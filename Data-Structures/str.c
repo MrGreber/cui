@@ -9,12 +9,12 @@
 
 
 #define DEFAULT_CAPACITY 128
-static u64 __static_length(char_t* data) {
+static u64 private(static_length)(char_t* data) {
     const u64 start = (u64)data;
     while(*++data) {}
     return (u64)data - start;
 }
-static bool __resize_string(str_t* src) {
+static bool private(resize_string)(str_t* src) {
     if (src->capacity == UINT64_MAX) {
         logError(ERR_HEAP_REALLOC, "vars reached max size %d.", UINT16_MAX);
         return false;
@@ -32,12 +32,12 @@ static bool __resize_string(str_t* src) {
     return true;
 }
 
-str_t* new_str(char_t* data, u64 length) {
+str_t* String(new)(char_t* data, u64 length) {
     u64 cap = 0;
     if (!data) return NULL;
     if (!length && !data[0]) cap = DEFAULT_CAPACITY;
     else {
-        length = __static_length(data);
+        length = private(static_length)(data);
         cap = __closest_pow2(length);
     }
 
@@ -65,28 +65,28 @@ str_t* new_str(char_t* data, u64 length) {
     }
     string->data = buffer.ptr;
     if (data[0]) {
-        while (string->capacity <= length && !__resize_string(string));
+        while (string->capacity <= length && !private(resize_string)(string));
         memcpy(string->data, data, (length >= string->capacity ? string->capacity : length) * sizeof(char_t));
     }
     return string;
 }
 
-void del_str(str_t* src) {
+void String(del)(str_t* src) {
     if (!src) return;
     Buffer(del)(&(buf_t){.ptr = src->data, .size = sizeof(char_t) * src->capacity, .tag = MEMTAG_BYTE});
     Buffer(del)(&(buf_t){.ptr = src, .size = sizeof(str_t), .tag = MEMTAG_STRING});
 }
 
 
-bool assign_str(str_t* dst, char_t* src, const u64 length) {
+bool String(set)(str_t* dst, char_t* src, const u64 length) {
     if (!dst || !src || !length) return false;
-    while (dst->capacity <= length && !__resize_string(dst));
+    while (dst->capacity <= length && !private(resize_string)(dst));
     memcpy(dst->data, src, (length >= dst->capacity ? dst->capacity : length) * sizeof(char_t));
     dst->length = length;
     return true;
 }
 
-bool pop_char(str_t* src, const u64 index) {
+bool String(popC)(str_t* src, const u64 index) {
     if (!src || index >= src->length) return false;
 
     char_t* ptr = src->data;
@@ -94,7 +94,7 @@ bool pop_char(str_t* src, const u64 index) {
     src->length--;
     return true;
 }
-bool del_substr(str_t* src, const u64 start, const u64 end) {
+bool String(del_sub)(str_t* src, const u64 start, const u64 end) {
     if (!src || start >= src->length || end >= src->length) return false;
 
     char_t* ptr = src->data;
@@ -105,13 +105,13 @@ bool del_substr(str_t* src, const u64 start, const u64 end) {
     for (u64 i = start; i < end + 1; i++) ptr[i] = ptr[i + delta];
     return true;
 }
-str_t* get_substr(str_t* src, const u64 start, const u64 end) {
+str_t* String(get_sub)(str_t* src, const u64 start, const u64 end) {
     if (!src || start >= src->length || end >= src->length) return NULL;
-    return new_str(src->data + start * sizeof(char_t), end - start);
+    return String(new)(src->data + start * sizeof(char_t), end - start);
 }
 bool push_char(str_t* src, const char_t c) {
     if (!src) return false;
-    if (src->capacity <= src->length && !__resize_string(src)) goto cleanup;
+    if (src->capacity <= src->length && !private(resize_string)(src)) goto cleanup;
 
     src->data[src->length++] = c;
     return true;
@@ -119,9 +119,9 @@ cleanup:
     logError(ERR_HEAP_REALLOC, "Failed to resize string buffer.");
     return false;
 }
-bool insert_char(str_t* src, const u64 index, const char_t c) {
+bool String(insertC)(str_t* src, const u64 index, const char_t c) {
     if (!src || index > src->length) return false;
-    if (src->capacity <= src->length && !__resize_string(src)) goto cleanup;
+    if (src->capacity <= src->length && !private(resize_string)(src)) goto cleanup;
 
     char_t* ptr = src->data;
     memmove(&ptr[index + 1], &ptr[index], (src->length - index) * sizeof(char_t));
@@ -133,24 +133,24 @@ cleanup:
     logError(ERR_HEAP_REALLOC, "Failed to resize string buffer.");
     return false;
 }
-bool concat_str(str_t* dst, str_t* src) {
+bool String(concat)(str_t* dst, str_t* src) {
     if (!dst || !src) return false;
 
     const u64 index = dst->length;
     dst->length += src->length;
-    while (dst->capacity <= dst->length && !__resize_string(dst));
+    while (dst->capacity <= dst->length && !private(resize_string)(dst));
     memcpy(dst->data, src->data, (dst->capacity <= dst->length ? dst->capacity : dst->length) * sizeof(char_t));
-    memcpy_s(dst->data + index, dst->length, src->data, src->length);
+    memcpy(dst->data + index, src->data, src->length);
 
     return true;
 }
-u64 find_char(str_t* src, const u64 start, const char_t c) {
+u64 String(findC)(str_t* src, const u64 start, const char_t c) {
     if (!src) return 0;
     u64 i = start;
     for (; src->data[i] != c && i < src->length; i++) {}
     return i;
 }
-u64 rfind_char(str_t* src, const u64 start, const char_t c) {
+u64 String(rfindC)(str_t* src, const u64 start, const char_t c) {
     if (!src) return 0;
     u64 i = start;
     for (; src->data[i] != c && (i64)i > 0; i--);
@@ -158,7 +158,7 @@ u64 rfind_char(str_t* src, const u64 start, const char_t c) {
     return i;
 }
 
-void prints(const str_t* src, const bool new_line) {
+void String(print)(const str_t* src, const bool new_line) {
     char_t* ptr = src->data;
     for (u64 i = 0; i < src->length; i++) {
         // Todo: currently just utf-8, NO UNICODE!!!!
