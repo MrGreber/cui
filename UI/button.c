@@ -92,30 +92,14 @@ void Button(update)(button_t* button) {
     Shader(set_mat4)(button->sprite->shader, "model", true, button->transform.model.e);
 
     const style_t* style = &button->styles.normal;
-    const color_t border_color = style->border.color;
-    vec4 color = {
-        byte_to_float(border_color.r),
-        byte_to_float(border_color.g),
-        byte_to_float(border_color.b),
-        byte_to_float(border_color.a)
-    };
+    vec4 color = Color(to_vec4)(style->border.color);
     const vec2 dim = {(f32)button->header.box.width, (f32)button->header.box.height};
     Shader(set_float)(button->sprite->shader, "border.radius", style->border.radius);
     Shader(set_float)(button->sprite->shader, "border.thickness", style->border.thickness);
     Shader(set_vec4)(button->sprite->shader, "border.color", &color.x);
     Shader(set_vec2)(button->sprite->shader, "size", dim.e);
-    if (frame->hovered.instance == button) color = (vec4){
-            byte_to_float(button->styles.hover.background.mask.r),
-            byte_to_float(button->styles.hover.background.mask.g),
-            byte_to_float(button->styles.hover.background.mask.b),
-            byte_to_float(button->styles.hover.background.mask.a)
-        };
-    else color = (vec4){
-        byte_to_float(button->styles.normal.background.mask.r),
-        byte_to_float(button->styles.normal.background.mask.g),
-        byte_to_float(button->styles.normal.background.mask.b),
-        byte_to_float(button->styles.normal.background.mask.a)
-    };
+    if (frame->hovered.instance == button) color = Color(to_vec4)(button->styles.hover.background.mask);
+    else color = Color(to_vec4)(button->styles.normal.background.mask);
     Shader(set_vec4)(button->sprite->shader, "mask", &color.x);
 
     Mesh(draw)(button->sprite->mesh);

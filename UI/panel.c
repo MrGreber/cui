@@ -128,24 +128,13 @@ void Panel(update)(panel_t* panel) {
     Shader(set_mat4)(panel->sprite->shader, "model", true, panel->transform.model.e);
 
     const style_t* style = &panel->styles.normal;
-    const color_t border_color = style->border.color;
-    vec4 color = {
-        byte_to_float(border_color.r),
-        byte_to_float(border_color.g),
-        byte_to_float(border_color.b),
-        byte_to_float(border_color.a)
-    };
+    vec4 color = Color(to_vec4)(style->border.color);
     const vec2 dim = {(f32)panel->header.box.width, (f32)panel->header.box.height};
     Shader(set_float)(panel->sprite->shader, "border.radius", style->border.radius);
     Shader(set_float)(panel->sprite->shader, "border.thickness", style->border.thickness);
     Shader(set_vec4)(panel->sprite->shader, "border.color", color.e);
     Shader(set_vec2)(panel->sprite->shader, "size", dim.e);
-    color = (vec4){
-        byte_to_float(panel->styles.normal.background.mask.r),
-        byte_to_float(panel->styles.normal.background.mask.g),
-        byte_to_float(panel->styles.normal.background.mask.b),
-        byte_to_float(panel->styles.normal.background.mask.a)
-    };
+    color = Color(to_vec4)(panel->styles.normal.background.mask);
     Shader(set_vec4)(panel->sprite->shader, "mask", color.e);
 
     Mesh(draw)(panel->sprite->mesh);

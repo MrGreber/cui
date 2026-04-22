@@ -360,7 +360,7 @@ void Edit(update)(edit_t* edit) {
     const frame_t* frame = get_root(edit);
     const font_t* font = edit->font;
     const style_t* style = &edit->styles.normal;
-    const vec4 border_color = {(f32)style->border.color.r / 255.0f, (f32)style->border.color.g / 255.0f, (f32)style->border.color.b / 255.0f, (f32)style->border.color.a / 255.0f};
+    const vec4 border_color = Color(to_vec4)(style->border.color);
     const vec2 dim = {(f32)edit->header.box.width, (f32)edit->header.box.height};
 
     if (edit->transform.init & 1) {
