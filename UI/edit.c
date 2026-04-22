@@ -14,8 +14,7 @@
 #define DEFAULT_CAPACITY 128
 #define QUAD 6
 
-static void push_glyph_quad(edit_t* edit, const glyph_t* g, const f32 pen_x, const f32 pen_y) {
-
+static void private(push_glyph)(edit_t* edit, const glyph_t* g, const f32 pen_x, const f32 pen_y) {
     const f32 x0 = pen_x + g->offset.x;
     const f32 y0 = pen_y + g->offset.y;
     const f32 x1 = x0 + g->dim.width;
@@ -35,7 +34,7 @@ static void push_glyph_quad(edit_t* edit, const glyph_t* g, const f32 pen_x, con
         .is_vertices = true
     });
 }
-static void build_text_mesh(edit_t* edit, const f32 start_x, const f32 start_y) {
+static void private(build_mesh)(edit_t* edit, const f32 start_x, const f32 start_y) {
     // TODO: optimize this function,
     // every AI I know of is dumb enough to not understand how to do it even though
     // the optimization is hella simple I mean I tried to do it myself for 2 times in a row
@@ -86,14 +85,14 @@ static void build_text_mesh(edit_t* edit, const f32 start_x, const f32 start_y) 
         const u64 index = edit->font->amap(c);
         const glyph_t* g = &edit->font->glyphs[index];
 
-        push_glyph_quad(edit, g, pen.x, pen.y);
+        private(push_glyph)(edit, g, pen.x, pen.y);
         pen.x += g->x_advance;
 
         if (edit->text.index == i + 1) {
             caret.pos = pen;
         }
     }
-    push_glyph_quad(edit, caret.glyph, caret.pos.x - (f32)caret.glyph->offset.x, caret.pos.y);
+    private(push_glyph)(edit, caret.glyph, caret.pos.x - (f32)caret.glyph->offset.x, caret.pos.y);
 
     Mesh(bind)(get_root(edit->parent), edit->mesh);
     Font(bind)(edit->font);
@@ -136,7 +135,7 @@ static void private(set_caret_position)(edit_t* edit, const f64 mouse_x, const f
         }
         else break;
     }
-    push_glyph_quad(edit, caret_glyph, pen.x - (f32)caret_glyph->offset.x, pen.y);
+    private(push_glyph)(edit, caret_glyph, pen.x - (f32)caret_glyph->offset.x, pen.y);
 
     Mesh(bind)(get_root(edit->parent), edit->mesh);
     Font(bind)(edit->font);
@@ -216,7 +215,7 @@ static void private(write_keyboard_callback)(const keyboard_cb_param* param) {
 
 rebuild_text_mesh:
     if (edit->font) {
-        build_text_mesh(edit, 0.0, 0.0);
+        private(build_mesh)(edit, 0.0, 0.0);
     }
 }
 static void private(read_keyboard_callback)(const keyboard_cb_param* param) {
@@ -233,25 +232,25 @@ static void private(read_keyboard_callback)(const keyboard_cb_param* param) {
             case GLFW_KEY_RIGHT_SHIFT: return;
             case GLFW_KEY_HOME: {
                 edit->text.index = rfind_char(edit->text.buffer, edit->text.index, '\n');
-                build_text_mesh(edit, 0.0, 0.0);
+                private(build_mesh)(edit, 0.0, 0.0);
                 break;
             }
             case GLFW_KEY_END: {
                 edit->text.index = find_char(edit->text.buffer, edit->text.index, '\n');
-                build_text_mesh(edit, 0.0, 0.0);
+                private(build_mesh)(edit, 0.0, 0.0);
                 break;
             }
             case GLFW_KEY_LEFT: {
                 if (edit->text.index) {
                     edit->text.index--;
-                    build_text_mesh(edit, 0.0, 0.0);
+                    private(build_mesh)(edit, 0.0, 0.0);
                 }
                 break;
             }
             case GLFW_KEY_RIGHT: {
                 if (edit->text.index < edit->text.buffer->length) {
                     edit->text.index++;
-                    build_text_mesh(edit, 0.0, 0.0);
+                    private(build_mesh)(edit, 0.0, 0.0);
                 }
                 break;
             }
@@ -278,7 +277,7 @@ void Edit(set_text)(edit_t* edit, char_t* text, const u64 length) {
         logWarn(ERR_STRING, "Failed to set edit, text.");
         return;
     }
-    build_text_mesh(edit, 0.0, 0.0);
+    private(build_mesh)(edit, 0.0, 0.0);
 }
 
 edit_t* Edit(new)(void* parent, const style_group_t* group, const bounding_box* box) {
@@ -333,7 +332,7 @@ edit_t* Edit(new)(void* parent, const style_group_t* group, const bounding_box* 
     edit->header.resize = (callback)private(resize_callback);
     Component(push_node)(parent_header->components, edit, EDIT_COMPONENT);
 
-    build_text_mesh(edit, 0.0, 0.0);
+    private(build_mesh)(edit, 0.0, 0.0);
     return edit;
 cleanup:
     if (edit->sprite) Sprite(del)(edit->sprite);
