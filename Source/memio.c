@@ -31,7 +31,8 @@ static char* mem_table_labels[__MEMTAG_COUNT__ - 1] = {
     "vector",
     "hashmap",
     "key-value-pair",
-    "mesh"
+    "mesh",
+    "vertex"
 };
 
 

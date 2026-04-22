@@ -36,6 +36,7 @@ typedef enum memory_tag {
     MEMTAG_HASHMAP,
     MEMTAG_KEY_VALUE_PAIR,
     MEMTAG_MESH,
+    MEMTAG_VERTEX,
     __MEMTAG_COUNT__                /**< Total number of memory tags */
 } mem_tag;
 
