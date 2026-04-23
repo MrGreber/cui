@@ -236,13 +236,13 @@ static dynamic_mesh_t* private(new_dynamic_mesh)(frame_t* frame, const mesh_para
     }
     dynamic_mesh_t* dynamic_mesh = &frame->cache.dynamic_meshes.data[frame->cache.dynamic_meshes.count++];
     mesh_metadata_t* metadata = &dynamic_mesh->metadata;
+    memset(dynamic_mesh, 0, sizeof(dynamic_mesh_t));
+
     metadata->va = VertexArray(new)(2);
     if (!metadata->va->id) {
         logError(ERR_OPENGL, "Failed to create vertex array for dynamic mesh.");
         goto dynamic_cleanup;
     }
-    dynamic_mesh->alignment = 0;
-    dynamic_mesh->eb.id = 0;
 
     for (u8 i = 0; i < 7; i++) {
         if (params.attributes & __attributes_table[i].bit) {
@@ -321,10 +321,10 @@ void Mesh(del_cache)(frame_t* frame) {
         }
     }
     if (frame->cache.static_meshes.eb.id) ElementBuffer(del)(&frame->cache.static_meshes.eb);
+
     for (u16 i = 0; i < frame->cache.dynamic_meshes.count; i++) {
         dynamic_mesh_t* dynamic_mesh = &frame->cache.dynamic_meshes.data[i];
         mesh_metadata_t* metadata = &dynamic_mesh->metadata;
-
         if (metadata->vb.id) {
             VertexArray(del)(metadata->va);
             VertexBuffer(del)(&metadata->vb);
@@ -351,6 +351,7 @@ void Mesh(del_cache)(frame_t* frame) {
             .size = frame->cache.dynamic_meshes.capacity * sizeof(dynamic_mesh_t),
             .tag = MEMTAG_MESH
         });
+        frame->cache.dynamic_meshes.data = NULL;
     }
 }
 void Mesh(bind)(const frame_t* frame, const mesh_t* mesh) {
