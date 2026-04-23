@@ -14,10 +14,8 @@ static void private(mouse_callback)(const mouse_cb_param* param) {
     panel_t* panel = param->instance;
     frame_t* frame = get_root(panel);
 
-    if (param->action == GLFW_PRESS &&
-        param->button == GLFW_MOUSE_BUTTON_LEFT &&
-        (panel->styles.normal.mode & CAPTION) &&
-        !(panel->styles.normal.mode & STATIC_POPUP) &&
+    if (param->button == GLFW_MOUSE_BUTTON_LEFT && param->action == GLFW_PRESS &&
+        (panel->styles.normal.mode & CAPTION) && !(panel->styles.normal.mode & STATIC_POPUP) &&
         !(bounded(param->x, param->y, panel->header.content_box.x, panel->header.content_box.y, panel->header.content_box.width, panel->header.content_box.height))
     ) {
         panel->drag.state = true;
@@ -41,7 +39,7 @@ static void private(mouse_callback)(const mouse_cb_param* param) {
 
         panel->transform.init |= 1;
     }
-    if (param->action == GLFW_RELEASE && param->button == GLFW_MOUSE_BUTTON_LEFT) {
+    if (param->button == GLFW_MOUSE_BUTTON_LEFT && param->action == GLFW_RELEASE) {
         panel->drag.state = false;
         frame->captured.instance = NULL;
         frame->captured.tag  = 0;
@@ -104,8 +102,7 @@ void Panel(del)(panel_t* panel) {
 }
 void Panel(bind)(const panel_t* panel) {
     if (!panel) return;
-    const frame_t* frame = get_root(panel);
-    Sprite(bind)(frame, panel->sprite);
+    Sprite(bind)(get_root(panel), panel->sprite);
 }
 
 void Panel(update)(panel_t* panel) {

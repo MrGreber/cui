@@ -302,7 +302,6 @@ edit_t* Edit(new)(void* parent, const style_group_t* group, const bounding_box* 
     if (group->hover.init) memcpy(&edit->styles.hover, &group->hover, sizeof(style_t));
 
     frame_t* frame = get_root(parent);
-
     edit->sprite = Sprite(new)(frame, COMP_SHADER);
     if (!edit->sprite) goto cleanup;
     if (!Sprite(set_texture)(edit->sprite, box->width, box->height, (style_t*)&group->normal)) goto cleanup;
@@ -350,8 +349,7 @@ void Edit(del)(edit_t* edit) {
 }
 void Edit(bind)(const edit_t* edit) {
     if (!edit) return;
-    const frame_t* frame = get_root(edit);
-    Sprite(bind)(frame, edit->sprite);
+    Sprite(bind)(get_root(edit), edit->sprite);
 }
 
 #define CLOCK_TIME 0.02

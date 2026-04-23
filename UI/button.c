@@ -53,7 +53,7 @@ button_t* Button(new)(void* parent, style_group_t* group, const bounding_box* bo
     if (!Sprite(set_texture)(button->sprite, box->width, box->height, &group->normal)) goto cleanup;
 
     button->header.mouse = (callback)__default_mouse_callback;
-    button->header.resize =  (callback)__default_resize_callback;
+    button->header.resize = (callback)__default_resize_callback;
     Component(push_node)(parent_header->components, button, BUTTON_COMPONENT);
     return button;
 cleanup:
@@ -68,8 +68,7 @@ void Button(del)(button_t* button) {
 }
 void Button(bind)(const button_t* button) {
     if (!button) return;
-    const frame_t* frame = get_root(button);
-    Sprite(bind)(frame, button->sprite);
+    Sprite(bind)(get_root(button), button->sprite);
 }
 
 void Button(update)(button_t* button) {

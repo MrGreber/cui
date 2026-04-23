@@ -39,7 +39,7 @@ static void private(camera_handler)(canvas_t* canvas) {
         if (camera->roll >= 360.0f) camera->roll -= 360.0f;
     }
     if (camera->keys & CAM_KEY_R) Camera(reset)(camera);
-    canvas->transform.init |= 3;
+    canvas->transform.init |= 1;
 #undef SPEED
 #else
 #error For some reason your dumbass decided to define a global macro named SPEED, what the fuck if you try to compiler me again I will send assassins after your ass
@@ -64,7 +64,7 @@ static void private(mouse_callback)(const mouse_cb_param* param) {
 }
 static void private(keyboard_callback)(const keyboard_cb_param* param) {
     canvas_t* canvas = param->instance;
-    const frame_t* frame = get_root(canvas);
+    //const frame_t* frame = get_root(canvas);
     camera_t* camera = &canvas->camera;
 
     u16 bit = 0;
@@ -76,6 +76,9 @@ static void private(keyboard_callback)(const keyboard_cb_param* param) {
         case GLFW_KEY_Q: bit = CAM_KEY_Q; break;
         case GLFW_KEY_E: bit = CAM_KEY_E; break;
         case GLFW_KEY_R: bit = CAM_KEY_R; break;
+        case GLFW_KEY_LEFT_ALT: {
+            break;
+        }
         case GLFW_KEY_SPACE:
             if (param->action == GLFW_PRESS) Texture(flush)(canvas->sprite->tex, WHITE);
             return;
@@ -112,11 +115,11 @@ static void private(scroll_callback)(const scroll_cb_param* param) {
     camera->position.y = offset_y + actual_factor * (camera->position.y - offset_y);
     camera->zoom = clamped;
 
-    canvas->transform.init |= 3;
+    canvas->transform.init |= 1;
 }
 static void private(resize_callback)(const resize_cb_param* param) {
     canvas_t* canvas = param->instance;
-    canvas->transform.init |= 3;
+    canvas->transform.init |= 1;
 }
 
 
@@ -130,7 +133,7 @@ canvas_t* Canvas(new)(void* parent, const u32 width, const u32 height) {
     const comp_header_t* parent_header = get_header(parent);
 
     canvas_t* canvas = buffer.ptr;
-    canvas->transform.init = 3;
+    canvas->transform.init = 1;
     canvas->dim.width = width;
     canvas->dim.height = height;
 
@@ -143,8 +146,7 @@ canvas_t* Canvas(new)(void* parent, const u32 width, const u32 height) {
     canvas->prev.x = -1;
     canvas->prev.y = -1;
 
-    frame_t* frame = get_root(parent);
-    canvas->sprite = Sprite(new)(frame, RECT_SHADER);
+    canvas->sprite = Sprite(new)(get_root(parent), RECT_SHADER);
     if (!canvas->sprite) goto cleanup;
     if (!Sprite(set_texture)(canvas->sprite, width, height, &(style_t){.background = {.type = BG_COLOR, .color = WHITE}})) goto cleanup;
 
@@ -167,8 +169,7 @@ void Canvas(del)(canvas_t* canvas) {
 }
 void Canvas(bind)(canvas_t* canvas) {
     if (!canvas) return;
-    const frame_t* frame = get_root(canvas);
-    Sprite(bind)(frame, canvas->sprite);
+    Sprite(bind)(get_root(canvas), canvas->sprite);
 }
 void Canvas(set_brush)(canvas_t* canvas, const color_t color, const f32 size) {
     if (!canvas) return;
@@ -183,7 +184,7 @@ void Canvas(update)(canvas_t* canvas) {
 
     if (frame->focused.instance == canvas && canvas->camera.keys) private(camera_handler)(canvas);
     else canvas->camera.keys = 0;
-    if (canvas->transform.init == 3) {
+    if (canvas->transform.init == 1) {
         const mat4 rotation = m4_rotateZ(rad(canvas->camera.roll));
         const mat4 position = m4_transl(canvas->camera.position.x + parent_header->content_box.x, canvas->camera.position.y + parent_header->content_box.y, 0.0f);
         const mat4 size = m4_transl(canvas->camera.zoom * (f32)canvas->dim.width * 0.5f, canvas->camera.zoom * (f32)canvas->dim.height * 0.5f, 0.0f);
@@ -200,7 +201,7 @@ void Canvas(update)(canvas_t* canvas) {
 
         canvas->transform.inv_model = m4_inverse(&canvas->transform.inv_model);
         canvas->transform.inv_model = m4_transp(&canvas->transform.inv_model);
-        canvas->transform.init ^= 3;
+        canvas->transform.init ^= 1;
     }
 
     Sprite(bind)(frame, canvas->sprite);
