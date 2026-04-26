@@ -16,18 +16,17 @@ typedef struct edit {
 
     sprite_t* sprite;
     font_t* font;
+    mesh_t* mesh;
+    struct {
+        str_t* buffer;
+        u64 index;
+    } text;
+
     struct {
         // saves the transformations
         mat4 model;
         u8 init;
     } transform;
-
-    mesh_t* mesh;
-
-    struct {
-        str_t* buffer;
-        u64 index;
-    } text;
 } edit_t;
 
 #define Edit(func) __edit_##func

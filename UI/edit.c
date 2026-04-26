@@ -20,6 +20,7 @@ static void private(push_glyph)(edit_t* edit, const glyph_t* g, const f32 pen_x,
     const f32 x1 = x0 + g->dim.width;
     const f32 y1 = y0 + g->dim.height;
 
+    //printf("Quad: <x=%f, y=%f\n", x0, y0);
     const f32 quad[24] = {
         x0, y1, g->x0, g->y1,
         x1, y0, g->x1, g->y0,
@@ -34,13 +35,7 @@ static void private(push_glyph)(edit_t* edit, const glyph_t* g, const f32 pen_x,
         .is_vertices = true
     });
 }
-static void private(build_mesh)(edit_t* edit, const f32 start_x, const f32 start_y) {
-    // TODO: optimize this function,
-    // every AI I know of is dumb enough to not understand how to do it even though
-    // the optimization is hella simple I mean I tried to do it myself for 2 times in a row
-    // however it failed but I got close since I was able to render the text mesh semi correct and I know how to optimize
-    // so i will try again sometime
-
+static void private(build_mesh)(edit_t* edit, f32 start_x, f32 start_y) {
     const str_t* buffer = edit->text.buffer;
 
     struct {
@@ -49,14 +44,31 @@ static void private(build_mesh)(edit_t* edit, const f32 start_x, const f32 start
     } caret = {
         .glyph = &edit->font->glyphs[edit->font->amap('|')]
     };
-    edit->mesh->vertices.count = 0;
+
+    u64 start_index = 0;
+    if (edit->text.index > 0) {
+        // todo: fix the optimization has for some reason it keeps on increasing or decreasing the start y position of the text mesh
+        start_index = edit->text.index - 1;
+
+        f32* vertex = edit->mesh->vertices.data + (start_index * QUAD + 2) * edit->mesh->alignment;
+        char_t c = edit->text.buffer->data[start_index];
+
+        glyph_t* start_glyph = &edit->font->glyphs[edit->font->amap(c)];
+        start_x += vertex[0] - start_glyph->offset.x;
+        start_y += vertex[1] - start_glyph->offset.y;
+        printf("%c\n", c);
+        printf("offset: <x=%u, y=%u>\n", start_glyph->offset.x, start_glyph->offset.y);
+        printf("vertex: <x=%f, y=%f>\n", vertex[0], vertex[1]);
+        printf("start: <x=%f, y=%f>\n", start_x, start_y);
+    }
+    edit->mesh->vertices.count = start_index * QUAD;
 
     vec2 pen = {
         start_x,
         start_y
     };
     const f32 space_x = edit->font->glyphs[edit->font->amap(' ')].x_advance;
-    for (u64 i = 0; i < buffer->length; i++) {
+    for (u64 i = start_index; i < buffer->length; i++) {
         const char c = buffer->data[i];
 
         if (c == '\n') {
@@ -330,8 +342,6 @@ edit_t* Edit(new)(void* parent, const style_group_t* group, const bounding_box* 
     else edit->header.keyboard = (callback)private(read_keyboard_callback);
     edit->header.resize = (callback)private(resize_callback);
     Component(push_node)(parent_header->components, edit, EDIT_COMPONENT);
-
-    private(build_mesh)(edit, 0.0, 0.0);
     return edit;
 cleanup:
     if (edit->sprite) Sprite(del)(edit->sprite);
