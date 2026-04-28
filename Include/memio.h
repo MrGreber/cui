@@ -24,6 +24,7 @@ typedef enum memory_tag {
     MEMTAG_FRAME,                   /**< Memory allocated for frame/window structs */
     MEMTAG_TEXTURE,                 /**< Memory allocated for textures */
     MEMTAG_BUTTON,
+    MEMTAG_CAPTION,
     MEMTAG_COMPONENT_NODE,
     MEMTAG_POINTER,
     MEMTAG_PANEL,

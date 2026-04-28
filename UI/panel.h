@@ -15,11 +15,6 @@ typedef struct panel {
     style_group_t styles;
 
     void* parent;
-    struct {
-        mat4 model;
-        u8 init;
-    } transform;
-
     sprite_t* sprite;
     struct {
         bool state;
@@ -27,6 +22,11 @@ typedef struct panel {
             i32 x, y;
         } prev;
     } drag;
+
+    struct {
+        mat4 model;
+        u8 init;
+    } transform;
 } panel_t;
 
 #define Panel(func) __panel_##func
