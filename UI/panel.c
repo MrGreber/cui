@@ -5,6 +5,7 @@
 #include <math-utils.h>
 #include <shader/ops.h>
 #include <geometry/ops.h>
+#include <caption.h>
 
 #include <memory.h>
 #include <glad.h>
@@ -12,38 +13,7 @@
 
 static void private(mouse_callback)(const mouse_cb_param* param) {
     panel_t* panel = param->instance;
-    frame_t* frame = get_root(panel);
-
-    if (param->button == GLFW_MOUSE_BUTTON_LEFT && param->action == GLFW_PRESS &&
-        (panel->styles.normal.mode & CAPTION) && !(panel->styles.normal.mode & STATIC_POPUP) &&
-        !(bounded(param->x, param->y, panel->header.content_box.x, panel->header.content_box.y, panel->header.content_box.width, panel->header.content_box.height))
-    ) {
-        panel->drag.state = true;
-        panel->drag.prev.x = param->x;
-        panel->drag.prev.y = param->y;
-
-        frame->captured.instance = panel;
-        frame->captured.tag  = PANEL_COMPONENT;
-    }
-    if (panel->drag.state) {
-        const i32 dx = (i32)param->x - (i32)panel->drag.prev.x;
-        const i32 dy = (i32)param->y - (i32)panel->drag.prev.y;
-
-        panel->header.box.x += dx;
-        panel->header.box.y += dy;
-        panel->header.content_box.x += dx;
-        panel->header.content_box.y += dy;
-
-        panel->drag.prev.x = param->x;
-        panel->drag.prev.y = param->y;
-
-        panel->transform.init |= 1;
-    }
-    if (param->button == GLFW_MOUSE_BUTTON_LEFT && param->action == GLFW_RELEASE) {
-        panel->drag.state = false;
-        frame->captured.instance = NULL;
-        frame->captured.tag  = 0;
-    }
+    panel->transform.init |= 1;
 }
 static void private(resize_callback)(const resize_cb_param* param) {
     panel_t* panel = param->instance;
@@ -89,6 +59,8 @@ panel_t* Panel(new)(void* parent, style_group_t* group, const bounding_box* box)
     panel->header.mouse = (callback)private(mouse_callback);
     panel->header.resize = (callback)private(resize_callback);
     Component(push_node)(parent_header->components, panel, PANEL_COMPONENT);
+    panel->caption = Caption(new)(panel);
+
     return panel;
 cleanup:
     if (panel->sprite) Sprite(del)(panel->sprite);
@@ -97,6 +69,7 @@ cleanup:
 }
 void Panel(del)(panel_t* panel) {
     if (!panel) return;
+    if (panel->caption) Caption(del)(panel->caption);
     if (panel->sprite) Sprite(del)(panel->sprite);
     Buffer(del)(&(buf_t){.size = sizeof(panel_t), .tag = MEMTAG_PANEL, .ptr = panel});
 }
@@ -135,4 +108,6 @@ void Panel(update)(panel_t* panel) {
     Shader(set_vec4)(panel->sprite->shader, "mask", color.e);
 
     Mesh(draw)(panel->sprite->mesh);
+
+    Caption(update)(panel->caption);
 }

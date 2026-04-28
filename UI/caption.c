@@ -6,50 +6,58 @@
 #include <shader/ops.h>
 #include <geometry/ops.h>
 
+#include <memory.h>
+#include <glad.h>
+#include <glfw3.h>
+
 static void private(mouse_callback)(const mouse_cb_param* param) {
-    panel_t* panel = param->instance;
-    frame_t* frame = get_root(panel);
+    caption_t* caption = param->instance;
+    frame_t* frame = get_root(caption);
 
-    if (param->button == GLFW_MOUSE_BUTTON_LEFT && param->action == GLFW_PRESS &&
-        (panel->styles.normal.mode & CAPTION) && !(panel->styles.normal.mode & STATIC_POPUP) &&
-        !(bounded(param->x, param->y, panel->header.content_box.x, panel->header.content_box.y, panel->header.content_box.width, panel->header.content_box.height))
-    ) {
-        panel->drag.state = true;
-        panel->drag.prev.x = param->x;
-        panel->drag.prev.y = param->y;
+    if (param->button == GLFW_MOUSE_BUTTON_LEFT && param->action == GLFW_PRESS) {
+        caption->drag.state = true;
+        caption->drag.prev.x = param->x;
+        caption->drag.prev.y = param->y;
 
-        frame->captured.instance = panel;
-        frame->captured.tag  = PANEL_COMPONENT;
+        frame->captured.instance = caption;
+        frame->captured.tag = CAPTION_COMPONENT;
     }
-    if (panel->drag.state) {
-        const i32 dx = (i32)param->x - (i32)panel->drag.prev.x;
-        const i32 dy = (i32)param->y - (i32)panel->drag.prev.y;
+    if (caption->drag.state) {
+        const i32 dx = (i32)param->x - (i32)caption->drag.prev.x;
+        const i32 dy = (i32)param->y - (i32)caption->drag.prev.y;
 
-        panel->header.box.x += dx;
-        panel->header.box.y += dy;
-        panel->header.content_box.x += dx;
-        panel->header.content_box.y += dy;
+        caption->header.box.x += dx;
+        caption->header.box.y += dy;
+        caption->header.content_box.x += dx;
+        caption->header.content_box.y += dy;
 
-        panel->drag.prev.x = param->x;
-        panel->drag.prev.y = param->y;
+        caption->drag.prev.x = param->x;
+        caption->drag.prev.y = param->y;
 
-        panel->transform.init |= 1;
+        caption->transform.init |= 1;
+
+        comp_header_t* parent_header = get_header(caption->parent);
+        parent_header->box.x += dx;
+        parent_header->box.y += dy;
+        parent_header->content_box.x += dx;
+        parent_header->content_box.y += dy;
+        parent_header->mouse(&(mouse_cb_param){.instance = caption->parent});
     }
     if (param->button == GLFW_MOUSE_BUTTON_LEFT && param->action == GLFW_RELEASE) {
-        panel->drag.state = false;
+        caption->drag.state = false;
         frame->captured.instance = NULL;
         frame->captured.tag  = 0;
     }
 }
 static void private(resize_callback)(const resize_cb_param* param) {
-    panel_t* panel = param->instance;
-    panel->transform.init |= 1;
-    // comp_header_t* header = get_header(panel->parent);
-    //
+    caption_t* caption = param->instance;
+    caption->transform.init |= 1;
+    // comp_header_t* header = get_header(caption->parent);
     // header->box.width += param->width;
     // header->box.height += param->height;
 }
 
+#define CAPTION_HEIGHT 30
 caption_t* Caption(new)(void* parent) {
     buf_t buffer = {
         .size = sizeof(caption_t),
@@ -61,39 +69,60 @@ caption_t* Caption(new)(void* parent) {
 
     caption_t* caption = buffer.ptr;
     caption->transform.init = 1;
-    caption->header.box.x = box->x + parent_header->box.x;
-    caption->header.box.y = box->y + parent_header->box.y;
-    caption->header.box.width = box->width;
-    caption->header.box.height = box->height;
 
-    const i32 caption_height = (group->normal.mode & CAPTION) ? CAPTION_HEIGHT : 0;
-    caption->header.content_box.x = box->x + parent_header->box.x;
-    caption->header.content_box.y = box->y + parent_header->box.y + caption_height;
-    caption->header.content_box.width = box->width;
-    caption->header.content_box.height = box->height - caption_height;
+    caption->header.box.x = parent_header->box.x;
+    caption->header.box.y = parent_header->box.y;
+    caption->header.box.width = parent_header->box.width;
+    caption->header.box.height = CAPTION_HEIGHT;
+
+    caption->header.content_box.x = parent_header->box.x;
+    caption->header.content_box.y = parent_header->box.y;
+    caption->header.content_box.width = parent_header->box.width;
+    caption->header.content_box.height = CAPTION_HEIGHT;
 
     caption->parent = parent;
     frame_t* frame = get_root(parent);
-    caption->sprite = Sprite(new)(frame, COMP_SHADER);
+    caption->sprite = Sprite(new)(frame, RECT_SHADER);
     if (!caption->sprite) goto cleanup;
-    if (!Sprite(set_texture)(caption->sprite, box->width, box->height, &group->normal)) goto cleanup;
+    if (!Sprite(set_texture)(caption->sprite, parent_header->box.width, CAPTION_HEIGHT, &(style_t){.background = {.type = BG_COLOR, .color = RED}})) goto cleanup;
 
     caption->header.mouse = (callback)private(mouse_callback);
     caption->header.resize = (callback)private(resize_callback);
-    Component(push_node)(parent_header->components, caption, PANEL_COMPONENT);
+    Component(push_node)(parent_header->components, caption, CAPTION_COMPONENT);
+
     return caption;
-    cleanup:
-        if (caption->sprite) Sprite(del)(caption->sprite);
-    Buffer(del)(&(buf_t){.size = sizeof(panel_t), .tag = MEMTAG_PANEL, .ptr = caption});
+cleanup:
+    if (caption->sprite) Sprite(del)(caption->sprite);
+    Buffer(del)(&(buf_t){.size = sizeof(caption_t), .tag = MEMTAG_CAPTION, .ptr = caption});
     return NULL;
 
 }
 void Caption(del)(caption_t* caption) {
-
+    if (!caption) return;
+    if (caption->sprite) Sprite(del)(caption->sprite);
+    Buffer(del)(&(buf_t){.size = sizeof(caption_t), .tag = MEMTAG_CAPTION, .ptr = caption});
 }
 void Caption(bind)(const caption_t* caption) {
-
+    if (!caption) return;
+    Sprite(bind)(get_root(caption), caption->sprite);
 }
 void Caption(update)(caption_t* caption) {
+    if (!caption) return;
+    const frame_t* frame = get_root(caption);
 
+    if (caption->transform.init & 1) {
+        const mat4 scale = m4_scale((f32)caption->header.box.width, (f32)caption->header.box.height, 1.0f);
+        const mat4 position = m4_transl((f32)caption->header.box.x, (f32)caption->header.box.y, 0.0f);
+        const mat4 size = m4_transl((f32)caption->header.box.width * 0.5f, (f32)caption->header.box.height * 0.5f, 0.0f);
+        const mat4 inv_size = m4_transl(-(f32)caption->header.box.width * 0.5f, -(f32)caption->header.box.height * 0.5f, 0.0f);
+
+        caption->transform.model = m4_mul(&position, &size);
+        caption->transform.model = m4_mul(&caption->transform.model, &inv_size);
+        caption->transform.model = m4_mul(&caption->transform.model, &scale);
+        caption->transform.init ^= 1;
+    }
+    Sprite(bind)(frame, caption->sprite);
+    Shader(set_mat4)(caption->sprite->shader, "projection", true, frame->cache.projection.e);
+    Shader(set_mat4)(caption->sprite->shader, "model", true, caption->transform.model.e);
+    Mesh(draw)(caption->sprite->mesh);
 }

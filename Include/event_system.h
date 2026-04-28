@@ -78,6 +78,7 @@ typedef void (*callback)(void*);
 typedef enum component_tag {
     FRAME_COMPONENT,
     PANEL_COMPONENT,
+    CAPTION_COMPONENT,
     BUTTON_COMPONENT,
     EDIT_COMPONENT,
     CANVAS_COMPONENT,
@@ -131,7 +132,6 @@ typedef struct event {
 } event_t;
 
 typedef struct component_header {
-    u8 focus;
     bounding_box box;
     bounding_box content_box;
 
@@ -140,6 +140,7 @@ typedef struct component_header {
     callback scroll;
     callback resize;
     void* components;
+    u8 focus;
 } comp_header_t;
 
 typedef struct component {
@@ -158,8 +159,17 @@ typedef struct component_node {
 } comp_node_t;
 
 
-#define get_header(COMP) ((comp_header_t*)(COMP))
-#define bounded(mx, my, x, y, w, h) (((mx) >= (x) && (mx) < ((x) + (w))) && ((my) >= (y) && (my) < ((y) + (h))))
+__forceinline bool is_bounded(const bounding_box* box, const i32 x, const i32 y) {
+    return
+        (x >= box->x && x < box->x + box->width) &&
+        (y >= box->y && y < box->y + box->height);
+}
+__forceinline comp_header_t* get_header(void* comp) {
+    return (comp_header_t*)comp;
+}
+__forceinline style_group_t* get_styles(void* comp) {
+    return (style_group_t*)((byte*)comp + sizeof(style_group_t));
+}
 __forceinline void* get_root(const void* comp) {
     comp_node_t* root = ((comp_node_t*)((comp_header_t*)comp)->components)->root;
     if (root == NULL) return (void*)comp;

@@ -7,7 +7,7 @@
 #include <glfw3.h>
 #include <glfw3native.h>
 
-static GLFWcursor* __cursors[__COMPONENT_TAG_COUNT__] = { 0 };
+_Thread_local static GLFWcursor* __cursors[__COMPONENT_TAG_COUNT__] = { 0 };
 #define __get_comp_cursor(tag) __cursors[tag]
 
 comp_node_t* Component(new_node)(void* data, const comp_tag tag) {
@@ -32,9 +32,10 @@ comp_node_t* Component(new_node)(void* data, const comp_tag tag) {
     if (tag == FRAME_COMPONENT && !__cursors[0]) {
         __cursors[0] = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
         __cursors[1] = __cursors[0];
-        __cursors[2] = glfwCreateStandardCursor(GLFW_HAND_CURSOR);
-        __cursors[3] = glfwCreateStandardCursor(GLFW_IBEAM_CURSOR);
-        __cursors[4] = load_cursor(__DIR__"\\Resources\\oval.png", 8, 8, 4, 4);
+        __cursors[2] = __cursors[0];
+        __cursors[3] = glfwCreateStandardCursor(GLFW_HAND_CURSOR);
+        __cursors[4] = glfwCreateStandardCursor(GLFW_IBEAM_CURSOR);
+        __cursors[5] = load_cursor(__DIR__"\\Resources\\oval.png", 8, 8, 4, 4);
         glfwSetCursor(((frame_t*)data)->ctx, __cursors[0]);
     }
 
@@ -45,12 +46,11 @@ cleanup:
 }
 void Component(del_node)(comp_node_t* root) {
     if (!root) return;
-
     for (u64 i = 0; i < root->count; i++) Component(del_node)(root->nodes[i]);
     Buffer(del)(&(buf_t){.size = root->capacity * sizeof(comp_node_t*), .tag = MEMTAG_POINTER, .ptr = root->nodes});
     Buffer(del)(&(buf_t){.size = sizeof(comp_node_t), .tag = MEMTAG_COMPONENT_NODE, .ptr = root});
 
-    for (u16 i = 1; i < __COMPONENT_TAG_COUNT__; i++) {
+    for (u16 i = 2; i < __COMPONENT_TAG_COUNT__; i++) {
         if (__cursors[i]) {
             glfwDestroyCursor(__cursors[i]);
             __cursors[i] = NULL;
@@ -89,9 +89,10 @@ cleanup:
     return false;
 }
 
-const char* __components_strings__[] = {
+const static char* __components_strings__[] = {
     "frame",
     "panel",
+    "caption",
     "button",
     "edit",
     "canvas"
@@ -150,7 +151,7 @@ void dispatch_event(const comp_node_t* node, event_t* event) {
              for (u64 i = 0; i < node->count; i++) {
                  const comp_header_t* header = get_header(node->nodes[i]->component.instance);
 
-                 if (bounded(param->x, param->y, header->box.x, header->box.y, header->box.width, header->box.height)) {
+                 if (is_bounded(&header->box, param->x, param->y)) {
                      dispatch_event(node->nodes[i], event);
                      flag = true;
                      break;

@@ -184,7 +184,7 @@ void Canvas(update)(canvas_t* canvas) {
 
     if (frame->focused.instance == canvas && canvas->camera.keys) private(camera_handler)(canvas);
     else canvas->camera.keys = 0;
-    if (canvas->transform.init == 1) {
+    if (canvas->transform.init & 1) {
         const mat4 rotation = m4_rotateZ(rad(canvas->camera.roll));
         const mat4 position = m4_transl(canvas->camera.position.x + parent_header->content_box.x, canvas->camera.position.y + parent_header->content_box.y, 0.0f);
         const mat4 size = m4_transl(canvas->camera.zoom * (f32)canvas->dim.width * 0.5f, canvas->camera.zoom * (f32)canvas->dim.height * 0.5f, 0.0f);
