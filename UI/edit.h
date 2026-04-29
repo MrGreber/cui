@@ -22,11 +22,7 @@ typedef struct edit {
         u64 index;
     } text;
 
-    struct {
-        // saves the transformations
-        mat4 model;
-        u8 init;
-    } transform;
+    mat4 model;
 } edit_t;
 
 #define Edit(func) __edit_##func

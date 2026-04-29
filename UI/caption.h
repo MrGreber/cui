@@ -16,10 +16,7 @@ typedef struct caption {
         bool state;
     } drag;
 
-    struct {
-        mat4 model;
-        u8 init;
-    } transform;
+    mat4 model;
 } caption_t;
 
 #define Caption(func) __caption_##func

@@ -140,7 +140,11 @@ typedef struct component_header {
     callback scroll;
     callback resize;
     void* components;
-    u8 focus;
+    struct {
+        u8 dirty: 1;
+        u8 focus: 1;
+        u8 flags: 6;
+    };
 } comp_header_t;
 
 typedef struct component {

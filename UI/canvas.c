@@ -39,7 +39,7 @@ static void private(camera_handler)(canvas_t* canvas) {
         if (camera->roll >= 360.0f) camera->roll -= 360.0f;
     }
     if (camera->keys & CAM_KEY_R) Camera(reset)(camera);
-    canvas->transform.init |= 1;
+    canvas->header.dirty |= 1;
 #undef SPEED
 #else
 #error For some reason your dumbass decided to define a global macro named SPEED, what the fuck if you try to compiler me again I will send assassins after your ass
@@ -52,7 +52,7 @@ static void private(mouse_callback)(const mouse_cb_param* param) {
 
     if (glfwGetMouseButton(frame->ctx, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
         vec4 mpos = {param->x, param->y, 0.0f, 1.0f};
-        mpos = mv4_mul(&canvas->transform.inv_model, &mpos);
+        mpos = mv4_mul(&canvas->inv_model, &mpos);
 
         if (canvas->prev.x != -1 && canvas->prev.y != -1) Texture(draw_line)(canvas->sprite->tex, canvas->brush.color, canvas->prev.x, canvas->prev.y, mpos.x, mpos.y);
         else Texture(set_pixel)(canvas->sprite->tex, canvas->brush.color, mpos.x, mpos.y);
@@ -115,11 +115,11 @@ static void private(scroll_callback)(const scroll_cb_param* param) {
     camera->position.y = offset_y + actual_factor * (camera->position.y - offset_y);
     camera->zoom = clamped;
 
-    canvas->transform.init |= 1;
+    canvas->header.dirty |= 1;
 }
 static void private(resize_callback)(const resize_cb_param* param) {
     canvas_t* canvas = param->instance;
-    canvas->transform.init |= 1;
+    canvas->header.dirty |= 1;
 }
 
 
@@ -133,7 +133,7 @@ canvas_t* Canvas(new)(void* parent, const u32 width, const u32 height) {
     const comp_header_t* parent_header = get_header(parent);
 
     canvas_t* canvas = buffer.ptr;
-    canvas->transform.init = 1;
+    canvas->header.dirty = 1;
     canvas->dim.width = width;
     canvas->dim.height = height;
 
@@ -184,7 +184,7 @@ void Canvas(update)(canvas_t* canvas) {
 
     if (frame->focused.instance == canvas && canvas->camera.keys) private(camera_handler)(canvas);
     else canvas->camera.keys = 0;
-    if (canvas->transform.init & 1) {
+    if (canvas->header.dirty & 1) {
         const mat4 rotation = m4_rotateZ(rad(canvas->camera.roll));
         const mat4 position = m4_transl(canvas->camera.position.x + parent_header->content_box.x, canvas->camera.position.y + parent_header->content_box.y, 0.0f);
         const mat4 size = m4_transl(canvas->camera.zoom * (f32)canvas->dim.width * 0.5f, canvas->camera.zoom * (f32)canvas->dim.height * 0.5f, 0.0f);
@@ -192,21 +192,21 @@ void Canvas(update)(canvas_t* canvas) {
 
         const mat4 scale = m4_scale(canvas->camera.zoom * (f32)canvas->dim.width, canvas->camera.zoom * (f32)canvas->dim.height, 1.0f);
         const mat4 inv_scale = m4_scale(canvas->camera.zoom, canvas->camera.zoom, 1.0f);
-        canvas->transform.model = m4_mul(&position, &size);
-        canvas->transform.model = m4_mul(&canvas->transform.model, &rotation);
-        canvas->transform.model = m4_mul(&canvas->transform.model, &inv_size);
+        canvas->model = m4_mul(&position, &size);
+        canvas->model = m4_mul(&canvas->model, &rotation);
+        canvas->model = m4_mul(&canvas->model, &inv_size);
 
-        canvas->transform.inv_model = m4_mul(&canvas->transform.model, &inv_scale);
-        canvas->transform.model = m4_mul(&canvas->transform.model, &scale);
+        canvas->inv_model = m4_mul(&canvas->model, &inv_scale);
+        canvas->model = m4_mul(&canvas->model, &scale);
 
-        canvas->transform.inv_model = m4_inverse(&canvas->transform.inv_model);
-        canvas->transform.inv_model = m4_transp(&canvas->transform.inv_model);
-        canvas->transform.init ^= 1;
+        canvas->inv_model = m4_inverse(&canvas->inv_model);
+        canvas->inv_model = m4_transp(&canvas->inv_model);
+        canvas->header.dirty ^= 1;
     }
 
     Sprite(bind)(frame, canvas->sprite);
     Shader(set_mat4)(canvas->sprite->shader, "projection", true, frame->cache.projection.e);
-    Shader(set_mat4)(canvas->sprite->shader, "model", true, canvas->transform.model.e);
+    Shader(set_mat4)(canvas->sprite->shader, "model", true, canvas->model.e);
 
     glEnable(GL_SCISSOR_TEST);
     glScissor(

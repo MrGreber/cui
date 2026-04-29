@@ -19,10 +19,7 @@ typedef struct panel {
     sprite_t* sprite;
     caption_t* caption;
 
-    struct {
-        mat4 model;
-        u8 init;
-    } transform;
+    mat4 model;
 } panel_t;
 
 #define Panel(func) __panel_##func

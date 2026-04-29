@@ -13,11 +13,11 @@
 
 static void private(mouse_callback)(const mouse_cb_param* param) {
     panel_t* panel = param->instance;
-    panel->transform.init |= 1;
+
 }
 static void private(resize_callback)(const resize_cb_param* param) {
     panel_t* panel = param->instance;
-    panel->transform.init |= 1;
+    panel->header.dirty |= 1;
     // comp_header_t* header = get_header(panel->parent);
     //
     // header->box.width += param->width;
@@ -35,7 +35,7 @@ panel_t* Panel(new)(void* parent, style_group_t* group, const bounding_box* box)
     const comp_header_t* parent_header = get_header(parent);
 
     panel_t* panel = buffer.ptr;
-    panel->transform.init = 1;
+    panel->header.dirty = 1;
     panel->header.box.x = box->x + parent_header->box.x;
     panel->header.box.y = box->y + parent_header->box.y;
     panel->header.box.width = box->width;
@@ -82,20 +82,20 @@ void Panel(update)(panel_t* panel) {
     if (!panel) return;
     const frame_t* frame = get_root(panel);
 
-    if (panel->transform.init & 1) {
+    if (panel->header.dirty & 1) {
         const mat4 scale = m4_scale((f32)panel->header.box.width, (f32)panel->header.box.height, 1.0f);
         const mat4 position = m4_transl((f32)panel->header.box.x, (f32)panel->header.box.y, 0.0f);
         const mat4 size = m4_transl((f32)panel->header.box.width * 0.5f, (f32)panel->header.box.height * 0.5f, 0.0f);
         const mat4 inv_size = m4_transl(-(f32)panel->header.box.width * 0.5f, -(f32)panel->header.box.height * 0.5f, 0.0f);
 
-        panel->transform.model = m4_mul(&position, &size);
-        panel->transform.model = m4_mul(&panel->transform.model, &inv_size);
-        panel->transform.model = m4_mul(&panel->transform.model, &scale);
-        panel->transform.init ^= 1;
+        panel->model = m4_mul(&position, &size);
+        panel->model = m4_mul(&panel->model, &inv_size);
+        panel->model = m4_mul(&panel->model, &scale);
+        panel->header.dirty ^= 1;
     }
     Sprite(bind)(frame, panel->sprite);
     Shader(set_mat4)(panel->sprite->shader, "projection", true, frame->cache.projection.e);
-    Shader(set_mat4)(panel->sprite->shader, "model", true, panel->transform.model.e);
+    Shader(set_mat4)(panel->sprite->shader, "model", true, panel->model.e);
 
     const style_t* style = &panel->styles.normal;
     vec4 color = Color(to_vec4)(style->border.color);

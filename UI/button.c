@@ -21,7 +21,7 @@ static void __default_mouse_callback(const mouse_cb_param* param) {
 }
 static void __default_resize_callback(const resize_cb_param* param) {
     button_t* button = param->instance;
-    button->transform.init |= 1;
+    button->header.dirty |= 1;
     //comp_header_t* header = get_header(panel->parent);
 
     // panel->header.box.width += param->width;
@@ -38,7 +38,7 @@ button_t* Button(new)(void* parent, style_group_t* group, const bounding_box* bo
     const comp_header_t* parent_header = get_header(parent);
 
     button_t* button = buffer.ptr;
-    button->transform.init = 1;
+    button->header.dirty = 1;
     button->header.box.x = box->x + parent_header->content_box.x;
     button->header.box.y = box->y + parent_header->content_box.y;
     button->header.box.width = box->width;
@@ -75,20 +75,20 @@ void Button(update)(button_t* button) {
     if (!button) return;
     const frame_t* frame = get_root(button);
 
-    if (button->transform.init & 1) {
+    if (button->header.dirty & 1) {
         const mat4 scale = m4_scale((f32)button->header.box.width, (f32)button->header.box.height, 1.0f);
         const mat4 position = m4_transl((f32)button->header.box.x, (f32)button->header.box.y, 0.0f);
         const mat4 size = m4_transl((f32)button->header.box.width * 0.5f, (f32)button->header.box.height * 0.5f, 0.0f);
         const mat4 inv_size = m4_transl(-(f32)button->header.box.width * 0.5f, -(f32)button->header.box.height * 0.5f, 0.0f);
 
-        button->transform.model = m4_mul(&position, &size);
-        button->transform.model = m4_mul(&button->transform.model, &inv_size);
-        button->transform.model = m4_mul(&button->transform.model, &scale);
-        button->transform.init ^= 1;
+        button->model = m4_mul(&position, &size);
+        button->model = m4_mul(&button->model, &inv_size);
+        button->model = m4_mul(&button->model, &scale);
+        button->header.dirty ^= 1;
     }
     Sprite(bind)(frame, button->sprite);
     Shader(set_mat4)(button->sprite->shader, "projection", true, frame->cache.projection.e);
-    Shader(set_mat4)(button->sprite->shader, "model", true, button->transform.model.e);
+    Shader(set_mat4)(button->sprite->shader, "model", true, button->model.e);
 
     const style_t* style = &button->styles.normal;
     vec4 color = Color(to_vec4)(style->border.color);

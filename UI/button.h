@@ -12,16 +12,11 @@ typedef struct button {
     style_group_t styles;
 
     void* parent;
+    sprite_t* sprite;
+
     void* user_data;
     button_callback on_click;
-    struct {
-        // saves the transformations
-        mat4 model;
-        u8 init;
-    } transform;
-
-    sprite_t* sprite;
-    texture_t* tex;
+    mat4 model;
 } button_t;
 
 #define Button(func) __button_##func

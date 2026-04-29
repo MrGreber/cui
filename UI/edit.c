@@ -56,10 +56,10 @@ static void private(build_mesh)(edit_t* edit, f32 start_x, f32 start_y) {
         glyph_t* start_glyph = &edit->font->glyphs[edit->font->amap(c)];
         start_x += vertex[0] - start_glyph->offset.x;
         start_y += vertex[1] - start_glyph->offset.y;
-        printf("%c\n", c);
-        printf("offset: <x=%u, y=%u>\n", start_glyph->offset.x, start_glyph->offset.y);
-        printf("vertex: <x=%f, y=%f>\n", vertex[0], vertex[1]);
-        printf("start: <x=%f, y=%f>\n", start_x, start_y);
+        // printf("%c\n", c);
+        // printf("offset: <x=%u, y=%u>\n", start_glyph->offset.x, start_glyph->offset.y);
+        // printf("vertex: <x=%f, y=%f>\n", vertex[0], vertex[1]);
+        // printf("start: <x=%f, y=%f>\n", start_x, start_y);
     }
     edit->mesh->vertices.count = start_index * QUAD;
 
@@ -278,7 +278,7 @@ static void private(read_keyboard_callback)(const keyboard_cb_param* param) {
 }
 static void private(resize_callback)(const resize_cb_param* param) {
     edit_t* edit = param->instance;
-    edit->transform.init |= 1;
+    edit->header.dirty |= 1;
     // comp_header_t* header = get_header(edit->parent);
     // edit->header.box.width += param->width;
     // edit->header.box.height += param->height;
@@ -302,7 +302,7 @@ edit_t* Edit(new)(void* parent, const style_group_t* group, const bounding_box* 
     const comp_header_t* parent_header = get_header(parent);
 
     edit_t* edit = buffer.ptr;
-    edit->transform.init = 1;
+    edit->header.dirty = 1;
 
     edit->header.box.x = box->x + parent_header->content_box.x;
     edit->header.box.y = box->y + parent_header->content_box.y;
@@ -371,20 +371,20 @@ void Edit(update)(edit_t* edit) {
     const vec4 border_color = Color(to_vec4)(style->border.color);
     const vec2 dim = {(f32)edit->header.box.width, (f32)edit->header.box.height};
 
-    if (edit->transform.init & 1) {
+    if (edit->header.dirty & 1) {
         const mat4 scale = m4_scale((f32)edit->header.box.width, (f32)edit->header.box.height, 1.0f);
         const mat4 position = m4_transl((f32)edit->header.box.x, (f32)edit->header.box.y, 0.0f);
         const mat4 size = m4_transl((f32)edit->header.box.width * 0.5f, (f32)edit->header.box.height * 0.5f, 0.0f);
         const mat4 inv_size = m4_transl(-(f32)edit->header.box.width * 0.5f, -(f32)edit->header.box.height * 0.5f, 0.0f);
 
-        edit->transform.model = m4_mul(&position, &size);
-        edit->transform.model = m4_mul(&edit->transform.model, &inv_size);
-        edit->transform.model = m4_mul(&edit->transform.model, &scale);
-        edit->transform.init ^= 1;
+        edit->model = m4_mul(&position, &size);
+        edit->model = m4_mul(&edit->model, &inv_size);
+        edit->model = m4_mul(&edit->model, &scale);
+        edit->header.dirty ^= 1;
     }
     Sprite(bind)(frame, edit->sprite);
     Shader(set_mat4)(edit->sprite->shader, "projection", true, frame->cache.projection.e);
-    Shader(set_mat4)(edit->sprite->shader, "model", true, edit->transform.model.e);
+    Shader(set_mat4)(edit->sprite->shader, "model", true, edit->model.e);
     Shader(set_float)(edit->sprite->shader, "border.radius", style->border.radius);
     Shader(set_float)(edit->sprite->shader, "border.thickness", style->border.thickness);
     Shader(set_vec4)(edit->sprite->shader, "border.color", &border_color.x);
@@ -403,7 +403,7 @@ void Edit(update)(edit_t* edit) {
     //     (f32)edit->styles.normal.background.mask.a / 255.0f
     // };
     Shader(set_vec4)(edit->sprite->shader, "mask", &((vec4){.x = 1.0f, .y = 1.0f, .z = 1.0f, .w = 1.0f}).x);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    Mesh(draw)(edit->sprite->mesh);
 
     // todo: semi-working clock for the edit cursor
     // static f64 clock = CLOCK_TIME;

@@ -16,6 +16,7 @@ typedef struct canvas {
     comp_header_t header;
 
     void* parent;
+    sprite_t* sprite;
 
     brush_t brush;
     struct {
@@ -26,15 +27,10 @@ typedef struct canvas {
         u32 width;
         u32 height;
     } dim;
-    struct {
-        // saves the transformations
-        mat4 model;
-        mat4 inv_model;
-        u8 init;
-    } transform;
 
+    mat4 model;
+    mat4 inv_model;
     camera_t camera;
-    sprite_t* sprite;
 } canvas_t;
 
 #define Canvas(func) __canvas_##func
