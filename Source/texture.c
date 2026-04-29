@@ -71,10 +71,10 @@ void Texture(flush)(const texture_t* tex, const color_t bg) {
     glBindFramebuffer(GL_FRAMEBUFFER, tex->fb_id);
     // glViewport(0, 0, width, height);
     glClearColor(
-        byte_to_float(bg.r),
-        byte_to_float(bg.g),
-        byte_to_float(bg.b),
-        byte_to_float(bg.a)
+        u8tof32(bg.r),
+        u8tof32(bg.g),
+        u8tof32(bg.b),
+        u8tof32(bg.a)
     );
     glClear(GL_COLOR_BUFFER_BIT);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);

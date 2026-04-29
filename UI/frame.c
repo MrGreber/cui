@@ -53,7 +53,6 @@ extern void __mouse_movement_callback(GLFWwindow* window, const f64 mouse_x, con
 extern void __mouse_button_callback(GLFWwindow* window, const i32 button, const i32 action, const i32 mods);
 extern void __scroll_callback(GLFWwindow* window, const f64 x, const f64 scroll_y);
 
-#define FLAG_DEFAULT_STATE 1
 
 frame_t* Frame(new)(const color_t bg, const u32 width, const u32 height, const char* title) {
     buf_t buffer = {
@@ -94,7 +93,6 @@ frame_t* Frame(new)(const color_t bg, const u32 width, const u32 height, const c
 
     frame->bg = bg;
     frame->title = (char*)title;
-    frame->flags = FLAG_DEFAULT_STATE;
     if (!Shader(new_cache)(frame)) {
         logError(ERR_SHADER_CACHE, "Failed to create shader cache.");
         goto cleanup;
@@ -143,10 +141,10 @@ void Frame(update)(frame_t* frame) {
     glViewport(0, 0, frame->header.box.width, frame->header.box.height);
     // clears the window to a color
     glClearColor(
-        byte_to_float(bg.r),
-        byte_to_float(bg.g),
-        byte_to_float(bg.b),
-        byte_to_float(bg.a)
+        u8tof32(bg.r),
+        u8tof32(bg.g),
+        u8tof32(bg.b),
+        u8tof32(bg.a)
     );
     glClear(GL_COLOR_BUFFER_BIT);
 }
@@ -156,20 +154,18 @@ void Frame(set_position)(frame_t* frame, const u16 x, const u16 y) {
     glfwSetWindowPos(frame->ctx, x, y);
 }
 
-void Frame(set_flag)(frame_t* frame, const frame_flag field) {
+void Frame(set_flag)(frame_t* frame, const u8 field) {
     if (!frame) return;
-    if (sizeof(frame->flags) <= field) return;
 
-    const byte bit = 1 << field;
     switch (field) {
-        case HIDE_FLAG: {
-            if (frame->flags & bit) {
+        case FRAME_HIDE: {
+            if (!frame->header.hide) {
                 glfwHideWindow(frame->ctx);
-                frame->flags ^= bit;
+                frame->header.hide ^= 1;
             }
             else {
                 glfwShowWindow(frame->ctx);
-                frame->flags ^= bit;
+                frame->header.hide ^= 1;
             }
             break;
         }

@@ -14,24 +14,24 @@ static void private(mouse_callback)(const mouse_cb_param* param) {
     frame_t* frame = get_root(caption);
 
     if (param->button == GLFW_MOUSE_BUTTON_LEFT && param->action == GLFW_PRESS) {
-        caption->drag.state = true;
-        caption->drag.prev.x = param->x;
-        caption->drag.prev.y = param->y;
+        caption->header.drag = true;
+        caption->prev.x = param->x;
+        caption->prev.y = param->y;
 
         frame->captured.instance = caption;
         frame->captured.tag = CAPTION_COMPONENT;
     }
-    if (caption->drag.state) {
-        const i32 dx = (i32)param->x - (i32)caption->drag.prev.x;
-        const i32 dy = (i32)param->y - (i32)caption->drag.prev.y;
+    if (caption->header.drag) {
+        const i32 dx = (i32)param->x - (i32)caption->prev.x;
+        const i32 dy = (i32)param->y - (i32)caption->prev.y;
 
         caption->header.box.x += dx;
         caption->header.box.y += dy;
         caption->header.content_box.x += dx;
         caption->header.content_box.y += dy;
 
-        caption->drag.prev.x = param->x;
-        caption->drag.prev.y = param->y;
+        caption->prev.x = param->x;
+        caption->prev.y = param->y;
 
         caption->header.dirty |= 1;
 
@@ -43,9 +43,9 @@ static void private(mouse_callback)(const mouse_cb_param* param) {
         parent_header->dirty |= 1;
     }
     if (param->button == GLFW_MOUSE_BUTTON_LEFT && param->action == GLFW_RELEASE) {
-        caption->drag.state = false;
+        caption->header.drag = false;
         frame->captured.instance = NULL;
-        frame->captured.tag  = 0;
+        frame->captured.tag = 0;
     }
 }
 static void private(resize_callback)(const resize_cb_param* param) {

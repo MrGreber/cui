@@ -9,10 +9,6 @@
 #include <shader/types.h>
 #include <geometry/types.h>
 
-typedef enum frame_flag{
-    HIDE_FLAG
-} frame_flag;
-
 // Todo: add a cache for fonts, maybe even separate this struct to a different struct well idk
 struct frame_cache {
     uniform_hashmap_t uniforms;
@@ -46,17 +42,8 @@ typedef struct frame {
     comp_t hovered;
     comp_t captured;
     struct frame_cache cache;
-    byte flags;
 } frame_t;
 
-/**
- * @brief Create a new frame (window) with specified parameters.
- * @param bg Background color of the frame
- * @param width Frame width in pixels
- * @param height Frame height in pixels
- * @param title Window title
- * @return Pointer to the newly allocated frame_t, or NULL on failure
- */
 #define Frame(func) __frame_##func
 frame_t* Frame(new)(const color_t bg, const u32 width, const u32 height, const char* title);
 void Frame(del)(frame_t* frame);
@@ -64,5 +51,6 @@ void Frame(del)(frame_t* frame);
 void Frame(update)(frame_t* frame);
 
 void Frame(set_position)(frame_t* frame, const u16 x, const u16 y);
-void Frame(set_flag)(frame_t* frame, const frame_flag field);
+#define FRAME_HIDE 1
+void Frame(set_flag)(frame_t* frame, const u8 field);
 #endif // FRAME_H

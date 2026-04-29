@@ -143,7 +143,9 @@ typedef struct component_header {
     struct {
         u8 dirty: 1;
         u8 focus: 1;
-        u8 flags: 6;
+        u8 drag:  1;
+        u8 hide:  1;
+        u8 flags: 4;
     };
 } comp_header_t;
 

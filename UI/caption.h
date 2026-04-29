@@ -10,11 +10,8 @@ typedef struct caption {
     void* parent;
     sprite_t* sprite;
     struct {
-        struct {
-            i32 x, y;
-        } prev;
-        bool state;
-    } drag;
+        i32 x, y;
+    } prev;
 
     mat4 model;
 } caption_t;
