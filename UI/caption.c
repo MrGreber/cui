@@ -41,7 +41,6 @@ static void private(mouse_callback)(const mouse_cb_param* param) {
         parent_header->content_box.x += dx;
         parent_header->content_box.y += dy;
         parent_header->dirty |= 1;
-        parent_header->mouse(&(mouse_cb_param){.instance = caption->parent});
     }
     if (param->button == GLFW_MOUSE_BUTTON_LEFT && param->action == GLFW_RELEASE) {
         caption->drag.state = false;
