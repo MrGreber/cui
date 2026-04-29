@@ -90,23 +90,23 @@ cleanup:
 }
 
 const static char* __components_strings__[] = {
-    "frame",
-    "panel",
-    "caption",
-    "button",
-    "edit",
-    "canvas"
+    [FRAME_COMPONENT]   = "frame",
+    [PANEL_COMPONENT]   = "panel",
+    [CAPTION_COMPONENT] = "caption",
+    [BUTTON_COMPONENT]  = "button",
+    [EDIT_COMPONENT]    = "edit",
+    [CANVAS_COMPONENT]  = "canvas"
 };
 
 void Component(print_node)(comp_node_t* root, u64 indent) {
     if (!root) return;
 
-    // if (indent) {
-    //     for (u64 i = 0; i < indent - 1; i++) {
-    //         if (root->count > 0) putchar('|');
-    //         putchar('\t');
-    //     }
-    // }
+    if (indent) {
+        for (u64 i = 0; i < indent - 1; i++) {
+            if (root->count > 0) putchar('|');
+            putchar('\t');
+        }
+    }
 
     if (root->component.tag == FRAME_COMPONENT) printf("%s[%p]\n", __components_strings__[root->component.tag], root->component.instance);
     else printf("|__%s[%p]\n", __components_strings__[root->component.tag], root->component.instance);
@@ -123,6 +123,7 @@ void Component(print_node)(comp_node_t* root, u64 indent) {
 }
 void dispatch_event(const comp_node_t* node, event_t* event) {
     if (!node) return;
+    if (get_header(node->component.instance)->hide) return;
 
     frame_t* frame = node->root ? node->root->component.instance : node->component.instance;
     if (!frame->focused.instance) {

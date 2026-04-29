@@ -90,6 +90,7 @@ frame_t* Frame(new)(const color_t bg, const u32 width, const u32 height, const c
 
     frame->header.content_box.width = width;
     frame->header.content_box.height = height;
+    frame->header.dirty = 1;
 
     frame->bg = bg;
     frame->title = (char*)title;
@@ -136,17 +137,18 @@ void Frame(update)(frame_t* frame) {
         frame_count = 0;
     }
     glfwSetWindowTitle(frame->ctx, caption);
-
-    const color_t bg = frame->bg;
-    glViewport(0, 0, frame->header.box.width, frame->header.box.height);
-    // clears the window to a color
-    glClearColor(
-        u8tof32(bg.r),
-        u8tof32(bg.g),
-        u8tof32(bg.b),
-        u8tof32(bg.a)
-    );
-    glClear(GL_COLOR_BUFFER_BIT);
+    if (frame->header.dirty) {
+        const color_t bg = frame->bg;
+        glViewport(0, 0, frame->header.box.width, frame->header.box.height);
+        // clears the window to a color
+        glClearColor(
+            u8tof32(bg.r),
+            u8tof32(bg.g),
+            u8tof32(bg.b),
+            u8tof32(bg.a)
+        );
+        glClear(GL_COLOR_BUFFER_BIT);
+    }
 }
 void Frame(set_position)(frame_t* frame, const u16 x, const u16 y) {
     if (!frame) return;
@@ -159,14 +161,9 @@ void Frame(set_flag)(frame_t* frame, const u8 field) {
 
     switch (field) {
         case FRAME_HIDE: {
-            if (!frame->header.hide) {
-                glfwHideWindow(frame->ctx);
-                frame->header.hide ^= 1;
-            }
-            else {
-                glfwShowWindow(frame->ctx);
-                frame->header.hide ^= 1;
-            }
+            if (!frame->header.hide) glfwHideWindow(frame->ctx);
+            else glfwShowWindow(frame->ctx);
+            frame->header.hide ^= 1;
             break;
         }
     }

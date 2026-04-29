@@ -28,4 +28,6 @@ void Panel(del)(panel_t* panel);
 void Panel(bind)(const panel_t* panel);
 void Panel(update)(panel_t* panel);
 
+#define PANEL_HIDE 1
+void Panel(set_flag)(panel_t* panel, const u8 field);
 #endif //PANEL_H

@@ -56,7 +56,7 @@ panel_t* Panel(new)(void* parent, style_group_t* group, const bounding_box* box)
     if (!panel->sprite) goto cleanup;
     if (!Sprite(set_texture)(panel->sprite, box->width, box->height, &group->normal)) goto cleanup;
 
-    panel->header.mouse = (callback)private(mouse_callback);
+    //panel->header.mouse = (callback)private(mouse_callback);
     panel->header.resize = (callback)private(resize_callback);
     Component(push_node)(parent_header->components, panel, PANEL_COMPONENT);
     panel->caption = Caption(new)(panel);
@@ -79,7 +79,7 @@ void Panel(bind)(const panel_t* panel) {
 }
 
 void Panel(update)(panel_t* panel) {
-    if (!panel) return;
+    if (!panel || panel->header.hide) return;
     const frame_t* frame = get_root(panel);
 
     if (panel->header.dirty & 1) {
@@ -110,4 +110,15 @@ void Panel(update)(panel_t* panel) {
     Mesh(draw)(panel->sprite->mesh);
 
     Caption(update)(panel->caption);
+}
+
+void Panel(set_flag)(panel_t* panel, const u8 field) {
+    if (!panel) return;
+
+    switch (field) {
+        case PANEL_HIDE: {
+            panel->header.hide ^= 1;
+            break;
+        }
+    }
 }
