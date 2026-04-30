@@ -220,15 +220,13 @@ void dispatch_event(const comp_node_t* node, event_t* event) {
 void Component(update)(const comp_node_t* node) {
     if (!node) return;
 
-    const comp_header_t* parent_header = get_header(node->component.instance);
+    //const comp_header_t* parent_header = get_header(node->component.instance);
     for (u64 i = 0; i < node->count; i++) {
-        const comp_header_t* child_header = get_header(node->nodes[i]->component.instance);
-
-        if (child_header->dirty) {
-            if (parent_header->update) parent_header->update(node->component.instance);
-            Component(update)(node->nodes[i]);
-            break;
-        }
+        void* child = node->nodes[i]->component.instance;
+        comp_header_t* child_header = get_header(child);
+        child_header->dirty = 1;
+        if (child_header->update) child_header->update(child);
+        Component(update)(node->nodes[i]);
     }
 
 }

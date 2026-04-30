@@ -23,6 +23,7 @@ static void private(camera_handler)(canvas_t* canvas) {
     const frame_t* frame = get_root(canvas);
     const f32 delta = (f32)frame->stopwatch.delta;
     camera_t* camera = &canvas->camera;
+    comp_header_t* parent_header = get_header(canvas->parent);
 #ifndef SPEED
 #define SPEED 200.0f
     if (!camera->keys) return;
@@ -39,7 +40,8 @@ static void private(camera_handler)(canvas_t* canvas) {
         if (camera->roll >= 360.0f) camera->roll -= 360.0f;
     }
     if (camera->keys & CAM_KEY_R) Camera(reset)(camera);
-    canvas->header.dirty |= 1;
+    parent_header->dirty = 1;
+    canvas->header.dirty = 1;
 #undef SPEED
 #else
 #error For some reason your dumbass decided to define a global macro named SPEED, what the fuck if you try to compiler me again I will send assassins after your ass
@@ -49,6 +51,7 @@ static void private(camera_handler)(canvas_t* canvas) {
 static void private(mouse_callback)(const mouse_cb_param* param) {
     canvas_t* canvas = param->instance;
     const frame_t* frame = get_root(canvas);
+    comp_header_t* parent_header = get_header(canvas->parent);
 
     if (glfwGetMouseButton(frame->ctx, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
         vec4 mpos = {param->x, param->y, 0.0f, 1.0f};
@@ -59,9 +62,11 @@ static void private(mouse_callback)(const mouse_cb_param* param) {
 
         canvas->prev.x = mpos.x;
         canvas->prev.y = mpos.y;
+        parent_header->dirty = 1;
+        canvas->header.dirty = 1;
     }
     else canvas->prev.x = canvas->prev.y = -1;
-    canvas->header.dirty |= 1;
+
 }
 static void private(keyboard_callback)(const keyboard_cb_param* param) {
     canvas_t* canvas = param->instance;
@@ -92,8 +97,8 @@ static void private(keyboard_callback)(const keyboard_cb_param* param) {
 static void private(scroll_callback)(const scroll_cb_param* param) {
     canvas_t* canvas = param->instance;
     const frame_t* frame = get_root(canvas);
-    const comp_header_t* parent_header = (comp_header_t*)canvas->parent;
     camera_t* camera = &canvas->camera;
+    comp_header_t* parent_header = get_header(canvas->parent);
 
 #ifndef ZOOM_SPEED
 #define ZOOM_SPEED 0.15f
@@ -116,11 +121,12 @@ static void private(scroll_callback)(const scroll_cb_param* param) {
     camera->position.y = offset_y + actual_factor * (camera->position.y - offset_y);
     camera->zoom = clamped;
 
-    canvas->header.dirty |= 1;
+    parent_header->dirty = 1;
+    canvas->header.dirty = 1;
 }
 static void private(resize_callback)(const resize_cb_param* param) {
     canvas_t* canvas = param->instance;
-    canvas->header.dirty |= 1;
+    canvas->header.dirty = 1;
 }
 
 
@@ -187,11 +193,6 @@ void Canvas(update)(canvas_t* canvas) {
     if (frame->focused.instance == canvas && canvas->camera.keys) private(camera_handler)(canvas);
     else canvas->camera.keys = 0;
     if (canvas->header.dirty & 1) {
-        if (parent_header->update) {
-            parent_header->dirty = 1;
-            parent_header->update(canvas->parent);
-        }
-
         const mat4 rotation = m4_rotateZ(rad(canvas->camera.roll));
         const mat4 position = m4_transl(canvas->camera.position.x + parent_header->content_box.x, canvas->camera.position.y + parent_header->content_box.y, 0.0f);
         const mat4 size = m4_transl(canvas->camera.zoom * (f32)canvas->dim.width * 0.5f, canvas->camera.zoom * (f32)canvas->dim.height * 0.5f, 0.0f);

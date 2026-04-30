@@ -17,7 +17,7 @@ static void private(mouse_callback)(const mouse_cb_param* param) {
 }
 static void private(resize_callback)(const resize_cb_param* param) {
     panel_t* panel = param->instance;
-    panel->header.dirty |= 1;
+    panel->header.dirty = 1;
     // comp_header_t* header = get_header(panel->parent);
     //
     // header->box.width += param->width;
@@ -109,13 +109,8 @@ void Panel(update)(panel_t* panel) {
 
         Mesh(draw)(panel->sprite->mesh);
 
-        Component(update)();
-        if (panel->caption) {
-            panel->caption->header.dirty = 1;
-
-            panel->caption->header.update(panel->caption);
-        }
-        panel->header.dirty ^= 1;
+        Component(update)(panel->header.components);
+        panel->header.dirty = 0;
     }
 }
 

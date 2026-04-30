@@ -131,6 +131,8 @@ typedef struct event {
     event_tag tag;
 } event_t;
 
+typedef struct component_node comp_node_t;
+
 typedef struct component_header {
     bounding_box box;
     bounding_box content_box;
@@ -140,7 +142,7 @@ typedef struct component_header {
     callback scroll;
     callback resize;
     callback update;
-    void* components;
+    comp_node_t* components;
     struct {
         u8 dirty: 1;
         u8 focus: 1;

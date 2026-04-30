@@ -33,7 +33,7 @@ static void private(mouse_callback)(const mouse_cb_param* param) {
         caption->prev.x = param->x;
         caption->prev.y = param->y;
 
-        caption->header.dirty |= 1;
+        caption->header.dirty = 1;
 
         comp_header_t* parent_header = get_header(caption->parent);
         Frame(clear)(frame, &parent_header->box);
@@ -42,7 +42,7 @@ static void private(mouse_callback)(const mouse_cb_param* param) {
         parent_header->box.y += dy;
         parent_header->content_box.x += dx;
         parent_header->content_box.y += dy;
-        parent_header->dirty |= 1;
+        parent_header->dirty = 1;
     }
     if (param->button == GLFW_MOUSE_BUTTON_LEFT && param->action == GLFW_RELEASE) {
         caption->header.drag = false;
@@ -69,7 +69,7 @@ caption_t* Caption(new)(void* parent) {
     const comp_header_t* parent_header = get_header(parent);
 
     caption_t* caption = buffer.ptr;
-    caption->header.dirty |= 1;
+    caption->header.dirty = 1;
 
     caption->header.box.x = parent_header->box.x;
     caption->header.box.y = parent_header->box.y;
@@ -127,7 +127,7 @@ void Caption(update)(caption_t* caption) {
         Shader(set_mat4)(caption->sprite->shader, "model", true, caption->model.e);
         Mesh(draw)(caption->sprite->mesh);
 
-        caption->header.dirty ^= 1;
+        caption->header.dirty = 0;
     }
 
 }
