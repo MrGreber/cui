@@ -7,7 +7,6 @@
 #include <glfw3.h>
 #include <immintrin.h>
 
-
 void __gl_clear_error(void) {
     while (glGetError() != GL_NO_ERROR);
 }

@@ -103,6 +103,14 @@ frame_t* Frame(new)(const color_t bg, const u32 width, const u32 height, const c
         goto cleanup;
     }
     frame->cache.projection = m4_ortho(0.0f, (f32)frame->header.box.width, (f32)frame->header.box.height, 0.0f, -1.0f, 1.0f);
+
+    glClearColor(
+        u8tof32(bg.r),
+        u8tof32(bg.g),
+        u8tof32(bg.b),
+        u8tof32(bg.a)
+    );
+    glClear(GL_COLOR_BUFFER_BIT);
     return frame;
 cleanup:
     if (frame->header.components) Component(del_node)(frame->header.components);
@@ -137,22 +145,9 @@ void Frame(update)(frame_t* frame) {
         frame_count = 0;
     }
     glfwSetWindowTitle(frame->ctx, caption);
-    if (frame->header.dirty) {
-        const color_t bg = frame->bg;
-        glViewport(0, 0, frame->header.box.width, frame->header.box.height);
-        // clears the window to a color
-        glClearColor(
-            u8tof32(bg.r),
-            u8tof32(bg.g),
-            u8tof32(bg.b),
-            u8tof32(bg.a)
-        );
-        glClear(GL_COLOR_BUFFER_BIT);
-    }
 }
 void Frame(set_position)(frame_t* frame, const u16 x, const u16 y) {
     if (!frame) return;
-
     glfwSetWindowPos(frame->ctx, x, y);
 }
 
@@ -167,4 +162,18 @@ void Frame(set_flag)(frame_t* frame, const u8 field) {
             break;
         }
     }
+}
+
+void Frame(clear)(const frame_t* frame, const bounding_box* box) {
+    const color_t bg = frame->bg;
+    glEnable(GL_SCISSOR_TEST);
+    glScissor(box->x, frame->header.box.height - box->y - box->height, box->width, box->height);
+    glClearColor(
+        u8tof32(bg.r),
+        u8tof32(bg.g),
+        u8tof32(bg.b),
+        u8tof32(bg.a)
+    );
+    glClear(GL_COLOR_BUFFER_BIT);
+    glDisable(GL_SCISSOR_TEST);
 }

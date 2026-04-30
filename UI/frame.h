@@ -53,4 +53,5 @@ void Frame(update)(frame_t* frame);
 void Frame(set_position)(frame_t* frame, const u16 x, const u16 y);
 #define FRAME_HIDE 1
 void Frame(set_flag)(frame_t* frame, const u8 field);
+void Frame(clear)(const frame_t* frame, const bounding_box* box);
 #endif // FRAME_H

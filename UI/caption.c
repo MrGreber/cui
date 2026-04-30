@@ -36,6 +36,8 @@ static void private(mouse_callback)(const mouse_cb_param* param) {
         caption->header.dirty |= 1;
 
         comp_header_t* parent_header = get_header(caption->parent);
+        Frame(clear)(frame, &parent_header->box);
+
         parent_header->box.x += dx;
         parent_header->box.y += dy;
         parent_header->content_box.x += dx;
@@ -87,6 +89,7 @@ caption_t* Caption(new)(void* parent) {
 
     caption->header.mouse = (callback)private(mouse_callback);
     caption->header.resize = (callback)private(resize_callback);
+    caption->header.update = (callback)Caption(update);
     Component(push_node)(parent_header->components, caption, CAPTION_COMPONENT);
 
     return caption;
@@ -118,10 +121,13 @@ void Caption(update)(caption_t* caption) {
         caption->model = m4_mul(&position, &size);
         caption->model = m4_mul(&caption->model, &inv_size);
         caption->model = m4_mul(&caption->model, &scale);
+
+        Sprite(bind)(frame, caption->sprite);
+        Shader(set_mat4)(caption->sprite->shader, "projection", true, frame->cache.projection.e);
+        Shader(set_mat4)(caption->sprite->shader, "model", true, caption->model.e);
+        Mesh(draw)(caption->sprite->mesh);
+
         caption->header.dirty ^= 1;
     }
-    Sprite(bind)(frame, caption->sprite);
-    Shader(set_mat4)(caption->sprite->shader, "projection", true, frame->cache.projection.e);
-    Shader(set_mat4)(caption->sprite->shader, "model", true, caption->model.e);
-    Mesh(draw)(caption->sprite->mesh);
+
 }

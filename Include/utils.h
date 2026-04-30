@@ -15,6 +15,9 @@ typedef union color {
     u32 hex;
 } color_t;
 
+typedef struct frame frame_t;
+typedef struct bounding_box bounding_box;
+
 #define Color(func) __color_##func
 __forceinline color_t Color(hsv_to_rgb)(const f32 h, const f32 s, const f32 v) {
     const f32 c = v * s;
@@ -80,8 +83,6 @@ __forceinline u64 __closest_pow2(u64 n) {
     n++;
     return n;
 }
-
-
 
 /** Clear any OpenGL errors before a call */
 void __gl_clear_error(void);

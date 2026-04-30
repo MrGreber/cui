@@ -57,6 +57,7 @@ panel_t* Panel(new)(void* parent, style_group_t* group, const bounding_box* box)
     if (!Sprite(set_texture)(panel->sprite, box->width, box->height, &group->normal)) goto cleanup;
 
     //panel->header.mouse = (callback)private(mouse_callback);
+    panel->header.update = (callback)Panel(update);
     panel->header.resize = (callback)private(resize_callback);
     Component(push_node)(parent_header->components, panel, PANEL_COMPONENT);
     panel->caption = Caption(new)(panel);
@@ -91,25 +92,31 @@ void Panel(update)(panel_t* panel) {
         panel->model = m4_mul(&position, &size);
         panel->model = m4_mul(&panel->model, &inv_size);
         panel->model = m4_mul(&panel->model, &scale);
+
+        Sprite(bind)(frame, panel->sprite);
+        Shader(set_mat4)(panel->sprite->shader, "projection", true, frame->cache.projection.e);
+        Shader(set_mat4)(panel->sprite->shader, "model", true, panel->model.e);
+
+        const style_t* style = &panel->styles.normal;
+        vec4 color = Color(to_vec4)(style->border.color);
+        const vec2 dim = {(f32)panel->header.box.width, (f32)panel->header.box.height};
+        Shader(set_float)(panel->sprite->shader, "border.radius", style->border.radius);
+        Shader(set_float)(panel->sprite->shader, "border.thickness", style->border.thickness);
+        Shader(set_vec4)(panel->sprite->shader, "border.color", color.e);
+        Shader(set_vec2)(panel->sprite->shader, "size", dim.e);
+        color = Color(to_vec4)(panel->styles.normal.background.mask);
+        Shader(set_vec4)(panel->sprite->shader, "mask", color.e);
+
+        Mesh(draw)(panel->sprite->mesh);
+
+        Component(update)();
+        if (panel->caption) {
+            panel->caption->header.dirty = 1;
+
+            panel->caption->header.update(panel->caption);
+        }
         panel->header.dirty ^= 1;
     }
-    Sprite(bind)(frame, panel->sprite);
-    Shader(set_mat4)(panel->sprite->shader, "projection", true, frame->cache.projection.e);
-    Shader(set_mat4)(panel->sprite->shader, "model", true, panel->model.e);
-
-    const style_t* style = &panel->styles.normal;
-    vec4 color = Color(to_vec4)(style->border.color);
-    const vec2 dim = {(f32)panel->header.box.width, (f32)panel->header.box.height};
-    Shader(set_float)(panel->sprite->shader, "border.radius", style->border.radius);
-    Shader(set_float)(panel->sprite->shader, "border.thickness", style->border.thickness);
-    Shader(set_vec4)(panel->sprite->shader, "border.color", color.e);
-    Shader(set_vec2)(panel->sprite->shader, "size", dim.e);
-    color = Color(to_vec4)(panel->styles.normal.background.mask);
-    Shader(set_vec4)(panel->sprite->shader, "mask", color.e);
-
-    Mesh(draw)(panel->sprite->mesh);
-
-    Caption(update)(panel->caption);
 }
 
 void Panel(set_flag)(panel_t* panel, const u8 field) {

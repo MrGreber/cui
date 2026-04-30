@@ -98,7 +98,7 @@ const static char* __components_strings__[] = {
     [CANVAS_COMPONENT]  = "canvas"
 };
 
-void Component(print_node)(comp_node_t* root, u64 indent) {
+void Component(print_node)(comp_node_t* root, const u64 indent) {
     if (!root) return;
 
     if (indent) {
@@ -157,7 +157,6 @@ void dispatch_event(const comp_node_t* node, event_t* event) {
                      flag = true;
                      break;
                  }
-
              }
              if (!flag) {
                  frame->hovered.instance = node->component.instance;
@@ -216,4 +215,20 @@ void dispatch_event(const comp_node_t* node, event_t* event) {
             break;
         }
     }
+}
+
+void Component(update)(const comp_node_t* node) {
+    if (!node) return;
+
+    const comp_header_t* parent_header = get_header(node->component.instance);
+    for (u64 i = 0; i < node->count; i++) {
+        const comp_header_t* child_header = get_header(node->nodes[i]->component.instance);
+
+        if (child_header->dirty) {
+            if (parent_header->update) parent_header->update(node->component.instance);
+            Component(update)(node->nodes[i]);
+            break;
+        }
+    }
+
 }

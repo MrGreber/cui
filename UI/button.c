@@ -17,6 +17,7 @@ static void __default_mouse_callback(const mouse_cb_param* param) {
     if (param->action == GLFW_PRESS) {
         if (button->on_click) button->on_click(button);
         printf("button=%p\n", button);
+        button->header.dirty |= 1;
     }
 }
 static void __default_resize_callback(const resize_cb_param* param) {
@@ -84,22 +85,24 @@ void Button(update)(button_t* button) {
         button->model = m4_mul(&position, &size);
         button->model = m4_mul(&button->model, &inv_size);
         button->model = m4_mul(&button->model, &scale);
+
+        Sprite(bind)(frame, button->sprite);
+        Shader(set_mat4)(button->sprite->shader, "projection", true, frame->cache.projection.e);
+        Shader(set_mat4)(button->sprite->shader, "model", true, button->model.e);
+
+        const style_t* style = &button->styles.normal;
+        vec4 color = Color(to_vec4)(style->border.color);
+        const vec2 dim = {(f32)button->header.box.width, (f32)button->header.box.height};
+        Shader(set_float)(button->sprite->shader, "border.radius", style->border.radius);
+        Shader(set_float)(button->sprite->shader, "border.thickness", style->border.thickness);
+        Shader(set_vec4)(button->sprite->shader, "border.color", &color.x);
+        Shader(set_vec2)(button->sprite->shader, "size", dim.e);
+        if (frame->hovered.instance == button) color = Color(to_vec4)(button->styles.hover.background.mask);
+        else color = Color(to_vec4)(button->styles.normal.background.mask);
+        Shader(set_vec4)(button->sprite->shader, "mask", &color.x);
+
+        Mesh(draw)(button->sprite->mesh);
+
         button->header.dirty ^= 1;
     }
-    Sprite(bind)(frame, button->sprite);
-    Shader(set_mat4)(button->sprite->shader, "projection", true, frame->cache.projection.e);
-    Shader(set_mat4)(button->sprite->shader, "model", true, button->model.e);
-
-    const style_t* style = &button->styles.normal;
-    vec4 color = Color(to_vec4)(style->border.color);
-    const vec2 dim = {(f32)button->header.box.width, (f32)button->header.box.height};
-    Shader(set_float)(button->sprite->shader, "border.radius", style->border.radius);
-    Shader(set_float)(button->sprite->shader, "border.thickness", style->border.thickness);
-    Shader(set_vec4)(button->sprite->shader, "border.color", &color.x);
-    Shader(set_vec2)(button->sprite->shader, "size", dim.e);
-    if (frame->hovered.instance == button) color = Color(to_vec4)(button->styles.hover.background.mask);
-    else color = Color(to_vec4)(button->styles.normal.background.mask);
-    Shader(set_vec4)(button->sprite->shader, "mask", &color.x);
-
-    Mesh(draw)(button->sprite->mesh);
 }

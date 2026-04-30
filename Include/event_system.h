@@ -139,6 +139,7 @@ typedef struct component_header {
     callback mouse;
     callback scroll;
     callback resize;
+    callback update;
     void* components;
     struct {
         u8 dirty: 1;
@@ -186,8 +187,8 @@ __forceinline void* get_root(const void* comp) {
 comp_node_t* Component(new_node)(void* data, const comp_tag tag);
 void Component(del_node)(comp_node_t* root);
 bool Component(push_node)(comp_node_t* root, void* val, const comp_tag tag);
-void Component(print_node)(comp_node_t* root, u64 indent);
+void Component(print_node)(comp_node_t* root, const u64 indent);
 
 void dispatch_event(const comp_node_t* node, event_t* event);
-
+void Component(update)(const comp_node_t* node);
 #endif //EVENT_H

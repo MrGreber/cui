@@ -61,6 +61,7 @@ static void private(mouse_callback)(const mouse_cb_param* param) {
         canvas->prev.y = mpos.y;
     }
     else canvas->prev.x = canvas->prev.y = -1;
+    canvas->header.dirty |= 1;
 }
 static void private(keyboard_callback)(const keyboard_cb_param* param) {
     canvas_t* canvas = param->instance;
@@ -155,6 +156,7 @@ canvas_t* Canvas(new)(void* parent, const u32 width, const u32 height) {
     canvas->header.keyboard = (callback)private(keyboard_callback);
     canvas->header.resize = (callback)private(resize_callback);
     canvas->header.scroll = (callback)private(scroll_callback);
+    canvas->header.update = (callback)Canvas(update);
     Component(push_node)(parent_header->components, canvas, CANVAS_COMPONENT);
     return canvas;
 cleanup:
@@ -180,11 +182,16 @@ void Canvas(set_brush)(canvas_t* canvas, const color_t color, const f32 size) {
 void Canvas(update)(canvas_t* canvas) {
     if (!canvas) return;
     const frame_t* frame = get_root(canvas);
-    const comp_header_t* parent_header = (comp_header_t*)canvas->parent;
+    comp_header_t* parent_header = (comp_header_t*)canvas->parent;
 
     if (frame->focused.instance == canvas && canvas->camera.keys) private(camera_handler)(canvas);
     else canvas->camera.keys = 0;
     if (canvas->header.dirty & 1) {
+        if (parent_header->update) {
+            parent_header->dirty = 1;
+            parent_header->update(canvas->parent);
+        }
+
         const mat4 rotation = m4_rotateZ(rad(canvas->camera.roll));
         const mat4 position = m4_transl(canvas->camera.position.x + parent_header->content_box.x, canvas->camera.position.y + parent_header->content_box.y, 0.0f);
         const mat4 size = m4_transl(canvas->camera.zoom * (f32)canvas->dim.width * 0.5f, canvas->camera.zoom * (f32)canvas->dim.height * 0.5f, 0.0f);
@@ -201,24 +208,27 @@ void Canvas(update)(canvas_t* canvas) {
 
         canvas->inv_model = m4_inverse(&canvas->inv_model);
         canvas->inv_model = m4_transp(&canvas->inv_model);
+
+        Sprite(bind)(frame, canvas->sprite);
+        Shader(set_mat4)(canvas->sprite->shader, "projection", true, frame->cache.projection.e);
+        Shader(set_mat4)(canvas->sprite->shader, "model", true, canvas->model.e);
+
+        glEnable(GL_SCISSOR_TEST);
+        glScissor(
+            parent_header->content_box.x, frame->header.box.height - parent_header->content_box.y - parent_header->content_box.height,
+            parent_header->content_box.width, parent_header->content_box.height
+        );
+        Mesh(draw)(canvas->sprite->mesh);
+        glDisable(GL_SCISSOR_TEST);
+
+        canvas->header.box.x = parent_header->content_box.x;
+        canvas->header.box.y = parent_header->content_box.y;
+        canvas->header.box.width = parent_header->content_box.width;
+        canvas->header.box.height = parent_header->content_box.height;
+
         canvas->header.dirty ^= 1;
     }
 
-    Sprite(bind)(frame, canvas->sprite);
-    Shader(set_mat4)(canvas->sprite->shader, "projection", true, frame->cache.projection.e);
-    Shader(set_mat4)(canvas->sprite->shader, "model", true, canvas->model.e);
 
-    glEnable(GL_SCISSOR_TEST);
-    glScissor(
-        parent_header->content_box.x, frame->header.box.height - parent_header->content_box.y - parent_header->content_box.height,
-        parent_header->content_box.width, parent_header->content_box.height
-    );
-    Mesh(draw)(canvas->sprite->mesh);
-    glDisable(GL_SCISSOR_TEST);
-
-    canvas->header.box.x = parent_header->content_box.x;
-    canvas->header.box.y = parent_header->content_box.y;
-    canvas->header.box.width = parent_header->content_box.width;
-    canvas->header.box.height = parent_header->content_box.height;
 }
 
