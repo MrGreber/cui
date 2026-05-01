@@ -1,4 +1,4 @@
-#include <../UI/frame.h>
+#include <frame.h>
 #include <memio.h>
 #include <camera.h>
 #include <event_system.h>
@@ -26,18 +26,8 @@ void __resize_callback(GLFWwindow* window, const i32 width, const i32 height) {
         .tag = __RESIZE_EVENT__
     };
     const comp_node_t* root = frame->header.components;
+    Frame(clear)(frame, &frame->header.box);
     dispatch_event(root, &event);
-}
-bool __check_press(const frame_t* frame, const u32 key) {
-    static bool key_pressed[GLFW_KEY_LAST] = { 0 };
-    if (glfwGetKey(frame->ctx, key) == GLFW_PRESS && !key_pressed[key]) {
-        key_pressed[key] = true;
-        return true;
-    }
-    if (glfwGetKey(frame->ctx, key) == GLFW_RELEASE) {
-        key_pressed[key] = false;
-    }
-    return false;
 }
 void __keyboard_callback(GLFWwindow* window, const i32 key, const i32 sc, const i32 action, const i32 modes) {
     static bool wireframe_mode = false;

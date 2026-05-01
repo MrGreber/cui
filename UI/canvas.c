@@ -70,7 +70,6 @@ static void private(mouse_callback)(const mouse_cb_param* param) {
 }
 static void private(keyboard_callback)(const keyboard_cb_param* param) {
     canvas_t* canvas = param->instance;
-    //const frame_t* frame = get_root(canvas);
     camera_t* camera = &canvas->camera;
 
     u16 bit = 0;
@@ -87,6 +86,7 @@ static void private(keyboard_callback)(const keyboard_cb_param* param) {
         }
         case GLFW_KEY_SPACE:
             if (param->action == GLFW_PRESS) Texture(flush)(canvas->sprite->tex, WHITE);
+            canvas->header.dirty = 1;
             return;
         default: return;
     }

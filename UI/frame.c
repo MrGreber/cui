@@ -13,7 +13,7 @@
 #include <stdio.h>
 
 
-static bool __init_glfw(void) {
+static bool private(init_glfw)(void) {
     static bool flag = false;
     if (!flag) {
         if (!glfwInit()) {
@@ -32,7 +32,7 @@ static bool __init_glfw(void) {
     }
     return true;
 }
-static bool __init_glad(void) {
+static bool private(init_glad)(void) {
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         logError(ERR_GLFW, "Failed to initialize GLAD function.");
         return false;
@@ -63,7 +63,7 @@ frame_t* Frame(new)(const color_t bg, const u32 width, const u32 height, const c
 
     frame_t* frame = buffer.ptr;
 
-    if (!__init_glfw()) goto cleanup;
+    if (!private(init_glfw)()) goto cleanup;
     frame->ctx = glfwCreateWindow(width, height, title, 0, 0);
     if (!frame->ctx) {
         logError(ERR_GLFW, "Failed to create frame window.");
@@ -83,7 +83,7 @@ frame_t* Frame(new)(const color_t bg, const u32 width, const u32 height, const c
     glfwSetScrollCallback(frame->ctx, __scroll_callback);
     glfwSetWindowUserPointer(frame->ctx, frame);
 
-    if (!__init_glad()) goto cleanup;
+    if (!private(init_glad)()) goto cleanup;
 
     frame->header.box.width = width;
     frame->header.box.height = height;
