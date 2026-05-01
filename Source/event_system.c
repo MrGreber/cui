@@ -226,7 +226,6 @@ void Component(update)(const comp_node_t* node) {
         comp_header_t* child_header = get_header(child);
         child_header->dirty = 1;
         if (child_header->update) child_header->update(child);
-        Component(update)(node->nodes[i]);
     }
 
 }
