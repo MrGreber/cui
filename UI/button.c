@@ -55,6 +55,7 @@ button_t* Button(new)(void* parent, style_group_t* group, const bounding_box* bo
 
     button->header.mouse = (callback)__default_mouse_callback;
     button->header.resize = (callback)__default_resize_callback;
+    button->header.update = (callback)Button(update);
     Component(push_node)(parent_header->components, button, BUTTON_COMPONENT);
     return button;
 cleanup:

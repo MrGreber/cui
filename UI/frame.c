@@ -145,6 +145,10 @@ void Frame(update)(frame_t* frame) {
         frame_count = 0;
     }
     glfwSetWindowTitle(frame->ctx, caption);
+    if (frame->header.dirty) {
+        Frame(clear)(frame, &frame->header.box);
+        frame->header.dirty = 0;
+    }
 }
 void Frame(set_position)(frame_t* frame, const u16 x, const u16 y) {
     if (!frame) return;

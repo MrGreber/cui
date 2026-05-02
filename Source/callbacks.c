@@ -26,7 +26,7 @@ void __resize_callback(GLFWwindow* window, const i32 width, const i32 height) {
         .tag = __RESIZE_EVENT__
     };
     const comp_node_t* root = frame->header.components;
-    Frame(clear)(frame, &frame->header.box);
+    frame->header.dirty = 1;
     dispatch_event(root, &event);
 }
 void __keyboard_callback(GLFWwindow* window, const i32 key, const i32 sc, const i32 action, const i32 modes) {

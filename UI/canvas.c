@@ -227,7 +227,7 @@ void Canvas(update)(canvas_t* canvas) {
         canvas->header.box.width = parent_header->content_box.width;
         canvas->header.box.height = parent_header->content_box.height;
 
-        canvas->header.dirty ^= 1;
+        canvas->header.dirty = 0;
     }
 
 
