@@ -15,7 +15,6 @@ typedef struct panel {
     comp_header_t header;
     style_group_t styles;
 
-    void* parent;
     sprite_t* sprite;
     caption_t* caption;
 

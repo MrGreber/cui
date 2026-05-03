@@ -7,7 +7,6 @@
 typedef struct caption {
     comp_header_t header;
 
-    void* parent;
     sprite_t* sprite;
     struct {
         i32 x, y;

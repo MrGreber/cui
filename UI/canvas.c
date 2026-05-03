@@ -23,7 +23,7 @@ static void private(camera_handler)(canvas_t* canvas) {
     const frame_t* frame = get_root(canvas);
     const f32 delta = (f32)frame->stopwatch.delta;
     camera_t* camera = &canvas->camera;
-    comp_header_t* parent_header = get_header(canvas->parent);
+    comp_header_t* parent_header = get_header(canvas->header.parent);
 #ifndef SPEED
 #define SPEED 200.0f
     if (!camera->keys) return;
@@ -51,7 +51,7 @@ static void private(camera_handler)(canvas_t* canvas) {
 static void private(mouse_callback)(const mouse_cb_param* param) {
     canvas_t* canvas = param->instance;
     const frame_t* frame = get_root(canvas);
-    comp_header_t* parent_header = get_header(canvas->parent);
+    comp_header_t* parent_header = get_header(canvas->header.parent);
 
     if (glfwGetMouseButton(frame->ctx, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
         vec4 mpos = {param->x, param->y, 0.0f, 1.0f};
@@ -98,7 +98,7 @@ static void private(scroll_callback)(const scroll_cb_param* param) {
     canvas_t* canvas = param->instance;
     const frame_t* frame = get_root(canvas);
     camera_t* camera = &canvas->camera;
-    comp_header_t* parent_header = get_header(canvas->parent);
+    comp_header_t* parent_header = get_header(canvas->header.parent);
 
 #ifndef ZOOM_SPEED
 #define ZOOM_SPEED 0.15f
@@ -149,7 +149,7 @@ canvas_t* Canvas(new)(void* parent, const u32 width, const u32 height) {
     canvas->header.box.width = parent_header->content_box.width;
     canvas->header.box.height = parent_header->content_box.height;
 
-    canvas->parent = parent;
+    canvas->header.parent = parent;
     canvas->prev.x = -1;
     canvas->prev.y = -1;
 
@@ -188,7 +188,7 @@ void Canvas(set_brush)(canvas_t* canvas, const color_t color, const f32 size) {
 void Canvas(update)(canvas_t* canvas) {
     if (!canvas) return;
     const frame_t* frame = get_root(canvas);
-    comp_header_t* parent_header = (comp_header_t*)canvas->parent;
+    comp_header_t* parent_header = (comp_header_t*)canvas->header.parent;
 
     if (frame->focused.instance == canvas && canvas->camera.keys) private(camera_handler)(canvas);
     else canvas->camera.keys = 0;

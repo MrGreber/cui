@@ -47,7 +47,7 @@ panel_t* Panel(new)(void* parent, style_group_t* group, const bounding_box* box)
     panel->header.content_box.width = box->width;
     panel->header.content_box.height = box->height - caption_height;
 
-    panel->parent = parent;
+    panel->header.parent = parent;
     if (group->normal.init) memcpy(&panel->styles.normal, &group->normal, sizeof(style_t));
     if (group->hover.init) memcpy(&panel->styles.hover, &group->hover, sizeof(style_t));
 

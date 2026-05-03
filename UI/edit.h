@@ -12,8 +12,6 @@ typedef struct edit {
     comp_header_t header;
     style_group_t styles;
 
-    void* parent;
-
     sprite_t* sprite;
     font_t* font;
     mesh_t* mesh;

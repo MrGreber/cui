@@ -15,7 +15,6 @@ typedef struct brush {
 typedef struct canvas {
     comp_header_t header;
 
-    void* parent;
     sprite_t* sprite;
 
     brush_t brush;

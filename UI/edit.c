@@ -106,7 +106,7 @@ static void private(build_mesh)(edit_t* edit, f32 start_x, f32 start_y) {
     }
     private(push_glyph)(edit, caret.glyph, caret.pos.x - (f32)caret.glyph->offset.x, caret.pos.y);
 
-    Mesh(bind)(get_root(edit->parent), edit->mesh);
+    Mesh(bind)(get_root(edit->header.parent), edit->mesh);
     Font(bind)(edit->font);
     Mesh(upload)(edit->mesh, edit->mesh->vertices.count, 0);
     edit->header.dirty = 1;
@@ -150,7 +150,7 @@ static void private(set_caret_position)(edit_t* edit, const f64 mouse_x, const f
     }
     private(push_glyph)(edit, caret_glyph, pen.x - (f32)caret_glyph->offset.x, pen.y);
 
-    Mesh(bind)(get_root(edit->parent), edit->mesh);
+    Mesh(bind)(get_root(edit->header.parent), edit->mesh);
     Font(bind)(edit->font);
     Mesh(upload)(edit->mesh, QUAD, edit->mesh->vertices.count - QUAD);
     edit->header.dirty = 1;
@@ -311,7 +311,7 @@ edit_t* Edit(new)(void* parent, const style_group_t* group, const bounding_box* 
     edit->header.box.width = box->width;
     edit->header.box.height = box->height;
 
-    edit->parent = parent;
+    edit->header.parent = parent;
     if (group->normal.init) memcpy(&edit->styles.normal, &group->normal, sizeof(style_t));
     if (group->hover.init) memcpy(&edit->styles.hover, &group->hover, sizeof(style_t));
 

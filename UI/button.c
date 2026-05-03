@@ -44,7 +44,7 @@ button_t* Button(new)(void* parent, style_group_t* group, const bounding_box* bo
     button->header.box.y = box->y + parent_header->content_box.y;
     button->header.box.width = box->width;
     button->header.box.height = box->height;
-    button->parent = parent;
+    button->header.parent = parent;
     if (group->normal.init) memcpy(&button->styles.normal, &group->normal, sizeof(style_t));
     if (group->hover.init) memcpy(&button->styles.hover, &group->hover, sizeof(style_t));
 

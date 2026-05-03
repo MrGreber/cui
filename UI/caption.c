@@ -35,7 +35,7 @@ static void private(mouse_callback)(const mouse_cb_param* param) {
 
         caption->header.dirty = 1;
 
-        comp_header_t* parent_header = get_header(caption->parent);
+        comp_header_t* parent_header = get_header(caption->header.parent);
         Frame(clear)(frame, &parent_header->box);
 
         parent_header->box.x += dx;
@@ -81,7 +81,7 @@ caption_t* Caption(new)(void* parent) {
     caption->header.content_box.width = parent_header->box.width;
     caption->header.content_box.height = CAPTION_HEIGHT;
 
-    caption->parent = parent;
+    caption->header.parent = parent;
     frame_t* frame = get_root(parent);
     caption->sprite = Sprite(new)(frame, RECT_SHADER);
     if (!caption->sprite) goto cleanup;

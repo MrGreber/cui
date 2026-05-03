@@ -143,6 +143,7 @@ typedef struct component_header {
     callback resize;
     callback update;
     comp_node_t* components;
+    void* parent;
     struct {
         u8 dirty: 1;
         u8 focus: 1;

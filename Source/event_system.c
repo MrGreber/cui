@@ -216,7 +216,11 @@ void dispatch_event(const comp_node_t* node, event_t* event) {
         }
     }
 }
+void Component(poll)(const comp_node_t* node) {
+    if (!node) return;
 
+    const comp_header_t* parent_header = get_header(get_header(node->component.instance)->parent);
+}
 void Component(update)(const comp_node_t* node) {
     if (!node) return;
 
