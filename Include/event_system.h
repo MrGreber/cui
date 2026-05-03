@@ -163,17 +163,19 @@ typedef struct component_node {
 
     comp_t component;
 
-    u64 capacity;
-    u64 count;
+    u16 capacity;
+    u16 count;
     struct component_node** nodes;
 } comp_node_t;
 
 
 __forceinline bool is_bounded(const bounding_box* box, const i32 x, const i32 y) {
-    return
-        (x >= box->x && x < box->x + box->width) &&
-        (y >= box->y && y < box->y + box->height);
+    return (x >= box->x && x < box->x + box->width) && (y >= box->y && y < box->y + box->height);
 }
+__forceinline bool is_intersected(const bounding_box* a, const bounding_box* b) {
+    return (a->x < b->x + b->width && b->x < a->x + a->width) && (a->y < b->y + b->height && b->y < a->y + a->height);
+}
+
 __forceinline comp_header_t* get_header(void* comp) {
     return (comp_header_t*)comp;
 }

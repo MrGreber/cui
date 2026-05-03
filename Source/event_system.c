@@ -8,7 +8,6 @@
 #include <glfw3native.h>
 
 _Thread_local static GLFWcursor* __cursors[__COMPONENT_TAG_COUNT__] = { 0 };
-#define __get_comp_cursor(tag) __cursors[tag]
 
 comp_node_t* Component(new_node)(void* data, const comp_tag tag) {
     buf_t buffer = {
@@ -46,7 +45,7 @@ cleanup:
 }
 void Component(del_node)(comp_node_t* root) {
     if (!root) return;
-    for (u64 i = 0; i < root->count; i++) Component(del_node)(root->nodes[i]);
+    for (u16 i = 0; i < root->count; i++) Component(del_node)(root->nodes[i]);
     Buffer(del)(&(buf_t){.size = root->capacity * sizeof(comp_node_t*), .tag = MEMTAG_POINTER, .ptr = root->nodes});
     Buffer(del)(&(buf_t){.size = sizeof(comp_node_t), .tag = MEMTAG_COMPONENT_NODE, .ptr = root});
 
@@ -58,16 +57,17 @@ void Component(del_node)(comp_node_t* root) {
     }
 }
 static bool private(resize_tree)(comp_node_t* root) {
-    const u64 new_cap = root->capacity << 1;
+    if (root->capacity >= INT16_MAX) return false;
+    const u16 new_capacity = root->capacity << 1;
 
     buf_t buffer = {
         .size = root->capacity * sizeof(comp_node_t*),
         .tag = MEMTAG_POINTER,
         .ptr = root->nodes
     };
-    if (!Buffer(renew)(&buffer, new_cap)) return false;
+    if (!Buffer(renew)(&buffer, new_capacity)) return false;
 
-    root->capacity = new_cap;
+    root->capacity = new_capacity;
     return true;
 }
 bool Component(push_node)(comp_node_t* root, void* val, const comp_tag tag) {
@@ -169,7 +169,7 @@ void dispatch_event(const comp_node_t* node, event_t* event) {
                  }
 
                  // toggles between different cursors for each component
-                 GLFWcursor* desired = __get_comp_cursor(node->component.tag);
+                 GLFWcursor* desired = __cursors[node->component.tag];
                  if (frame->cursor != desired) {
                      glfwSetCursor(frame->ctx, desired);
                      frame->cursor = desired;
@@ -216,17 +216,22 @@ void dispatch_event(const comp_node_t* node, event_t* event) {
         }
     }
 }
-void Component(poll)(const comp_node_t* node) {
-    if (!node) return;
-
+static void Component(poll)(const comp_node_t* node) {
     const comp_header_t* parent_header = get_header(get_header(node->component.instance)->parent);
+    u16 i = 0;
+    for (; i < parent_header->components->count && parent_header->components->nodes[i] != node; i++);
+    for (; i < parent_header->components->count; i++) {
+        comp_header_t* sub_header = get_header(parent_header->components->nodes[i]->component.instance);
+        sub_header->dirty |= is_intersected(&sub_header->box, &parent_header->box);
+    }
 }
 void Component(update)(const comp_node_t* node) {
     if (!node) return;
 
     const comp_header_t* parent_header = get_header(node->component.instance);
     if (parent_header->dirty) {
-        for (u64 i = 0; i < node->count; i++) {
+        Component(poll)(node);
+        for (u16 i = 0; i < node->count; i++) {
             void* child = node->nodes[i]->component.instance;
             comp_header_t* child_header = get_header(child);
             child_header->dirty = 1;

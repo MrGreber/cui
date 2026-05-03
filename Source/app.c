@@ -47,7 +47,7 @@ void App(start)(app_t* app) {
     }
 }
 static bool private(resize_var_array)(app_t* app) {
-    if (app->capacity == UINT16_MAX) {
+    if (app->capacity >= INT16_MAX) {
         logWarn(ERR_HEAP_REALLOC, "Failed to resize vars app, vars reached max size %d.", UINT16_MAX);
         return false;
     }
