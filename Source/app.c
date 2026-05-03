@@ -42,7 +42,7 @@ void App(start)(app_t* app) {
     while (!glfwWindowShouldClose(app->frame->ctx)) {
         app->loop((void*)app);
 
-        glfwSwapBuffers(app->frame->ctx);
+        glFlush();
         glfwPollEvents();
     }
 }

@@ -28,6 +28,7 @@ static bool private(init_glfw)(void) {
         glfwWindowHint(GLFW_BLUE_BITS, 8);
         glfwWindowHint(GLFW_ALPHA_BITS, 8);
         glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
+        glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_FALSE);
         flag = true;
     }
     return true;
