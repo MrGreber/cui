@@ -4,7 +4,7 @@
 #define TEXTURE_H
 #include <defines.h>
 #include <utils.h>
-#include <event_system.h>
+#include <component_system.h>
 
 /**
  * @struct texture

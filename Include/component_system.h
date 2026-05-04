@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef EVENT_H
-#define EVENT_H
+#ifndef COMPONENT_SYSTEM_H
+#define COMPONENT_SYSTEM_H
 #include <defines.h>
 #include <utils.h>
 
@@ -38,8 +38,8 @@ typedef struct radial_gradient {
 
 typedef struct style {
     struct {
-        u64 init: 1;
         u64 mode: 63;
+        u64 init: 1;
     };
     struct {
         union {
@@ -54,11 +54,11 @@ typedef struct style {
     } background;
     struct {
         color_t color;
-        u32 thickness;
-        u32 radius;
+        i32 thickness;
+        i32 radius;
     } border;
     struct {
-        u32 left, right, top, bottom;
+        i32 left, right, top, bottom;
     } padding;
 } style_t;
 
@@ -84,52 +84,6 @@ typedef enum component_tag {
     CANVAS_COMPONENT,
     __COMPONENT_TAG_COUNT__
 } comp_tag;
-
-typedef enum event_tag {
-    __MOUSE_EVENT__,
-    __SCROLL_EVENT__,
-    __KEYBOARD_EVENT__,
-    __RESIZE_EVENT__
-} event_tag;
-
-typedef struct mouse_callback_parameter {
-    void* instance;
-    f64 x;
-    f64 y;
-    i32 button;
-    i32 action;
-    i32 mods;
-} mouse_cb_param;
-
-typedef struct keyboard_callback_parameter {
-    void* instance;
-    i32 key;
-    i32 scancode;
-    i32 action;
-    i32 modes;
-} keyboard_cb_param;
-
-typedef struct scroll_callback_parameter {
-    void* instance;
-    f64 delta;
-} scroll_cb_param;
-
-typedef struct resize_callback_parameter {
-    void* instance;
-    i32 width;
-    i32 height;
-} resize_cb_param;
-
-typedef struct event {
-    union {
-        scroll_cb_param scroll;
-        mouse_cb_param mouse;
-        keyboard_cb_param keyboard;
-        resize_cb_param resize;
-    } param;
-
-    event_tag tag;
-} event_t;
 
 typedef struct component_node comp_node_t;
 
@@ -180,7 +134,7 @@ __forceinline comp_header_t* get_header(void* comp) {
     return (comp_header_t*)comp;
 }
 __forceinline style_group_t* get_styles(void* comp) {
-    return (style_group_t*)((byte*)comp + sizeof(style_group_t));
+    return (style_group_t*)((byte*)comp + sizeof(comp_header_t));
 }
 __forceinline void* get_root(const void* comp) {
     comp_node_t* root = ((comp_node_t*)((comp_header_t*)comp)->components)->root;
@@ -193,7 +147,5 @@ comp_node_t* Component(new_node)(void* data, const comp_tag tag);
 void Component(del_node)(comp_node_t* root);
 bool Component(push_node)(comp_node_t* root, void* val, const comp_tag tag);
 void Component(print_node)(comp_node_t* root, const u64 indent);
-
-void dispatch_event(const comp_node_t* node, event_t* event);
 void Component(update)(const comp_node_t* node);
-#endif //EVENT_H
+#endif // COMPONENT_SYSTEM_H

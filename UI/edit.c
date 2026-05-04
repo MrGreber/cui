@@ -1,11 +1,12 @@
 #include <edit.h>
 #include <memio.h>
-#include <event_system.h>
+#include <component_system.h>
 #include <math-utils.h>
 #include <frame.h>
 #include <error.h>
 #include <shader/ops.h>
 #include <geometry/ops.h>
+#include <events.h>
 
 #include <string.h>
 #include <glad.h>

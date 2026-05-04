@@ -1,9 +1,10 @@
 #include <canvas.h>
 #include <memio.h>
-#include <event_system.h>
+#include <component_system.h>
 #include <frame.h>
 #include <shader/ops.h>
 #include <geometry/ops.h>
+#include <events.h>
 
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <glad.h>

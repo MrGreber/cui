@@ -1,11 +1,12 @@
 #include <panel.h>
 #include <memio.h>
-#include <event_system.h>
+#include <component_system.h>
 #include <frame.h>
 #include <math-utils.h>
 #include <shader/ops.h>
 #include <geometry/ops.h>
 #include <caption.h>
+#include <events.h>
 
 #include <memory.h>
 #include <glad.h>

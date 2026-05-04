@@ -1,6 +1,6 @@
 #include <frame.h>
 #include <camera.h>
-#include <event_system.h>
+#include <component_system.h>
 #include <error.h>
 #include <memio.h>
 #include <shader/ops.h>

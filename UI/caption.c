@@ -1,10 +1,11 @@
 #include <caption.h>
 #include <memio.h>
-#include <event_system.h>
+#include <component_system.h>
 #include <frame.h>
 #include <math-utils.h>
 #include <shader/ops.h>
 #include <geometry/ops.h>
+#include <events.h>
 
 #include <glad.h>
 #include <glfw3.h>

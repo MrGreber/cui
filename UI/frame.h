@@ -4,7 +4,7 @@
 #define FRAME_H
 #include <defines.h>
 #include <utils.h>
-#include <event_system.h>
+#include <component_system.h>
 #include <stopwatch.h>
 #include <shader/types.h>
 #include <geometry/types.h>
