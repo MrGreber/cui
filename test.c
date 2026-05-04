@@ -49,7 +49,7 @@ static bool __init(app_t* app) {
     group.normal.background.color = WHITE;
 
     canvas_t* canvas = Canvas(new)(panel, 400, 600);
-    Canvas(set_brush)(canvas, (color_t)0xff004b96, 1);
+    Canvas(set_brush)(canvas, RED, 1);
 
     group.normal.background.color = WHITE;
     group.normal.mode = WRITABLE;
@@ -76,7 +76,7 @@ static void __loop(app_t* app) {
     Component(update)(frame->header.components);
     // Button(update)(button);
     // Panel(update)(panel);
-    Canvas(update)(canvas);
+    //Canvas(update)(canvas);
     // Edit(update)(edit);
 }
 static void __exit(app_t* app) {

@@ -140,6 +140,7 @@ void Component(update)(const comp_node_t* node) {
             void* child = node->nodes[i]->component.instance;
             comp_header_t* child_header = get_header(child);
             child_header->dirty = 1;
+            //Component(update)(node->nodes[i]);
             child_header->update(child);
         }
     }
@@ -147,6 +148,7 @@ void Component(update)(const comp_node_t* node) {
         for (u16 i = 0; i < node->count; i++) {
             void* child = node->nodes[i]->component.instance;
             comp_header_t* child_header = get_header(child);
+            Component(update)(node->nodes[i]);
             child_header->update(child);
         }
     }
