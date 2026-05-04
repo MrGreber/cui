@@ -143,4 +143,11 @@ void Component(update)(const comp_node_t* node) {
             child_header->update(child);
         }
     }
+    else {
+        for (u16 i = 0; i < node->count; i++) {
+            void* child = node->nodes[i]->component.instance;
+            comp_header_t* child_header = get_header(child);
+            child_header->update(child);
+        }
+    }
 }
