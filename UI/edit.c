@@ -375,7 +375,7 @@ void Edit(update)(edit_t* edit) {
     const vec4 border_color = Color(to_vec4)(style->border.color);
     const vec2 dim = {(f32)edit->header.box.width, (f32)edit->header.box.height};
 
-    if (edit->header.dirty & 1) {
+    if (edit->header.dirty) {
         const mat4 scale = m4_scale((f32)edit->header.box.width, (f32)edit->header.box.height, 1.0f);
         mat4 position = m4_transl((f32)edit->header.box.x, (f32)edit->header.box.y, 0.0f);
         mat4 size = m4_transl((f32)edit->header.box.width * 0.5f, (f32)edit->header.box.height * 0.5f, 0.0f);

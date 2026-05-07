@@ -21,8 +21,8 @@ texture_t* Texture(new)(const color_t* data, const u32 width, const u32 height) 
     glcall(glBindTexture(GL_TEXTURE_2D, tex->id), cleanup, "nFailed to bind texture");
     glcall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE), cleanup, "Failed to set texture parameter WRAP_S.");
     glcall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE), cleanup, "Failed to set texture parameter WRAP_T.");
-    glcall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST), cleanup, "Failed to set texture parameter MIN_FILTER.");
-    glcall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST), cleanup, "Failed to set texture parameter MAG_FILTER.");
+    glcall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR), cleanup, "Failed to set texture parameter MIN_FILTER.");
+    glcall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR), cleanup, "Failed to set texture parameter MAG_FILTER.");
 
     glcall(glTexImage2D(
         GL_TEXTURE_2D,

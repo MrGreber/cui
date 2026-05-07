@@ -113,7 +113,7 @@ void Caption(update)(caption_t* caption) {
     if (!caption) return;
     const frame_t* frame = get_root(caption);
 
-    if (caption->header.dirty & 1) {
+    if (caption->header.dirty) {
         const mat4 scale = m4_scale((f32)caption->header.box.width, (f32)caption->header.box.height, 1.0f);
         const mat4 position = m4_transl((f32)caption->header.box.x, (f32)caption->header.box.y, 0.0f);
         const mat4 size = m4_transl((f32)caption->header.box.width * 0.5f, (f32)caption->header.box.height * 0.5f, 0.0f);

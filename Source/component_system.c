@@ -122,7 +122,11 @@ void Component(print_node)(comp_node_t* root, const u64 indent) {
     }
 }
 static void Component(poll)(const comp_node_t* node) {
-    const comp_header_t* parent_header = get_header(get_header(node->component.instance)->parent);
+    const comp_header_t* header = get_header(node->component.instance);
+    if (!header->parent) return;
+
+    const comp_header_t* parent_header = get_header(header->parent);
+
     u16 i = 0;
     for (; i < parent_header->components->count && parent_header->components->nodes[i] != node; i++);
     for (; i < parent_header->components->count; i++) {
@@ -133,23 +137,22 @@ static void Component(poll)(const comp_node_t* node) {
 void Component(update)(const comp_node_t* node) {
     if (!node) return;
 
-    const comp_header_t* parent_header = get_header(node->component.instance);
-    if (parent_header->dirty) {
+    const comp_header_t* header = get_header(node->component.instance);
+
+    if (header->tick) header->tick(node->component.instance);
+
+    if (header->dirty) {
         Component(poll)(node);
+        header->update(node->component.instance);
         for (u16 i = 0; i < node->count; i++) {
-            void* child = node->nodes[i]->component.instance;
-            comp_header_t* child_header = get_header(child);
+            comp_header_t* child_header = get_header(node->nodes[i]->component.instance);
             child_header->dirty = 1;
-            //Component(update)(node->nodes[i]);
-            child_header->update(child);
+            Component(update)(node->nodes[i]);
         }
     }
     else {
         for (u16 i = 0; i < node->count; i++) {
-            void* child = node->nodes[i]->component.instance;
-            comp_header_t* child_header = get_header(child);
             Component(update)(node->nodes[i]);
-            child_header->update(child);
         }
     }
 }

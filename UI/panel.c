@@ -84,7 +84,7 @@ void Panel(update)(panel_t* panel) {
     if (!panel || panel->header.hide) return;
     const frame_t* frame = get_root(panel);
 
-    if (panel->header.dirty & 1) {
+    if (panel->header.dirty) {
         const mat4 scale = m4_scale((f32)panel->header.box.width, (f32)panel->header.box.height, 1.0f);
         const mat4 position = m4_transl((f32)panel->header.box.x, (f32)panel->header.box.y, 0.0f);
         const mat4 size = m4_transl((f32)panel->header.box.width * 0.5f, (f32)panel->header.box.height * 0.5f, 0.0f);
@@ -109,8 +109,6 @@ void Panel(update)(panel_t* panel) {
         Shader(set_vec4)(panel->sprite->shader, "mask", color.e);
 
         Mesh(draw)(panel->sprite->mesh);
-
-        Component(update)(panel->header.components);
         panel->header.dirty = 0;
     }
 }

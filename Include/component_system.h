@@ -91,11 +91,12 @@ typedef struct component_header {
     bounding_box box;
     bounding_box content_box;
 
-    callback keyboard;
+    callback tick;
     callback mouse;
     callback scroll;
     callback resize;
     callback update;
+    callback keyboard;
     comp_node_t* components;
     void* parent;
     struct {

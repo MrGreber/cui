@@ -130,6 +130,11 @@ static void private(resize_callback)(const resize_cb_param* param) {
     canvas->header.dirty = 1;
 }
 
+static void private(tick)(canvas_t* canvas) {
+    const frame_t* frame = get_root(canvas);
+    if (frame->focused.instance == canvas && canvas->camera.keys) private(camera_handler)(canvas);
+    else canvas->camera.keys = 0;
+}
 
 canvas_t* Canvas(new)(void* parent, const u32 width, const u32 height) {
     buf_t buffer = {
@@ -164,6 +169,7 @@ canvas_t* Canvas(new)(void* parent, const u32 width, const u32 height) {
     canvas->header.resize = (callback)private(resize_callback);
     canvas->header.scroll = (callback)private(scroll_callback);
     canvas->header.update = (callback)Canvas(update);
+    canvas->header.tick = (callback)private(tick);
     Component(push_node)(parent_header->components, canvas, CANVAS_COMPONENT);
     return canvas;
 cleanup:
@@ -191,9 +197,9 @@ void Canvas(update)(canvas_t* canvas) {
     const frame_t* frame = get_root(canvas);
     comp_header_t* parent_header = (comp_header_t*)canvas->header.parent;
 
-    if (frame->focused.instance == canvas && canvas->camera.keys) private(camera_handler)(canvas);
-    else canvas->camera.keys = 0;
-    if (canvas->header.dirty & 1) {
+    // if (frame->focused.instance == canvas && canvas->camera.keys) private(camera_handler)(canvas);
+    // else canvas->camera.keys = 0;
+    if (canvas->header.dirty) {
         const mat4 rotation = m4_rotateZ(rad(canvas->camera.roll));
         const mat4 position = m4_transl(canvas->camera.position.x + parent_header->content_box.x, canvas->camera.position.y + parent_header->content_box.y, 0.0f);
         const mat4 size = m4_transl(canvas->camera.zoom * (f32)canvas->dim.width * 0.5f, canvas->camera.zoom * (f32)canvas->dim.height * 0.5f, 0.0f);
