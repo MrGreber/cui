@@ -99,7 +99,6 @@ void Button(update)(button_t* button) {
     Shader(set_float)(button->sprite->shader, "border.thickness", style->border.thickness);
     Shader(set_vec4)(button->sprite->shader, "border.color", &color.x);
     Shader(set_vec2)(button->sprite->shader, "size", dim.e);
-
     if (frame->hovered.instance == button) color = Color(to_vec4)(button->styles.hover.background.mask);
     else color = Color(to_vec4)(button->styles.normal.background.mask);
     Shader(set_vec4)(button->sprite->shader, "mask", &color.x);

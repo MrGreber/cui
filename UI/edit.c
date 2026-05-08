@@ -440,19 +440,20 @@ void Edit(update)(edit_t* edit) {
     position = m4_transl((f32)edit->header.box.x + style->border.thickness, (f32)edit->header.box.y + style->border.thickness, 0.0f);
     size = m4_scale(1.0f, 1.0f, 1.0f);
     const mat4 model = m4_mul(&position, &size);
-    glEnable(GL_SCISSOR_TEST);
-    glScissor(
-        edit->header.box.x , frame->header.box.height - edit->header.box.y - edit->header.box.height + style->border.thickness,
-        edit->header.box.width - style->border.thickness, edit->header.box.height - style->border.thickness
-    );
+
     Mesh(bind)(frame, edit->mesh);
     Font(bind)(edit->font);
     Shader(set_mat4)(edit->font->shader, "projection", true, frame->cache.projection.e);
     Shader(set_mat4)(edit->font->shader, "model", true, model.e);
     Shader(set_vec4)(edit->font->shader, "font.bg", Color(to_vec4)(font->bg).e);
     Shader(set_vec4)(edit->font->shader, "font.fg", Color(to_vec4)(font->fg).e);
+
+    glEnable(GL_SCISSOR_TEST);
+    glScissor(
+        edit->header.box.x , frame->header.box.height - edit->header.box.y - edit->header.box.height + style->border.thickness,
+        edit->header.box.width - style->border.thickness, edit->header.box.height - style->border.thickness
+    );
     Mesh(sub_draw)(edit->mesh, (frame->focused.instance == edit ? edit->mesh->vertices.count : edit->mesh->vertices.count - QUAD), 0);
     glDisable(GL_SCISSOR_TEST);
-
     edit->header.dirty = 0;
 }

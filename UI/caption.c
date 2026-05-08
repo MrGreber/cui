@@ -126,8 +126,8 @@ void Caption(update)(caption_t* caption) {
     Sprite(bind)(frame, caption->sprite);
     Shader(set_mat4)(caption->sprite->shader, "projection", true, frame->cache.projection.e);
     Shader(set_mat4)(caption->sprite->shader, "model", true, caption->model.e);
-    Mesh(draw)(caption->sprite->mesh);
 
+    Mesh(draw)(caption->sprite->mesh);
     caption->header.dirty = 0;
 
 }
