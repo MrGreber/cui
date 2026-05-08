@@ -81,36 +81,35 @@ void Panel(bind)(const panel_t* panel) {
 }
 
 void Panel(update)(panel_t* panel) {
-    if (!panel || panel->header.hide) return;
+    if (!panel || panel->header.hide || !panel->header.dirty) return;
+
     const frame_t* frame = get_root(panel);
 
-    if (panel->header.dirty) {
-        const mat4 scale = m4_scale((f32)panel->header.box.width, (f32)panel->header.box.height, 1.0f);
-        const mat4 position = m4_transl((f32)panel->header.box.x, (f32)panel->header.box.y, 0.0f);
-        const mat4 size = m4_transl((f32)panel->header.box.width * 0.5f, (f32)panel->header.box.height * 0.5f, 0.0f);
-        const mat4 inv_size = m4_transl(-(f32)panel->header.box.width * 0.5f, -(f32)panel->header.box.height * 0.5f, 0.0f);
+    const mat4 scale = m4_scale((f32)panel->header.box.width, (f32)panel->header.box.height, 1.0f);
+    const mat4 position = m4_transl((f32)panel->header.box.x, (f32)panel->header.box.y, 0.0f);
+    const mat4 size = m4_transl((f32)panel->header.box.width * 0.5f, (f32)panel->header.box.height * 0.5f, 0.0f);
+    const mat4 inv_size = m4_transl(-(f32)panel->header.box.width * 0.5f, -(f32)panel->header.box.height * 0.5f, 0.0f);
 
-        panel->model = m4_mul(&position, &size);
-        panel->model = m4_mul(&panel->model, &inv_size);
-        panel->model = m4_mul(&panel->model, &scale);
+    panel->model = m4_mul(&position, &size);
+    panel->model = m4_mul(&panel->model, &inv_size);
+    panel->model = m4_mul(&panel->model, &scale);
 
-        Sprite(bind)(frame, panel->sprite);
-        Shader(set_mat4)(panel->sprite->shader, "projection", true, frame->cache.projection.e);
-        Shader(set_mat4)(panel->sprite->shader, "model", true, panel->model.e);
+    Sprite(bind)(frame, panel->sprite);
+    Shader(set_mat4)(panel->sprite->shader, "projection", true, frame->cache.projection.e);
+    Shader(set_mat4)(panel->sprite->shader, "model", true, panel->model.e);
 
-        const style_t* style = &panel->styles.normal;
-        vec4 color = Color(to_vec4)(style->border.color);
-        const vec2 dim = {(f32)panel->header.box.width, (f32)panel->header.box.height};
-        Shader(set_float)(panel->sprite->shader, "border.radius", style->border.radius);
-        Shader(set_float)(panel->sprite->shader, "border.thickness", style->border.thickness);
-        Shader(set_vec4)(panel->sprite->shader, "border.color", color.e);
-        Shader(set_vec2)(panel->sprite->shader, "size", dim.e);
-        color = Color(to_vec4)(panel->styles.normal.background.mask);
-        Shader(set_vec4)(panel->sprite->shader, "mask", color.e);
+    const style_t* style = &panel->styles.normal;
+    vec4 color = Color(to_vec4)(style->border.color);
+    const vec2 dim = {(f32)panel->header.box.width, (f32)panel->header.box.height};
+    Shader(set_float)(panel->sprite->shader, "border.radius", style->border.radius);
+    Shader(set_float)(panel->sprite->shader, "border.thickness", style->border.thickness);
+    Shader(set_vec4)(panel->sprite->shader, "border.color", color.e);
+    Shader(set_vec2)(panel->sprite->shader, "size", dim.e);
+    color = Color(to_vec4)(panel->styles.normal.background.mask);
+    Shader(set_vec4)(panel->sprite->shader, "mask", color.e);
 
-        Mesh(draw)(panel->sprite->mesh);
-        panel->header.dirty = 0;
-    }
+    Mesh(draw)(panel->sprite->mesh);
+    panel->header.dirty = 0;
 }
 
 void Panel(set_flag)(panel_t* panel, const u8 field) {

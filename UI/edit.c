@@ -368,92 +368,91 @@ void Edit(bind)(const edit_t* edit) {
 
 #define CLOCK_TIME 0.02
 void Edit(update)(edit_t* edit) {
-    if (!edit) return;
+    if (!edit || !edit->header.dirty) return;
+
     const frame_t* frame = get_root(edit);
     const font_t* font = edit->font;
     const style_t* style = &edit->styles.normal;
     const vec4 border_color = Color(to_vec4)(style->border.color);
     const vec2 dim = {(f32)edit->header.box.width, (f32)edit->header.box.height};
 
-    if (edit->header.dirty) {
-        const mat4 scale = m4_scale((f32)edit->header.box.width, (f32)edit->header.box.height, 1.0f);
-        mat4 position = m4_transl((f32)edit->header.box.x, (f32)edit->header.box.y, 0.0f);
-        mat4 size = m4_transl((f32)edit->header.box.width * 0.5f, (f32)edit->header.box.height * 0.5f, 0.0f);
-        const mat4 inv_size = m4_transl(-(f32)edit->header.box.width * 0.5f, -(f32)edit->header.box.height * 0.5f, 0.0f);
+    const mat4 scale = m4_scale((f32)edit->header.box.width, (f32)edit->header.box.height, 1.0f);
+    mat4 position = m4_transl((f32)edit->header.box.x, (f32)edit->header.box.y, 0.0f);
+    mat4 size = m4_transl((f32)edit->header.box.width * 0.5f, (f32)edit->header.box.height * 0.5f, 0.0f);
+    const mat4 inv_size = m4_transl(-(f32)edit->header.box.width * 0.5f, -(f32)edit->header.box.height * 0.5f, 0.0f);
 
-        edit->model = m4_mul(&position, &size);
-        edit->model = m4_mul(&edit->model, &inv_size);
-        edit->model = m4_mul(&edit->model, &scale);
+    edit->model = m4_mul(&position, &size);
+    edit->model = m4_mul(&edit->model, &inv_size);
+    edit->model = m4_mul(&edit->model, &scale);
 
-        Sprite(bind)(frame, edit->sprite);
-        Shader(set_mat4)(edit->sprite->shader, "projection", true, frame->cache.projection.e);
-        Shader(set_mat4)(edit->sprite->shader, "model", true, edit->model.e);
-        Shader(set_float)(edit->sprite->shader, "border.radius", style->border.radius);
-        Shader(set_float)(edit->sprite->shader, "border.thickness", style->border.thickness);
-        Shader(set_vec4)(edit->sprite->shader, "border.color", &border_color.x);
-        Shader(set_vec2)(edit->sprite->shader, "size", dim.e);
+    Sprite(bind)(frame, edit->sprite);
+    Shader(set_mat4)(edit->sprite->shader, "projection", true, frame->cache.projection.e);
+    Shader(set_mat4)(edit->sprite->shader, "model", true, edit->model.e);
+    Shader(set_float)(edit->sprite->shader, "border.radius", style->border.radius);
+    Shader(set_float)(edit->sprite->shader, "border.thickness", style->border.thickness);
+    Shader(set_vec4)(edit->sprite->shader, "border.color", &border_color.x);
+    Shader(set_vec2)(edit->sprite->shader, "size", dim.e);
 
-        // if (frame->focused.data == edit) color = (vec4){
-        //     (f32)edit->styles.hover.background.mask.r / 255.0f,
-        //     (f32)edit->styles.hover.background.mask.g / 255.0f,
-        //     (f32)edit->styles.hover.background.mask.b / 255.0f,
-        //     (f32)edit->styles.hover.background.mask.a / 255.0f
-        // };
-        // else color = (vec4){
-        //     (f32)edit->styles.normal.background.mask.r / 255.0f,
-        //     (f32)edit->styles.normal.background.mask.g / 255.0f,
-        //     (f32)edit->styles.normal.background.mask.b / 255.0f,
-        //     (f32)edit->styles.normal.background.mask.a / 255.0f
-        // };
-        Shader(set_vec4)(edit->sprite->shader, "mask", &((vec4){.x = 1.0f, .y = 1.0f, .z = 1.0f, .w = 1.0f}).x);
-        Mesh(draw)(edit->sprite->mesh);
+    // if (frame->focused.data == edit) color = (vec4){
+    //     (f32)edit->styles.hover.background.mask.r / 255.0f,
+    //     (f32)edit->styles.hover.background.mask.g / 255.0f,
+    //     (f32)edit->styles.hover.background.mask.b / 255.0f,
+    //     (f32)edit->styles.hover.background.mask.a / 255.0f
+    // };
+    // else color = (vec4){
+    //     (f32)edit->styles.normal.background.mask.r / 255.0f,
+    //     (f32)edit->styles.normal.background.mask.g / 255.0f,
+    //     (f32)edit->styles.normal.background.mask.b / 255.0f,
+    //     (f32)edit->styles.normal.background.mask.a / 255.0f
+    // };
+    Shader(set_vec4)(edit->sprite->shader, "mask", &((vec4){.x = 1.0f, .y = 1.0f, .z = 1.0f, .w = 1.0f}).x);
+    Mesh(draw)(edit->sprite->mesh);
 
-        // todo: semi-working clock for the edit cursor
-        // static f64 clock = CLOCK_TIME;
-        // static bool flag = true;
-        // const f32 delta = (f32)frame->stopwatch.delta;
-        // if (frame->focused.inst == edit) {
-        //     if (0.0 >= clock) {
-        //         if (flag) {
-        //             if (edit->mesh.count > 0)
-        //                 edit->mesh.count--;
-        //             flag = false;
-        //         }
-        //         else {
-        //             edit->mesh.count++;
-        //             flag = true;
-        //         }
-        //         clock = CLOCK_TIME;
-        //     }
-        //     if (clock > 0.0) {
-        //         clock -= delta;
-        //     }
-        // }
-        // else {
-        //     if (edit->mesh.count > 0 && flag) {
-        //         edit->mesh.count--;
-        //         flag = false;
-        //     }
-        // }
+    // todo: semi-working clock for the edit cursor
+    // static f64 clock = CLOCK_TIME;
+    // static bool flag = true;
+    // const f32 delta = (f32)frame->stopwatch.delta;
+    // if (frame->focused.inst == edit) {
+    //     if (0.0 >= clock) {
+    //         if (flag) {
+    //             if (edit->mesh.count > 0)
+    //                 edit->mesh.count--;
+    //             flag = false;
+    //         }
+    //         else {
+    //             edit->mesh.count++;
+    //             flag = true;
+    //         }
+    //         clock = CLOCK_TIME;
+    //     }
+    //     if (clock > 0.0) {
+    //         clock -= delta;
+    //     }
+    // }
+    // else {
+    //     if (edit->mesh.count > 0 && flag) {
+    //         edit->mesh.count--;
+    //         flag = false;
+    //     }
+    // }
 
-        // draw the text mesh
-        position = m4_transl((f32)edit->header.box.x + style->border.thickness, (f32)edit->header.box.y + style->border.thickness, 0.0f);
-        size = m4_scale(1.0f, 1.0f, 1.0f);
-        const mat4 model = m4_mul(&position, &size);
-        glEnable(GL_SCISSOR_TEST);
-        glScissor(
-            edit->header.box.x , frame->header.box.height - edit->header.box.y - edit->header.box.height + style->border.thickness,
-            edit->header.box.width - style->border.thickness, edit->header.box.height - style->border.thickness
-        );
-        Mesh(bind)(frame, edit->mesh);
-        Font(bind)(edit->font);
-        Shader(set_mat4)(edit->font->shader, "projection", true, frame->cache.projection.e);
-        Shader(set_mat4)(edit->font->shader, "model", true, model.e);
-        Shader(set_vec4)(edit->font->shader, "font.bg", Color(to_vec4)(font->bg).e);
-        Shader(set_vec4)(edit->font->shader, "font.fg", Color(to_vec4)(font->fg).e);
-        Mesh(sub_draw)(edit->mesh, (frame->focused.instance == edit ? edit->mesh->vertices.count : edit->mesh->vertices.count - QUAD), 0);
-        glDisable(GL_SCISSOR_TEST);
+    // draw the text mesh
+    position = m4_transl((f32)edit->header.box.x + style->border.thickness, (f32)edit->header.box.y + style->border.thickness, 0.0f);
+    size = m4_scale(1.0f, 1.0f, 1.0f);
+    const mat4 model = m4_mul(&position, &size);
+    glEnable(GL_SCISSOR_TEST);
+    glScissor(
+        edit->header.box.x , frame->header.box.height - edit->header.box.y - edit->header.box.height + style->border.thickness,
+        edit->header.box.width - style->border.thickness, edit->header.box.height - style->border.thickness
+    );
+    Mesh(bind)(frame, edit->mesh);
+    Font(bind)(edit->font);
+    Shader(set_mat4)(edit->font->shader, "projection", true, frame->cache.projection.e);
+    Shader(set_mat4)(edit->font->shader, "model", true, model.e);
+    Shader(set_vec4)(edit->font->shader, "font.bg", Color(to_vec4)(font->bg).e);
+    Shader(set_vec4)(edit->font->shader, "font.fg", Color(to_vec4)(font->fg).e);
+    Mesh(sub_draw)(edit->mesh, (frame->focused.instance == edit ? edit->mesh->vertices.count : edit->mesh->vertices.count - QUAD), 0);
+    glDisable(GL_SCISSOR_TEST);
 
-        edit->header.dirty = 0;
-    }
+    edit->header.dirty = 0;
 }

@@ -193,50 +193,45 @@ void Canvas(set_brush)(canvas_t* canvas, const color_t color, const f32 size) {
 }
 
 void Canvas(update)(canvas_t* canvas) {
-    if (!canvas) return;
+    if (!canvas || !canvas->header.dirty) return;
+
     const frame_t* frame = get_root(canvas);
     comp_header_t* parent_header = (comp_header_t*)canvas->header.parent;
 
-    // if (frame->focused.instance == canvas && canvas->camera.keys) private(camera_handler)(canvas);
-    // else canvas->camera.keys = 0;
-    if (canvas->header.dirty) {
-        const mat4 rotation = m4_rotateZ(rad(canvas->camera.roll));
-        const mat4 position = m4_transl(canvas->camera.position.x + parent_header->content_box.x, canvas->camera.position.y + parent_header->content_box.y, 0.0f);
-        const mat4 size = m4_transl(canvas->camera.zoom * (f32)canvas->dim.width * 0.5f, canvas->camera.zoom * (f32)canvas->dim.height * 0.5f, 0.0f);
-        const mat4 inv_size = m4_transl(-canvas->camera.zoom * (f32)canvas->dim.width * 0.5f, -canvas->camera.zoom * (f32)canvas->dim.height * 0.5f, 0.0f);
+    const mat4 rotation = m4_rotateZ(rad(canvas->camera.roll));
+    const mat4 position = m4_transl(canvas->camera.position.x + parent_header->content_box.x, canvas->camera.position.y + parent_header->content_box.y, 0.0f);
+    const mat4 size = m4_transl(canvas->camera.zoom * (f32)canvas->dim.width * 0.5f, canvas->camera.zoom * (f32)canvas->dim.height * 0.5f, 0.0f);
+    const mat4 inv_size = m4_transl(-canvas->camera.zoom * (f32)canvas->dim.width * 0.5f, -canvas->camera.zoom * (f32)canvas->dim.height * 0.5f, 0.0f);
 
-        const mat4 scale = m4_scale(canvas->camera.zoom * (f32)canvas->dim.width, canvas->camera.zoom * (f32)canvas->dim.height, 1.0f);
-        const mat4 inv_scale = m4_scale(canvas->camera.zoom, canvas->camera.zoom, 1.0f);
-        canvas->model = m4_mul(&position, &size);
-        canvas->model = m4_mul(&canvas->model, &rotation);
-        canvas->model = m4_mul(&canvas->model, &inv_size);
+    const mat4 scale = m4_scale(canvas->camera.zoom * (f32)canvas->dim.width, canvas->camera.zoom * (f32)canvas->dim.height, 1.0f);
+    const mat4 inv_scale = m4_scale(canvas->camera.zoom, canvas->camera.zoom, 1.0f);
+    canvas->model = m4_mul(&position, &size);
+    canvas->model = m4_mul(&canvas->model, &rotation);
+    canvas->model = m4_mul(&canvas->model, &inv_size);
 
-        canvas->inv_model = m4_mul(&canvas->model, &inv_scale);
-        canvas->model = m4_mul(&canvas->model, &scale);
+    canvas->inv_model = m4_mul(&canvas->model, &inv_scale);
+    canvas->model = m4_mul(&canvas->model, &scale);
 
-        canvas->inv_model = m4_inverse(&canvas->inv_model);
-        canvas->inv_model = m4_transp(&canvas->inv_model);
+    canvas->inv_model = m4_inverse(&canvas->inv_model);
+    canvas->inv_model = m4_transp(&canvas->inv_model);
 
-        Sprite(bind)(frame, canvas->sprite);
-        Shader(set_mat4)(canvas->sprite->shader, "projection", true, frame->cache.projection.e);
-        Shader(set_mat4)(canvas->sprite->shader, "model", true, canvas->model.e);
+    Sprite(bind)(frame, canvas->sprite);
+    Shader(set_mat4)(canvas->sprite->shader, "projection", true, frame->cache.projection.e);
+    Shader(set_mat4)(canvas->sprite->shader, "model", true, canvas->model.e);
 
-        glEnable(GL_SCISSOR_TEST);
-        glScissor(
-            parent_header->content_box.x, frame->header.box.height - parent_header->content_box.y - parent_header->content_box.height,
-            parent_header->content_box.width, parent_header->content_box.height
-        );
-        Mesh(draw)(canvas->sprite->mesh);
-        glDisable(GL_SCISSOR_TEST);
+    glEnable(GL_SCISSOR_TEST);
+    glScissor(
+        parent_header->content_box.x, frame->header.box.height - parent_header->content_box.y - parent_header->content_box.height,
+        parent_header->content_box.width, parent_header->content_box.height
+    );
+    Mesh(draw)(canvas->sprite->mesh);
+    glDisable(GL_SCISSOR_TEST);
 
-        canvas->header.box.x = parent_header->content_box.x;
-        canvas->header.box.y = parent_header->content_box.y;
-        canvas->header.box.width = parent_header->content_box.width;
-        canvas->header.box.height = parent_header->content_box.height;
+    canvas->header.box.x = parent_header->content_box.x;
+    canvas->header.box.y = parent_header->content_box.y;
+    canvas->header.box.width = parent_header->content_box.width;
+    canvas->header.box.height = parent_header->content_box.height;
 
-        canvas->header.dirty = 0;
-    }
-
-
+    canvas->header.dirty = 0;
 }
 

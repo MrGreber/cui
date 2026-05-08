@@ -110,25 +110,24 @@ void Caption(bind)(const caption_t* caption) {
     Sprite(bind)(get_root(caption), caption->sprite);
 }
 void Caption(update)(caption_t* caption) {
-    if (!caption) return;
+    if (!caption || !caption->header.dirty) return;
+
     const frame_t* frame = get_root(caption);
 
-    if (caption->header.dirty) {
-        const mat4 scale = m4_scale((f32)caption->header.box.width, (f32)caption->header.box.height, 1.0f);
-        const mat4 position = m4_transl((f32)caption->header.box.x, (f32)caption->header.box.y, 0.0f);
-        const mat4 size = m4_transl((f32)caption->header.box.width * 0.5f, (f32)caption->header.box.height * 0.5f, 0.0f);
-        const mat4 inv_size = m4_transl(-(f32)caption->header.box.width * 0.5f, -(f32)caption->header.box.height * 0.5f, 0.0f);
+    const mat4 scale = m4_scale((f32)caption->header.box.width, (f32)caption->header.box.height, 1.0f);
+    const mat4 position = m4_transl((f32)caption->header.box.x, (f32)caption->header.box.y, 0.0f);
+    const mat4 size = m4_transl((f32)caption->header.box.width * 0.5f, (f32)caption->header.box.height * 0.5f, 0.0f);
+    const mat4 inv_size = m4_transl(-(f32)caption->header.box.width * 0.5f, -(f32)caption->header.box.height * 0.5f, 0.0f);
 
-        caption->model = m4_mul(&position, &size);
-        caption->model = m4_mul(&caption->model, &inv_size);
-        caption->model = m4_mul(&caption->model, &scale);
+    caption->model = m4_mul(&position, &size);
+    caption->model = m4_mul(&caption->model, &inv_size);
+    caption->model = m4_mul(&caption->model, &scale);
 
-        Sprite(bind)(frame, caption->sprite);
-        Shader(set_mat4)(caption->sprite->shader, "projection", true, frame->cache.projection.e);
-        Shader(set_mat4)(caption->sprite->shader, "model", true, caption->model.e);
-        Mesh(draw)(caption->sprite->mesh);
+    Sprite(bind)(frame, caption->sprite);
+    Shader(set_mat4)(caption->sprite->shader, "projection", true, frame->cache.projection.e);
+    Shader(set_mat4)(caption->sprite->shader, "model", true, caption->model.e);
+    Mesh(draw)(caption->sprite->mesh);
 
-        caption->header.dirty = 0;
-    }
+    caption->header.dirty = 0;
 
 }

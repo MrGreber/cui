@@ -68,16 +68,8 @@ static bool __init(app_t* app) {
 }
 static void __loop(app_t* app) {
     frame_t* frame = app->frame;
-    panel_t* panel = App(get)(app, 0);
-    canvas_t* canvas = App(get)(app, 1);
-    edit_t* edit = App(get)(app, 2);
-    //button_t* button = App(get)(app, 3);
     Frame(update)(frame);
     Component(update)(frame->header.components);
-    // Button(update)(button);
-    // Panel(update)(panel);
-    //Canvas(update)(canvas);
-    // Edit(update)(edit);
 }
 static void __exit(app_t* app) {
     frame_t* frame = app->frame;
