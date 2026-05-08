@@ -1,7 +1,6 @@
 #include <component_system.h>
 #include <memio.h>
 #include <frame.h>
-#include <events.h>
 
 #include <stdio.h>
 #define GLFW_EXPOSE_NATIVE_WIN32

@@ -32,12 +32,12 @@ __forceinline color_t Color(hsv_to_rgb)(const f32 h, const f32 s, const f32 v) {
     else if (h < 300) { r = x; g = 0; b = c; }
     else { r = c; g = 0; b = x; }
 
-    color_t col;
-    col.r = (u8)((r + m) * 255.0f);
-    col.g = (u8)((g + m) * 255.0f);
-    col.b = (u8)((b + m) * 255.0f);
-    col.a = 255;
-    return col;
+    color_t color;
+    color.r = (u8)((r + m) * 255.0f);
+    color.g = (u8)((g + m) * 255.0f);
+    color.b = (u8)((b + m) * 255.0f);
+    color.a = 255;
+    return color;
 }
 
 /** Convert a byte (0-255) to a float (0.0-1.0) */
@@ -100,8 +100,6 @@ do { \
         goto cleanup; \
     } \
 } while (0)
-
-void aligned_memset(u32* buffer, const u32 val, const u64 size);
 
 void* load_cursor(const char* path, const u16 width, const u16 height, const u16 hotx, const u16 hoty);
 
