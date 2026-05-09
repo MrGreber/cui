@@ -27,7 +27,7 @@ static bool private(init_glfw)(void) {
         glfwWindowHint(GLFW_GREEN_BITS, 8);
         glfwWindowHint(GLFW_BLUE_BITS, 8);
         glfwWindowHint(GLFW_ALPHA_BITS, 8);
-        glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
+        //glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
         glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_FALSE);
         flag = true;
     }
@@ -150,10 +150,10 @@ void Frame(update)(frame_t* frame) {
     if (acc >= 1.0f) {
         const f64 fps = (f64)frame_count / acc;
         sprintf_s(caption, sizeof(caption), "%s-FPS: %.2f", frame->title, fps);
+        glfwSetWindowTitle(frame->ctx, caption);
         acc = 0.0;
         frame_count = 0;
     }
-    glfwSetWindowTitle(frame->ctx, caption);
     if (frame->header.dirty) {
         Frame(clear)(frame, &frame->header.box);
         frame->header.dirty = 0;

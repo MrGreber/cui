@@ -41,9 +41,9 @@ void App(start)(app_t* app) {
 
     while (!glfwWindowShouldClose(app->frame->ctx)) {
         app->loop((void*)app);
-
-        glFlush();
         glfwPollEvents();
+        glFlush();
+        glfwWaitEventsTimeout(0.001);
     }
 }
 static bool private(resize_var_array)(app_t* app) {
