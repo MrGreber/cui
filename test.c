@@ -68,7 +68,6 @@ static bool __init(app_t* app) {
 }
 static void __loop(app_t* app) {
     frame_t* frame = app->frame;
-    Frame(update)(frame);
     Component(update)(frame->header.components);
 }
 static void __exit(app_t* app) {

@@ -41,8 +41,8 @@ static void private(camera_handler)(canvas_t* canvas) {
         if (camera->roll >= 360.0f) camera->roll -= 360.0f;
     }
     if (camera->keys & CAM_KEY_R) Camera(reset)(camera);
-    parent_header->dirty = 1;
-    canvas->header.dirty = 1;
+    parent_header->dirty = 2;
+    canvas->header.dirty = 2;
 #undef SPEED
 #else
 #error For some reason your dumbass decided to define a global macro named SPEED, what the fuck if you try to compiler me again I will send assassins after your ass
@@ -63,8 +63,8 @@ static void private(mouse_callback)(const mouse_cb_param* param) {
 
         canvas->prev.x = mpos.x;
         canvas->prev.y = mpos.y;
-        parent_header->dirty = 1;
-        canvas->header.dirty = 1;
+        parent_header->dirty = 2;
+        canvas->header.dirty = 2;
     }
     else canvas->prev.x = canvas->prev.y = -1;
 
@@ -87,7 +87,7 @@ static void private(keyboard_callback)(const keyboard_cb_param* param) {
         }
         case GLFW_KEY_SPACE:
             if (param->action == GLFW_PRESS) Texture(flush)(canvas->sprite->tex, WHITE);
-            canvas->header.dirty = 1;
+            canvas->header.dirty = 2;
             return;
         default: return;
     }
@@ -122,12 +122,12 @@ static void private(scroll_callback)(const scroll_cb_param* param) {
     camera->position.y = offset_y + actual_factor * (camera->position.y - offset_y);
     camera->zoom = clamped;
 
-    parent_header->dirty = 1;
-    canvas->header.dirty = 1;
+    parent_header->dirty = 2;
+    canvas->header.dirty = 2;
 }
 static void private(resize_callback)(const resize_cb_param* param) {
     canvas_t* canvas = param->instance;
-    canvas->header.dirty = 1;
+    canvas->header.dirty = 2;
 }
 
 static void private(tick)(canvas_t* canvas) {
@@ -146,7 +146,7 @@ canvas_t* Canvas(new)(void* parent, const u32 width, const u32 height) {
     const comp_header_t* parent_header = get_header(parent);
 
     canvas_t* canvas = buffer.ptr;
-    canvas->header.dirty = 1;
+    canvas->header.dirty = 2;
     canvas->dim.width = width;
     canvas->dim.height = height;
 
@@ -232,6 +232,6 @@ void Canvas(update)(canvas_t* canvas) {
     canvas->header.box.width = parent_header->content_box.width;
     canvas->header.box.height = parent_header->content_box.height;
 
-    canvas->header.dirty = 0;
+    canvas->header.dirty--;
 }
 

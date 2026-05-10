@@ -100,11 +100,11 @@ typedef struct component_header {
     comp_node_t* components;
     void* parent;
     struct {
-        u8 dirty: 1;
         u8 focus: 1;
         u8 drag:  1;
         u8 hide:  1;
-        u8 flags: 4;
+        u8 dirty: 2;
+        u8 flags: 3;
     };
 } comp_header_t;
 

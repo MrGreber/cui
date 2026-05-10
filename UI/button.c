@@ -18,12 +18,12 @@ static void __default_mouse_callback(const mouse_cb_param* param) {
     if (param->action == GLFW_PRESS) {
         if (button->on_click) button->on_click(button);
         printf("button=%p\n", button);
-        button->header.dirty = 1;
+        button->header.dirty = 2;
     }
 }
 static void __default_resize_callback(const resize_cb_param* param) {
     button_t* button = param->instance;
-    button->header.dirty = 1;
+    button->header.dirty = 2;
     //comp_header_t* header = get_header(panel->parent);
 
     // panel->header.box.width += param->width;
@@ -40,7 +40,7 @@ button_t* Button(new)(void* parent, style_group_t* group, const bounding_box* bo
     const comp_header_t* parent_header = get_header(parent);
 
     button_t* button = buffer.ptr;
-    button->header.dirty = 1;
+    button->header.dirty = 2;
     button->header.box.x = box->x + parent_header->content_box.x;
     button->header.box.y = box->y + parent_header->content_box.y;
     button->header.box.width = box->width;
@@ -104,5 +104,5 @@ void Button(update)(button_t* button) {
     Shader(set_vec4)(button->sprite->shader, "mask", &color.x);
 
     Mesh(draw)(button->sprite->mesh);
-    button->header.dirty = 0;
+    button->header.dirty--;
 }

@@ -27,8 +27,7 @@ static bool private(init_glfw)(void) {
         glfwWindowHint(GLFW_GREEN_BITS, 8);
         glfwWindowHint(GLFW_BLUE_BITS, 8);
         glfwWindowHint(GLFW_ALPHA_BITS, 8);
-        //glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
-        glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_FALSE);
+        glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
         flag = true;
     }
     return true;
@@ -99,7 +98,8 @@ frame_t* Frame(new)(const color_t bg, const u32 width, const u32 height, const c
 
     frame->header.content_box.width = width;
     frame->header.content_box.height = height;
-    frame->header.dirty = 1;
+    frame->header.dirty = 2;
+    frame->header.update = (callback)Frame(update);
 
     frame->bg = bg;
     frame->title = (char*)title;
@@ -156,7 +156,7 @@ void Frame(update)(frame_t* frame) {
     }
     if (frame->header.dirty) {
         Frame(clear)(frame, &frame->header.box);
-        frame->header.dirty = 0;
+        frame->header.dirty--;
     }
 }
 void Frame(set_position)(frame_t* frame, const u16 x, const u16 y) {

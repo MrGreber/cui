@@ -18,7 +18,7 @@ static void private(mouse_callback)(const mouse_cb_param* param) {
 }
 static void private(resize_callback)(const resize_cb_param* param) {
     panel_t* panel = param->instance;
-    panel->header.dirty = 1;
+    panel->header.dirty = 2;
     // comp_header_t* header = get_header(panel->parent);
     //
     // header->box.width += param->width;
@@ -36,7 +36,7 @@ panel_t* Panel(new)(void* parent, style_group_t* group, const bounding_box* box)
     const comp_header_t* parent_header = get_header(parent);
 
     panel_t* panel = buffer.ptr;
-    panel->header.dirty = 1;
+    panel->header.dirty = 2;
     panel->header.box.x = box->x + parent_header->box.x;
     panel->header.box.y = box->y + parent_header->box.y;
     panel->header.box.width = box->width;
@@ -109,7 +109,7 @@ void Panel(update)(panel_t* panel) {
     Shader(set_vec4)(panel->sprite->shader, "mask", color.e);
 
     Mesh(draw)(panel->sprite->mesh);
-    panel->header.dirty = 0;
+    panel->header.dirty--;
 }
 
 void Panel(set_flag)(panel_t* panel, const u8 field) {

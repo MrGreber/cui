@@ -110,7 +110,7 @@ static void private(build_mesh)(edit_t* edit, f32 start_x, f32 start_y) {
     Mesh(bind)(get_root(edit->header.parent), edit->mesh);
     Font(bind)(edit->font);
     Mesh(upload)(edit->mesh, edit->mesh->vertices.count, 0);
-    edit->header.dirty = 1;
+    edit->header.dirty = 2;
 }
 static void private(set_caret_position)(edit_t* edit, const f64 mouse_x, const f64 mouse_y) {
     const str_t* buffer = edit->text.buffer;
@@ -154,7 +154,7 @@ static void private(set_caret_position)(edit_t* edit, const f64 mouse_x, const f
     Mesh(bind)(get_root(edit->header.parent), edit->mesh);
     Font(bind)(edit->font);
     Mesh(upload)(edit->mesh, QUAD, edit->mesh->vertices.count - QUAD);
-    edit->header.dirty = 1;
+    edit->header.dirty = 2;
 }
 
 static void private(mouse_callback)(const mouse_cb_param* param) {
@@ -281,7 +281,7 @@ static void private(read_keyboard_callback)(const keyboard_cb_param* param) {
 }
 static void private(resize_callback)(const resize_cb_param* param) {
     edit_t* edit = param->instance;
-    edit->header.dirty = 1;
+    edit->header.dirty = 2;
     // comp_header_t* header = get_header(edit->parent);
     // edit->header.box.width += param->width;
     // edit->header.box.height += param->height;
@@ -305,7 +305,7 @@ edit_t* Edit(new)(void* parent, const style_group_t* group, const bounding_box* 
     const comp_header_t* parent_header = get_header(parent);
 
     edit_t* edit = buffer.ptr;
-    edit->header.dirty = 1;
+    edit->header.dirty = 2;
 
     edit->header.box.x = box->x + parent_header->content_box.x;
     edit->header.box.y = box->y + parent_header->content_box.y;
@@ -455,5 +455,5 @@ void Edit(update)(edit_t* edit) {
     );
     Mesh(sub_draw)(edit->mesh, (frame->focused.instance == edit ? edit->mesh->vertices.count : edit->mesh->vertices.count - QUAD), 0);
     glDisable(GL_SCISSOR_TEST);
-    edit->header.dirty = 0;
+    edit->header.dirty--;
 }
