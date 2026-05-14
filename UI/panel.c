@@ -60,9 +60,10 @@ panel_t* Panel(new)(void* parent, style_group_t* group, const bounding_box* box)
     //panel->header.mouse = (callback)private(mouse_callback);
     panel->header.update = (callback)Panel(update);
     panel->header.resize = (callback)private(resize_callback);
+    panel->header.free = (callback)Panel(del);
     Component(push_node)(parent_header->components, panel, PANEL_COMPONENT);
-    panel->caption = Caption(new)(panel);
 
+    if (group->normal.mode & CAPTION) Caption(new)(panel);
     return panel;
 cleanup:
     if (panel->sprite) Sprite(del)(panel->sprite);
@@ -71,7 +72,6 @@ cleanup:
 }
 void Panel(del)(panel_t* panel) {
     if (!panel) return;
-    if (panel->caption) Caption(del)(panel->caption);
     if (panel->sprite) Sprite(del)(panel->sprite);
     Buffer(del)(&(buf_t){.size = sizeof(panel_t), .tag = MEMTAG_PANEL, .ptr = panel});
 }

@@ -170,6 +170,7 @@ canvas_t* Canvas(new)(void* parent, const u32 width, const u32 height) {
     canvas->header.scroll = (callback)private(scroll_callback);
     canvas->header.update = (callback)Canvas(update);
     canvas->header.tick = (callback)private(tick);
+    canvas->header.free = (callback)Canvas(del);
     Component(push_node)(parent_header->components, canvas, CANVAS_COMPONENT);
     return canvas;
 cleanup:

@@ -91,6 +91,7 @@ caption_t* Caption(new)(void* parent) {
     caption->header.mouse = (callback)private(mouse_callback);
     caption->header.resize = (callback)private(resize_callback);
     caption->header.update = (callback)Caption(update);
+    caption->header.free = (callback)Caption(del);
     Component(push_node)(parent_header->components, caption, CAPTION_COMPONENT);
 
     return caption;

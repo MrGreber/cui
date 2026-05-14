@@ -116,6 +116,7 @@ frame_t* Frame(new)(const color_t bg, const u32 width, const u32 height, const c
     frame->header.dirty = 2;
     frame->header.update = (callback)Frame(update);
     frame->header.tick = (callback)private(tick);
+    frame->header.free = (callback)Frame(del);
 
     frame->bg = bg;
     frame->title = (char*)title;
@@ -148,7 +149,6 @@ void Frame(del)(frame_t* frame) {
     if (!frame) return;
     Shader(del_cache)(frame);
     Mesh(del_cache)(frame);
-    if (frame->header.components) Component(del_node)(frame->header.components);
     Buffer(del)(&(buf_t){.size = sizeof(frame_t), .tag = MEMTAG_FRAME, .ptr = frame});
     glfwTerminate();
 }

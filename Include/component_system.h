@@ -91,6 +91,7 @@ typedef struct component_header {
     bounding_box box;
     bounding_box content_box;
 
+    callback free;
     callback tick;
     callback mouse;
     callback scroll;

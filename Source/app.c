@@ -40,7 +40,8 @@ void App(start)(app_t* app) {
     if (!app) return;
 
     while (!glfwWindowShouldClose(app->frame->ctx)) {
-        app->loop((void*)app);
+        if (app->loop) app->loop((void*)app);
+        Component(update)(app->frame->header.components);
         glfwSwapBuffers(app->frame->ctx);
         glfwPollEvents();
     }
@@ -82,8 +83,8 @@ void* App(get)(const app_t* app, const u16 index) {
 }
 void App(exit)(app_t* app) {
     if (!app) return;
-
-    app->exit((void*)app);
+    if (app->exit) app->exit((void*)app);
+    Component(del_node)(app->frame->header.components);
     Buffer(del)(&(buf_t){.ptr = app->vars, .size = sizeof(void*) * app->capacity, .tag = MEMTAG_POINTER});
     Buffer(del)(&(buf_t){.ptr = app, .size = sizeof(app_t), .tag = MEMTAG_APP});
 }

@@ -16,8 +16,6 @@ typedef struct panel {
     style_group_t styles;
 
     sprite_t* sprite;
-    caption_t* caption;
-
     mat4 model;
 } panel_t;
 

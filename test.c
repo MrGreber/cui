@@ -59,35 +59,14 @@ static bool __init(app_t* app) {
     //button_t* button = Button(new)(frame, &group, &(bounding_box){0, 700, 100, 100});
 
     app->frame = frame;
-    App(push)(app, panel);
-    App(push)(app, canvas);
-    App(push)(app, edit);
-    //App(push)(app, button);
     Component(print_node)(frame->header.components, 0);
     return true;
 }
-static void __loop(app_t* app) {
-    frame_t* frame = app->frame;
-    Component(update)(frame->header.components);
-}
-static void __exit(app_t* app) {
-    frame_t* frame = app->frame;
 
-    panel_t* panel = App(get)(app, 0);
-    canvas_t* canvas = App(get)(app, 1);
-    edit_t* edit = App(get)(app, 2);
-    //button_t* button = App(get)(app, 3);
-
-    Panel(del)(panel);
-    Canvas(del)(canvas);
-    Edit(del)(edit);
-    //Button(del)(button);
-    Frame(del)(frame);
-}
 // Todo: create unit tests
 void test(void) {
     Error(init)(NULL);
-    app_t* app = App(new)((app_init_t)__init, (app_loop_t)__loop, (app_exit_t)__exit);
+    app_t* app = App(new)((app_init_t)__init, NULL, NULL);
     if (app) {
         App(start)(app);
         App(exit)(app);

@@ -54,8 +54,13 @@ cleanup:
 void Component(del_node)(comp_node_t* root) {
     if (!root) return;
     for (u16 i = 0; i < root->count; i++) Component(del_node)(root->nodes[i]);
+
+    comp_header_t* header = get_header(root->component.instance);
+    header->free(root->component.instance);
+
     Buffer(del)(&(buf_t){.size = root->capacity * sizeof(comp_node_t*), .tag = MEMTAG_POINTER, .ptr = root->nodes});
     Buffer(del)(&(buf_t){.size = sizeof(comp_node_t), .tag = MEMTAG_COMPONENT_NODE, .ptr = root});
+
 
     for (u16 i = 2; i < __COMPONENT_TAG_COUNT__; i++) {
         if (__cursors[i]) {
