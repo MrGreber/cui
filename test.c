@@ -69,10 +69,11 @@ void test(void) {
     app_t* app = App(new)((app_init_t)__init, NULL, NULL);
     if (app) {
         App(start)(app);
+        printf("memory usage: %llu\n", get_memory_usage(true));
         App(exit)(app);
     }
     Error(dump)();
-    print_memtable();
+    get_memory_usage(true);
 }
 
 

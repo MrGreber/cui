@@ -73,10 +73,7 @@ bool Buffer(renew)(buf_t* buffer, const u64 new_size);
  */
 void Buffer(del)(buf_t* buffer);
 
-/**
- * @brief Prints a memory usage table for all allocated buffers
- */
-void print_memtable(void);
+u64 get_memory_usage(const bool detailed);
 
 bool read_file(const char* path, buf_t* buffer);
 

@@ -2,7 +2,7 @@
 #include <error.h>
 
 #include <stdio.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <string.h>
 
 static u64 mem_table[__MEMTAG_COUNT__ - 1] = { 0 };
@@ -115,20 +115,55 @@ void Buffer(del)(buf_t* buffer) {
     mem_table[buffer->tag - 1] -= buffer->size;
 }
 
-void print_memtable(void) {
-    u64 max_len = 0;
-    for (u64 i = 0; i < sizeof(mem_table_labels) / sizeof(char*); i++) {
-        const u64 len = strlen(mem_table_labels[i]);
-        if (len > max_len) max_len = len;
+u64 get_memory_usage(const bool detailed) {
+    static u16 max_len = 0;
+
+    if (!max_len) {
+        for (u16 i = 0; i < sizeof(mem_table_labels) / sizeof(char*); i++) {
+            const u16 len = strlen(mem_table_labels[i]);
+            if (len > max_len) max_len = len;
+        }
     }
 
-    printf("%-*s | %10s\n", (int)max_len, "tag", "size");
-    for (u64 i = 0; i < max_len + 13; i++) printf("-");
-    printf("\n");
+    u64 memory_usage = 0;
+    if (detailed) {
+        printf("%-*s | %11s\n", (int)max_len, "tag", "size");
 
-    for (u64 i = 0; i < sizeof(mem_table_labels) / sizeof(char*); i++) {
-        printf("%-*s | %10llu\n", (int)max_len, mem_table_labels[i], mem_table[i]);
+        byte sep[max_len + 18];
+        memset(sep, '-', max_len + 18);
+        sep[max_len + 17] = '\n';
+        fwrite(sep, 1, max_len + 18, stdout);
+
+        for (u64 i = 0; i < sizeof(mem_table_labels) / sizeof(char*); i++) {
+            u64 size = mem_table[i];
+            memory_usage += size;
+
+            char* unit;
+            if (size < (1ull << 10)) {
+                unit = " B";
+            }
+            else if (size < (1ull << 20)) {
+                unit = " KiB";
+                size >>= 10;
+            }
+            else {
+                unit = " MiB";
+                size >>= 20;
+            }
+
+            printf("%-*s | %10llu%s\n", (int)max_len, mem_table_labels[i], size, unit);
+        }
     }
+    else {
+        for (u64 i = 0; i < sizeof(mem_table_labels) / sizeof(char*); i++) {
+            u64 size = mem_table[i];
+            memory_usage += size;
+            // if (size < (1ull << 10)) size = size;
+            // if (size < (1ull << 20)) size >>= 10;
+            // else size >>= 20;
+        }
+    }
+    return memory_usage;
 }
 
 bool read_file(const char* path, buf_t* buffer) {
