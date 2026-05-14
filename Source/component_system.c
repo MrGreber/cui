@@ -131,7 +131,7 @@ static void Component(poll)(const comp_node_t* node) {
     i++;
     for (; i < parent_header->components->count; i++) {
         comp_header_t* sub_header = get_header(parent_header->components->nodes[i]->component.instance);
-        sub_header->dirty = is_intersected(&sub_header->box, &parent_header->box) << 1;
+        sub_header->dirty = is_intersected(&sub_header->box, &parent_header->box);
     }
 }
 void Component(update)(const comp_node_t* node) {
@@ -146,7 +146,7 @@ void Component(update)(const comp_node_t* node) {
 
         for (u16 i = 0; i < node->count; i++) {
             comp_header_t* child_header = get_header(node->nodes[i]->component.instance);
-            child_header->dirty = 2;
+            child_header->dirty = 1;
             Component(update)(node->nodes[i]);
         }
     }

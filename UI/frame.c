@@ -59,6 +59,23 @@ extern void __scroll_callback(GLFWwindow* window, const f64 x, const f64 scroll_
 //     printf("hello?\n");
 // }
 
+static void private(tick)(frame_t* frame) {
+    _Thread_local static char caption[64] = { 0 };
+    _Thread_local static u32 frame_count = 0;
+    _Thread_local static f64 acc = 0.0;
+    Stopwatch(update)(&frame->stopwatch);
+    acc += frame->stopwatch.delta;
+    frame_count++;
+
+    if (acc >= 1.0f) {
+        const f64 fps = (f64)frame_count / acc;
+        sprintf_s(caption, sizeof(caption), "%s-FPS: %.2f", frame->title, fps);
+        glfwSetWindowTitle(frame->ctx, caption);
+        acc = 0.0;
+        frame_count = 0;
+    }
+}
+
 frame_t* Frame(new)(const color_t bg, const u32 width, const u32 height, const char* title) {
     buf_t buffer = {
         .size = sizeof(frame_t),
@@ -100,6 +117,7 @@ frame_t* Frame(new)(const color_t bg, const u32 width, const u32 height, const c
     frame->header.content_box.height = height;
     frame->header.dirty = 2;
     frame->header.update = (callback)Frame(update);
+    frame->header.tick = (callback)private(tick);
 
     frame->bg = bg;
     frame->title = (char*)title;
@@ -140,20 +158,6 @@ void Frame(del)(frame_t* frame) {
 void Frame(update)(frame_t* frame) {
     if (!frame) return;
 
-    static char caption[64] = { 0 };
-    static u32 frame_count = 0;
-    static f64 acc = 0.0;
-    Stopwatch(update)(&frame->stopwatch);
-    acc += frame->stopwatch.delta;
-    frame_count++;
-
-    if (acc >= 1.0f) {
-        const f64 fps = (f64)frame_count / acc;
-        sprintf_s(caption, sizeof(caption), "%s-FPS: %.2f", frame->title, fps);
-        glfwSetWindowTitle(frame->ctx, caption);
-        acc = 0.0;
-        frame_count = 0;
-    }
     if (frame->header.dirty) {
         Frame(clear)(frame, &frame->header.box);
         frame->header.dirty--;
