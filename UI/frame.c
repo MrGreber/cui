@@ -52,7 +52,8 @@ extern void __keyboard_callback(GLFWwindow* window, i32 key, i32 sc, i32 action,
 extern void __mouse_movement_callback(GLFWwindow* window, const f64 mouse_x, const f64 mouse_y);
 extern void __mouse_button_callback(GLFWwindow* window, const i32 button, const i32 action, const i32 mods);
 extern void __scroll_callback(GLFWwindow* window, const f64 x, const f64 scroll_y);
-static void __restore_callback(GLFWwindow* window, const i32 flag) {
+
+static void private(restore_callback)(GLFWwindow* window, const i32 flag) {
     if (flag) return;
     frame_t* frame = glfwGetWindowUserPointer(window);
     frame->header.dirty = 2;
@@ -98,8 +99,7 @@ frame_t* Frame(new)(const color_t bg, const u32 width, const u32 height, const c
 
     glfwMakeContextCurrent(frame->ctx);
     glfwSetFramebufferSizeCallback(frame->ctx, __resize_callback);
-    // todo: look into this
-    glfwSetWindowIconifyCallback(frame->ctx, __restore_callback);
+    glfwSetWindowIconifyCallback(frame->ctx, private(restore_callback));
     glfwSetKeyCallback(frame->ctx, __keyboard_callback);
     glfwSetCursorPosCallback(frame->ctx, __mouse_movement_callback);
     glfwSetMouseButtonCallback(frame->ctx, __mouse_button_callback);
