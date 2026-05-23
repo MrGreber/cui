@@ -43,7 +43,7 @@ void App(start)(app_t* app) {
         if (app->loop) app->loop((void*)app);
         Component(update)(app->frame->header.components);
         glfwSwapBuffers(app->frame->ctx);
-        glfwPollEvents();
+        glfwWaitEventsTimeout(1.0 / 60.0);
     }
 }
 static bool private(resize_var_array)(app_t* app) {
