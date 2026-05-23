@@ -66,7 +66,10 @@ static void private(tick)(frame_t* frame) {
     Stopwatch(update)(&frame->stopwatch);
     acc += frame->stopwatch.delta;
     frame_count++;
-
+    for (u16 i = 0; i < frame->dirty_rects[0].count; i++)
+        Frame(clear)(frame, &frame->dirty_rects[0].rects[i]);
+    frame->dirty_rects[0] = frame->dirty_rects[1];
+    frame->dirty_rects[1].count = 0;
     if (acc >= 1.0f) {
         const f64 fps = (f64)frame_count / acc;
         sprintf_s(caption, sizeof(caption), "%s-FPS: %.2f", frame->title, fps);

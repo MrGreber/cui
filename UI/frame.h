@@ -42,6 +42,11 @@ typedef struct frame {
     comp_t hovered;
     comp_t captured;
     struct frame_cache cache;
+
+    struct {
+        bounding_box rects[64];
+        u16 count;
+    } dirty_rects[2];
 } frame_t;
 
 #define Frame(func) __frame_##func
@@ -49,6 +54,13 @@ frame_t* Frame(new)(const color_t bg, const u32 width, const u32 height, const c
 void Frame(del)(frame_t* frame);
 
 void Frame(update)(frame_t* frame);
+
+__forceinline void Frame(push_dirty)(frame_t* frame, const bounding_box* box) {
+    if (frame->dirty_rects[0].count < 64)
+        frame->dirty_rects[0].rects[frame->dirty_rects[0].count++] = *box;
+    if (frame->dirty_rects[1].count < 64)
+        frame->dirty_rects[1].rects[frame->dirty_rects[1].count++] = *box;
+}
 
 void Frame(set_position)(frame_t* frame, const u16 x, const u16 y);
 #define FRAME_HIDE 1
