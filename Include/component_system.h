@@ -16,14 +16,16 @@ typedef enum background_type {
 } bg_type_t;
 
 typedef struct bounding_box {
-    i32 x, y;
-    u32 width, height;
+    i16 x, y;
+    u16 width, height;
 } bounding_box;
 
+/**
+ * @brief To use gradient metadata add in the style struct the count of colors in the gradient
+ */
 struct gradient_metadata {
     color_t* colors;
     f32* positions;
-    u8 count;
 };
 typedef struct linear_gradient {
     struct gradient_metadata metadata;
@@ -38,10 +40,6 @@ typedef struct radial_gradient {
 
 typedef struct style {
     struct {
-        u64 mode: 63;
-        u64 init: 1;
-    };
-    struct {
         union {
             color_t color;
             linear_grad_t* linear_gradient;
@@ -54,12 +52,17 @@ typedef struct style {
     } background;
     struct {
         color_t color;
-        i32 thickness;
-        i32 radius;
+        i16 thickness;
+        i16 radius;
     } border;
+    // struct {
+    //     i16 left, right, top, bottom;
+    // } padding;
     struct {
-        i32 left, right, top, bottom;
-    } padding;
+        u64 modes: 47;
+        u64 count: 16;
+        u64 init: 1;
+    };
 } style_t;
 
 typedef struct style_group {
@@ -116,12 +119,17 @@ typedef struct component {
 
 typedef struct component_node {
     struct component_node* root;
-
-    comp_t component;
-
-    u16 capacity;
-    u16 count;
     struct component_node** nodes;
+
+    union {
+        comp_t component;
+        struct {
+            void* instance;
+            comp_tag tag;
+            u16 capacity;
+            u16 count;
+        };
+    };
 } comp_node_t;
 
 

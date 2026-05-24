@@ -146,7 +146,7 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
                 logError(ERR_INVALID_PARAM, "Address %p box.\n", NULL);
                 return false;
             }
-            const u64 size = box->width * box->height * sizeof(color_t);
+            const u64 size = (u64)box->width * (u64)box->height * sizeof(color_t);
             buf_t buffer = { .size = size, .tag = MEMTAG_COLOR };
             if (!Buffer(new)(&buffer, false)) goto cleanup;
 
@@ -263,12 +263,12 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
                 logError(ERR_INVALID_PARAM, "Address %p box.\n", NULL);
                 return false;
             }
-            const u64 size = box->width * box->height * sizeof(color_t);
+            const u64 size = (u64)box->width * (u64)box->height * sizeof(color_t);
             buf_t buffer = { .size = size, .tag = MEMTAG_COLOR };
             if (!Buffer(new)(&buffer, false)) goto cleanup;
 #ifndef SIMD
             const struct gradient_metadata* meta = &style->background.linear_gradient->metadata;
-            const u8 n = meta->count;
+            const u8 n = style->count;
 
             vec4 palette[n];
             f32 positions[n];
@@ -301,7 +301,7 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
             }
 #else
             const struct gradient_metadata* meta = &style->background.linear_gradient->metadata;
-            const u8 n = meta->count;
+            const u8 n = style->count;
 
             vec4 palette[n];
             f32 positions[n];
@@ -343,7 +343,7 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
                 logError(ERR_INVALID_PARAM, "Address %p box.\n", NULL);
                 return false;
             }
-            const u64 size = box->width * box->height * sizeof(color_t);
+            const u64 size = (u64)box->width * (u64)box->height * sizeof(color_t);
             buf_t buffer = { .size = size, .tag = MEMTAG_COLOR };
             if (!Buffer(new)(&buffer, false)) goto cleanup;
             color_t* pixels = buffer.ptr;

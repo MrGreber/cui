@@ -42,6 +42,7 @@ bool Buffer(new)(buf_t* buffer, const bool zero) {
         logWarn(ERR_INVALID_PARAM, "Address 0x%p buffer.", NULL);
         return false;
     }
+
     if (!buffer->size || !buffer->tag) {
         logWarn(ERR_INVALID_PARAM, "Missing field initializations.");
         return false;

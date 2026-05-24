@@ -42,7 +42,7 @@ panel_t* Panel(new)(void* parent, style_group_t* group, const bounding_box* box)
     panel->header.box.width = box->width;
     panel->header.box.height = box->height;
 
-    const i32 caption_height = (group->normal.mode & CAPTION) ? CAPTION_HEIGHT : 0;
+    const i32 caption_height = (group->normal.modes & CAPTION) ? CAPTION_HEIGHT : 0;
     panel->header.content_box.x = box->x + parent_header->box.x;
     panel->header.content_box.y = box->y + parent_header->box.y + caption_height;
     panel->header.content_box.width = box->width;
@@ -63,7 +63,7 @@ panel_t* Panel(new)(void* parent, style_group_t* group, const bounding_box* box)
     panel->header.free = (callback)Panel(del);
     Component(push_node)(parent_header->components, panel, PANEL_COMPONENT);
 
-    if (group->normal.mode & CAPTION) Caption(new)(panel);
+    if (group->normal.modes & CAPTION) Caption(new)(panel);
     return panel;
 cleanup:
     if (panel->sprite) Sprite(del)(panel->sprite);

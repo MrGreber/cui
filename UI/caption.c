@@ -38,7 +38,6 @@ static void private(mouse_callback)(const mouse_cb_param* param) {
 
         comp_header_t* parent_header = get_header(caption->header.parent);
         Frame(push_dirty)(frame, &parent_header->box);
-        //Frame(clear)(frame, &parent_header->box);
 
         parent_header->box.x += dx;
         parent_header->box.y += dy;

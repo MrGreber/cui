@@ -42,7 +42,7 @@ void Sprite(unbind)(void) {
     Mesh(unbind)();
 }
 
-bool Sprite(set_texture)(sprite_t* sprite, const u32 width, const u32 height, style_t* style) {
+bool Sprite(set_texture)(sprite_t* sprite, const u16 width, const u16 height, style_t* style) {
     if (!sprite || !style) return false;
     if (!Texture(generate)(&sprite->tex, &(bounding_box){0, 0, width, height}, style)) return false;
     return true;

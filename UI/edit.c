@@ -341,7 +341,7 @@ edit_t* Edit(new)(void* parent, const style_group_t* group, const bounding_box* 
     if (!edit->text.buffer) goto cleanup;
 
     edit->header.mouse = (callback)private(mouse_callback);
-    if (group->normal.mode) edit->header.keyboard = (callback)private(write_keyboard_callback);
+    if (group->normal.modes) edit->header.keyboard = (callback)private(write_keyboard_callback);
     else edit->header.keyboard = (callback)private(read_keyboard_callback);
     edit->header.resize = (callback)private(resize_callback);
     edit->header.update = (callback)Edit(update);

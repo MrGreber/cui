@@ -19,13 +19,9 @@ typedef struct canvas {
 
     brush_t brush;
     struct {
-        i32 x;
-        i32 y;
+        i16 x;
+        i16 y;
     } prev;
-    struct {
-        u32 width;
-        u32 height;
-    } dim;
 
     mat4 model;
     mat4 inv_model;

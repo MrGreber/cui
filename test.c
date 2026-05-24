@@ -18,16 +18,17 @@ static bool __init(app_t* app) {
     linear_grad_t gradient = {
         .metadata = {
             .colors = (color_t[4]){ RED , BLUE , MAGENTA, GREEN},
-            .positions = (f32[4]){0.0f, 0.2f, 0.8f, 1.0f},
-            .count = 4
+            .positions = (f32[4]){0.0f, 0.2f, 0.8f, 1.0f}
         }
     };
     style_group_t group = {
         .normal = {
+            .modes = EMBEDDED_POPUP | CAPTION,
+            .count = 4,
             .init = true,
             .background = {
-                .type = BG_TEST,
                 //.linear_gradient = &gradient,
+                .type = BG_TEST,
                 .mask = MAGENTA
             },
             .border = {
@@ -35,7 +36,6 @@ static bool __init(app_t* app) {
                 .thickness = 1,
                 .radius = 0
             },
-            .mode = EMBEDDED_POPUP | CAPTION
         },
         .hover = {
             .init = true,
@@ -52,7 +52,7 @@ static bool __init(app_t* app) {
     Canvas(set_brush)(canvas, RED, 1);
 
     group.normal.background.color = WHITE;
-    group.normal.mode = WRITABLE;
+    group.normal.modes = WRITABLE;
     edit_t* edit = Edit(new)(frame, &group, &(bounding_box){0, 0, 200, 100});
     Font(set)(edit->font, __DIR__"\\Resources\\vcr_osd_mono.fnt", BLUE, TRANSP);
     Edit(set_text)(edit, "shit", 4);
