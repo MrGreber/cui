@@ -6,24 +6,10 @@
 #include <shader/ops.h>
 #include <geometry/ops.h>
 #include <caption.h>
-#include <events.h>
 
 #include <memory.h>
 #include <glad.h>
 #include <glfw3.h>
-
-static void private(mouse_callback)(const mouse_cb_param* param) {
-    panel_t* panel = param->instance;
-
-}
-static void private(resize_callback)(const resize_cb_param* param) {
-    panel_t* panel = param->instance;
-    panel->header.dirty = 2;
-    // comp_header_t* header = get_header(panel->parent);
-    //
-    // header->box.width += param->width;
-    // header->box.height += param->height;
-}
 
 #define CAPTION_HEIGHT 30
 panel_t* Panel(new)(void* parent, style_group_t* group, const bounding_box* box) {
@@ -57,9 +43,7 @@ panel_t* Panel(new)(void* parent, style_group_t* group, const bounding_box* box)
     if (!panel->sprite) goto cleanup;
     if (!Sprite(set_texture)(panel->sprite, box->width, box->height, &group->normal)) goto cleanup;
 
-    //panel->header.mouse = (callback)private(mouse_callback);
     panel->header.update = (callback)Panel(update);
-    panel->header.resize = (callback)private(resize_callback);
     panel->header.free = (callback)Panel(del);
     Component(push_node)(parent_header->components, panel, PANEL_COMPONENT);
 

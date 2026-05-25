@@ -51,13 +51,6 @@ static void private(mouse_callback)(const mouse_cb_param* param) {
         frame->captured.tag = 0;
     }
 }
-static void private(resize_callback)(const resize_cb_param* param) {
-    caption_t* caption = param->instance;
-    caption->header.dirty = 2;
-    // comp_header_t* header = get_header(caption->parent);
-    // header->box.width += param->width;
-    // header->box.height += param->height;
-}
 
 #define CAPTION_HEIGHT 30
 caption_t* Caption(new)(void* parent) {
@@ -89,7 +82,6 @@ caption_t* Caption(new)(void* parent) {
     if (!Sprite(set_texture)(caption->sprite, parent_header->box.width, CAPTION_HEIGHT, &(style_t){.background = {.type = BG_COLOR, .color = RED}})) goto cleanup;
 
     caption->header.mouse = (callback)private(mouse_callback);
-    caption->header.resize = (callback)private(resize_callback);
     caption->header.update = (callback)Caption(update);
     caption->header.free = (callback)Caption(del);
     Component(push_node)(parent_header->components, caption, CAPTION_COMPONENT);

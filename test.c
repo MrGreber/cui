@@ -27,7 +27,9 @@ static bool __init(app_t* app) {
             .count = 4,
             .init = true,
             .background = {
-                //.linear_gradient = &gradient,
+                // .linear_gradient = &gradient,
+                // .type = BG_LINEAR_GRADIENT,
+                // .mask = WHITE
                 .type = BG_TEST,
                 .mask = MAGENTA
             },
@@ -56,7 +58,11 @@ static bool __init(app_t* app) {
     edit_t* edit = Edit(new)(frame, &group, &(bounding_box){0, 0, 200, 100});
     Font(set)(edit->font, __DIR__"\\Resources\\vcr_osd_mono.fnt", BLUE, TRANSP);
     Edit(set_text)(edit, "shit", 4);
-    //button_t* button = Button(new)(frame, &group, &(bounding_box){0, 700, 100, 100});
+
+    group.normal.background.type = BG_COLOR;
+    group.normal.background.color = WHITE;
+    group.normal.background.mask = WHITE;
+    button_t* button = Button(new)(frame, &group, &(bounding_box){0, 700, 100, 100});
 
     app->frame = frame;
     Component(print_node)(frame->header.components, 0);

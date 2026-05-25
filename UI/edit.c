@@ -159,7 +159,7 @@ static void private(set_caret_position)(edit_t* edit, const f64 mouse_x, const f
 
 static void private(mouse_callback)(const mouse_cb_param* param) {
     edit_t* edit = param->instance;
-    const frame_t* frame = get_root(edit);
+
 
     if (param->action == GLFW_PRESS) {
         private(set_caret_position)(edit, param->x, param->y);
@@ -235,9 +235,7 @@ rebuild_text_mesh:
 }
 static void private(read_keyboard_callback)(const keyboard_cb_param* param) {
     edit_t* edit = param->instance;
-    frame_t* frame = get_root(edit);
 
-    bounding_box* box = &edit->header.box;
     if (param->action == GLFW_PRESS || param->action == GLFW_REPEAT) {
         switch (param->key) {
             case GLFW_KEY_LEFT_CONTROL:
@@ -278,13 +276,6 @@ static void private(read_keyboard_callback)(const keyboard_cb_param* param) {
             default: break;
         }
     }
-}
-static void private(resize_callback)(const resize_cb_param* param) {
-    edit_t* edit = param->instance;
-    edit->header.dirty = 2;
-    // comp_header_t* header = get_header(edit->parent);
-    // edit->header.box.width += param->width;
-    // edit->header.box.height += param->height;
 }
 
 void Edit(set_text)(edit_t* edit, char_t* text, const u64 length) {
@@ -343,7 +334,6 @@ edit_t* Edit(new)(void* parent, const style_group_t* group, const bounding_box* 
     edit->header.mouse = (callback)private(mouse_callback);
     if (group->normal.modes) edit->header.keyboard = (callback)private(write_keyboard_callback);
     else edit->header.keyboard = (callback)private(read_keyboard_callback);
-    edit->header.resize = (callback)private(resize_callback);
     edit->header.update = (callback)Edit(update);
     edit->header.free = (callback)Edit(del);
     Component(push_node)(parent_header->components, edit, EDIT_COMPONENT);

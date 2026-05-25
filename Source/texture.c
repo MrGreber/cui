@@ -210,10 +210,9 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
             for (; y < box->height; y++) {
                 u32 x = 0;
                 const u32 offset = y * box->width;
-                const u32 end = box->width & ~7u;
                 const __m256i vy64 = _mm256_set1_epi32(y >> 6);
                 __m256i vx = vinc;
-                for (; x + 8 <= end; x += 8) {
+                for (; x + 8 <= box->width; x += 8) {
                     const __m256i vx64 = _mm256_srli_epi32(vx, 6);
                     const __m256i vindices = _mm256_and_si256(_mm256_add_epi32(vx64, vy64), v1);
                     const __m256i vpalette = _mm256_i32gather_epi32((i32*)palette, vindices, sizeof(u32));

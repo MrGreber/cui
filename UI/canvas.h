@@ -15,21 +15,16 @@ typedef struct brush {
 typedef struct canvas {
     comp_header_t header;
 
+    mat4 inv_model;
+    camera_t camera;
+
     sprite_t* sprite;
 
     brush_t brush;
-    struct {
-        i16 x;
-        i16 y;
-    } prev;
-
-    mat4 model;
-    mat4 inv_model;
-    camera_t camera;
 } canvas_t;
 
 #define Canvas(func) __canvas_##func
-canvas_t* Canvas(new)(void* parent, const u32 width, const u32 height);
+canvas_t* Canvas(new)(void* parent, const u16 width, const u16 height);
 void Canvas(del)(canvas_t* canvas);
 void Canvas(bind)(canvas_t* canvas);
 void Canvas(set_brush)(canvas_t* canvas, const color_t color, const f32 size);

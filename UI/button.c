@@ -11,23 +11,15 @@
 #include <glad.h>
 #include <glfw3.h>
 
-static void __default_mouse_callback(const mouse_cb_param* param) {
+static void private(mouse_callback)(const mouse_cb_param* param) {
     button_t* button = param->instance;
-    frame_t* frame = get_root(button);
 
     if (param->action == GLFW_PRESS) {
         if (button->on_click) button->on_click(button);
         printf("button=%p\n", button);
-        button->header.dirty = 2;
     }
-}
-static void __default_resize_callback(const resize_cb_param* param) {
-    button_t* button = param->instance;
-    button->header.dirty = 2;
-    //comp_header_t* header = get_header(panel->parent);
 
-    // panel->header.box.width += param->width;
-    // panel->header.box.height += param->height;
+    if (button->styles.hover.init) button->header.dirty = 2;
 }
 
 button_t* Button(new)(void* parent, style_group_t* group, const bounding_box* box) {
@@ -54,8 +46,7 @@ button_t* Button(new)(void* parent, style_group_t* group, const bounding_box* bo
     if (!button->sprite) goto cleanup;
     if (!Sprite(set_texture)(button->sprite, box->width, box->height, &group->normal)) goto cleanup;
 
-    button->header.mouse = (callback)__default_mouse_callback;
-    button->header.resize = (callback)__default_resize_callback;
+    button->header.mouse = (callback)private(mouse_callback);
     button->header.update = (callback)Button(update);
     button->header.free = (callback)Button(del);
     Component(push_node)(parent_header->components, button, BUTTON_COMPONENT);
@@ -100,8 +91,10 @@ void Button(update)(button_t* button) {
     Shader(set_float)(button->sprite->shader, "border.thickness", style->border.thickness);
     Shader(set_vec4)(button->sprite->shader, "border.color", &color.x);
     Shader(set_vec2)(button->sprite->shader, "size", dim.e);
+
     if (frame->hovered.instance == button) color = Color(to_vec4)(button->styles.hover.background.mask);
     else color = Color(to_vec4)(button->styles.normal.background.mask);
+
     Shader(set_vec4)(button->sprite->shader, "mask", &color.x);
 
     Mesh(draw)(button->sprite->mesh);
