@@ -21,8 +21,8 @@ texture_t* Texture(new)(const color_t* data, const u32 width, const u32 height) 
     glcall(glBindTexture(GL_TEXTURE_2D, tex->id), cleanup, "nFailed to bind texture");
     glcall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE), cleanup, "Failed to set texture parameter WRAP_S.");
     glcall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE), cleanup, "Failed to set texture parameter WRAP_T.");
-    glcall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR), cleanup, "Failed to set texture parameter MIN_FILTER.");
-    glcall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR), cleanup, "Failed to set texture parameter MAG_FILTER.");
+    glcall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST), cleanup, "Failed to set texture parameter MIN_FILTER.");
+    glcall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST), cleanup, "Failed to set texture parameter MAG_FILTER.");
 
     glcall(glTexImage2D(
         GL_TEXTURE_2D,
@@ -86,11 +86,20 @@ void Texture(set_pixel)(const texture_t* tex, const color_t color, const i32 x, 
 }
 void Texture(draw_line)(const texture_t* tex, const color_t color, i32 x0, i32 y0, const i32 x1, const i32 y1) {
     Texture(bind)(tex);
-    const i32 dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
-    const i32 dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+    i32 dx = x1 - x0;
+    i32 dy = y1 - y0;
+
+    const i32 sx = ((0 < dx) << 1) - 1;
+    const i32 sy = ((0 < dy) << 1) - 1;
+
+    i32 mask = dx >> 31;
+    dx = (dx + mask) ^ mask;
+    mask = dy >> 31;
+    dy = -((dy + mask) ^ mask);
+
     i32 err = dx + dy;
 
-    for (;;) {
+    while (true) {
         glTexSubImage2D(GL_TEXTURE_2D, 0, x0, y0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, &color);
         if (x0 == x1 && y0 == y1) break;
         const i32 e2 = 2 * err;

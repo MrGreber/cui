@@ -51,7 +51,8 @@ static bool __init(app_t* app) {
     group.normal.background.color = WHITE;
 
     canvas_t* canvas = Canvas(new)(panel, 400, 600);
-    Canvas(set_brush)(canvas, RED, 1);
+    Canvas(set_brush)(canvas, 0, RED, 4);
+    Canvas(set_brush)(canvas, 1, TRANSP, 4);
 
     group.normal.background.color = WHITE;
     group.normal.modes = WRITABLE;
