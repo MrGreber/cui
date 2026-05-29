@@ -57,7 +57,7 @@ static bool __init(app_t* app) {
     group.normal.modes = WRITABLE;
     edit_t* edit = Edit(new)(frame, &group, &(bounding_box){0, 0, 200, 100});
     Font(set)(edit->font, __DIR__"\\Resources\\vcr_osd_mono.fnt", BLUE, TRANSP);
-    Edit(set_text)(edit, "shit", 4);
+    Edit(set_text)(edit, "test", 4);
 
     group.normal.background.type = BG_COLOR;
     group.normal.background.color = WHITE;
