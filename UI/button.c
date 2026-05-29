@@ -33,6 +33,7 @@ button_t* Button(new)(void* parent, style_group_t* group, const bounding_box* bo
 
     button_t* button = buffer.ptr;
     button->header.dirty = 2;
+    button->header.dirty_matrix = 1;
     button->header.box.x = box->x + parent_header->content_box.x;
     button->header.box.y = box->y + parent_header->content_box.y;
     button->header.box.width = box->width;
@@ -71,15 +72,16 @@ void Button(update)(button_t* button) {
 
     const frame_t* frame = get_root(button);
 
-    const mat4 scale = m4_scale((f32)button->header.box.width, (f32)button->header.box.height, 1.0f);
-    const mat4 position = m4_transl((f32)button->header.box.x, (f32)button->header.box.y, 0.0f);
-    const mat4 size = m4_transl((f32)button->header.box.width * 0.5f, (f32)button->header.box.height * 0.5f, 0.0f);
-    const mat4 inv_size = m4_transl(-(f32)button->header.box.width * 0.5f, -(f32)button->header.box.height * 0.5f, 0.0f);
+    if (button->header.dirty_matrix) {
+        const mat4 scale = m4_scale((f32)button->header.box.width, (f32)button->header.box.height, 1.0f);
+        const mat4 position = m4_transl((f32)button->header.box.x, (f32)button->header.box.y, 0.0f);
+        const mat4 size = m4_transl((f32)button->header.box.width * 0.5f, (f32)button->header.box.height * 0.5f, 0.0f);
+        const mat4 inv_size = m4_transl(-(f32)button->header.box.width * 0.5f, -(f32)button->header.box.height * 0.5f, 0.0f);
 
-    button->model = m4_mul(&position, &size);
-    button->model = m4_mul(&button->model, &inv_size);
-    button->model = m4_mul(&button->model, &scale);
-
+        button->model = m4_mul(&position, &size);
+        button->model = m4_mul(&button->model, &inv_size);
+        button->model = m4_mul(&button->model, &scale);
+    }
     Sprite(bind)(frame, button->sprite);
     Shader(set_mat4)(button->sprite->shader, "projection", true, frame->cache.projection.e);
     Shader(set_mat4)(button->sprite->shader, "model", true, button->model.e);

@@ -297,7 +297,7 @@ edit_t* Edit(new)(void* parent, const style_group_t* group, const bounding_box* 
 
     edit_t* edit = buffer.ptr;
     edit->header.dirty = 2;
-
+    edit->header.dirty_matrix = 1;
     edit->header.box.x = box->x + parent_header->content_box.x;
     edit->header.box.y = box->y + parent_header->content_box.y;
     edit->header.box.width = box->width;
@@ -362,19 +362,20 @@ void Edit(update)(edit_t* edit) {
     if (!edit || !edit->header.dirty) return;
 
     const frame_t* frame = get_root(edit);
-    const font_t* font = edit->font;
     const style_t* style = &edit->styles.normal;
     const vec4 border_color = Color(to_vec4)(style->border.color);
     const vec2 dim = {(f32)edit->header.box.width, (f32)edit->header.box.height};
 
-    const mat4 scale = m4_scale((f32)edit->header.box.width, (f32)edit->header.box.height, 1.0f);
-    mat4 position = m4_transl((f32)edit->header.box.x, (f32)edit->header.box.y, 0.0f);
-    mat4 size = m4_transl((f32)edit->header.box.width * 0.5f, (f32)edit->header.box.height * 0.5f, 0.0f);
-    const mat4 inv_size = m4_transl(-(f32)edit->header.box.width * 0.5f, -(f32)edit->header.box.height * 0.5f, 0.0f);
+    if (edit->header.dirty_matrix) {
+        const mat4 scale = m4_scale((f32)edit->header.box.width, (f32)edit->header.box.height, 1.0f);
+        mat4 position = m4_transl((f32)edit->header.box.x, (f32)edit->header.box.y, 0.0f);
+        mat4 size = m4_transl((f32)edit->header.box.width * 0.5f, (f32)edit->header.box.height * 0.5f, 0.0f);
+        const mat4 inv_size = m4_transl(-(f32)edit->header.box.width * 0.5f, -(f32)edit->header.box.height * 0.5f, 0.0f);
 
-    edit->model = m4_mul(&position, &size);
-    edit->model = m4_mul(&edit->model, &inv_size);
-    edit->model = m4_mul(&edit->model, &scale);
+        edit->model = m4_mul(&position, &size);
+        edit->model = m4_mul(&edit->model, &inv_size);
+        edit->model = m4_mul(&edit->model, &scale);
+    }
 
     Sprite(bind)(frame, edit->sprite);
     Shader(set_mat4)(edit->sprite->shader, "projection", true, frame->cache.projection.e);
@@ -428,8 +429,10 @@ void Edit(update)(edit_t* edit) {
     // }
 
     // draw the text mesh
-    position = m4_transl((f32)edit->header.box.x + style->border.thickness, (f32)edit->header.box.y + style->border.thickness, 0.0f);
-    size = m4_scale(1.0f, 1.0f, 1.0f);
+    const font_t* font = edit->font;
+
+    const mat4 position = m4_transl((f32)edit->header.box.x + style->border.thickness, (f32)edit->header.box.y + style->border.thickness, 0.0f);
+    const mat4 size = m4_scale(1.0f, 1.0f, 1.0f);
     const mat4 model = m4_mul(&position, &size);
 
     Mesh(bind)(frame, edit->mesh);

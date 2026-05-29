@@ -33,8 +33,8 @@ static void private(mouse_callback)(const mouse_cb_param* param) {
 
         caption->prev.x = param->x;
         caption->prev.y = param->y;
-
         caption->header.dirty = 2;
+        caption->header.dirty_matrix = 1;
 
         comp_header_t* parent_header = get_header(caption->header.parent);
         Frame(push_dirty)(frame, &parent_header->box);
@@ -44,6 +44,7 @@ static void private(mouse_callback)(const mouse_cb_param* param) {
         parent_header->content_box.x += dx;
         parent_header->content_box.y += dy;
         parent_header->dirty = 2;
+        parent_header->dirty_matrix = 1;
     }
     if (param->button == GLFW_MOUSE_BUTTON_LEFT && param->action == GLFW_RELEASE) {
         caption->header.drag = false;
@@ -64,6 +65,7 @@ caption_t* Caption(new)(void* parent) {
 
     caption_t* caption = buffer.ptr;
     caption->header.dirty = 2;
+    caption->header.dirty_matrix = 1;
 
     caption->header.box.x = parent_header->box.x;
     caption->header.box.y = parent_header->box.y;
@@ -106,16 +108,16 @@ void Caption(update)(caption_t* caption) {
     if (!caption || !caption->header.dirty) return;
 
     const frame_t* frame = get_root(caption);
+    if (caption->header.dirty_matrix) {
+        const mat4 scale = m4_scale((f32)caption->header.box.width, (f32)caption->header.box.height, 1.0f);
+        const mat4 position = m4_transl((f32)caption->header.box.x, (f32)caption->header.box.y, 0.0f);
+        const mat4 size = m4_transl((f32)caption->header.box.width * 0.5f, (f32)caption->header.box.height * 0.5f, 0.0f);
+        const mat4 inv_size = m4_transl(-(f32)caption->header.box.width * 0.5f, -(f32)caption->header.box.height * 0.5f, 0.0f);
 
-    const mat4 scale = m4_scale((f32)caption->header.box.width, (f32)caption->header.box.height, 1.0f);
-    const mat4 position = m4_transl((f32)caption->header.box.x, (f32)caption->header.box.y, 0.0f);
-    const mat4 size = m4_transl((f32)caption->header.box.width * 0.5f, (f32)caption->header.box.height * 0.5f, 0.0f);
-    const mat4 inv_size = m4_transl(-(f32)caption->header.box.width * 0.5f, -(f32)caption->header.box.height * 0.5f, 0.0f);
-
-    caption->model = m4_mul(&position, &size);
-    caption->model = m4_mul(&caption->model, &inv_size);
-    caption->model = m4_mul(&caption->model, &scale);
-
+        caption->model = m4_mul(&position, &size);
+        caption->model = m4_mul(&caption->model, &inv_size);
+        caption->model = m4_mul(&caption->model, &scale);
+    }
     Sprite(bind)(frame, caption->sprite);
     Shader(set_mat4)(caption->sprite->shader, "projection", true, frame->cache.projection.e);
     Shader(set_mat4)(caption->sprite->shader, "model", true, caption->model.e);

@@ -86,25 +86,42 @@ void Texture(set_pixel)(const texture_t* tex, const color_t color, const i32 x, 
 }
 void Texture(draw_line)(const texture_t* tex, const color_t color, i32 x0, i32 y0, const i32 x1, const i32 y1) {
     Texture(bind)(tex);
-    i32 dx = x1 - x0;
-    i32 dy = y1 - y0;
 
-    const i32 sx = ((0 < dx) << 1) - 1;
-    const i32 sy = ((0 < dy) << 1) - 1;
+    union p64 {
+        struct {
+            i32 x, y;
+        };
+        u64 packed;
+    };
 
-    i32 mask = dx >> 31;
-    dx = (dx + mask) ^ mask;
-    mask = dy >> 31;
-    dy = -((dy + mask) ^ mask);
+    union p64 delta = {
+        .x = x1 - x0,
+        .y = y1 - y0
+    };
+    const i32 sx = ((0 < delta.x) << 1) - 1;
+    const i32 sy = ((0 < delta.y) << 1) - 1;
 
-    i32 err = dx + dy;
+    // some bitwise magic to preform absolute value operation on two integers
+    const union p64 mask = {.packed = ((delta.packed >> 31) & 0x100000001ull) * 0xffffffffull};
+    delta.x += mask.x;
+    delta.y += mask.y;
+    delta.packed = delta.packed ^ mask.packed;
+    delta.y = -delta.y;
+
+    i32 err = delta.x + delta.y;
 
     while (true) {
         glTexSubImage2D(GL_TEXTURE_2D, 0, x0, y0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, &color);
         if (x0 == x1 && y0 == y1) break;
-        const i32 e2 = 2 * err;
-        if (e2 >= dy) { err += dy; x0 += sx; }
-        if (e2 <= dx) { err += dx; y0 += sy; }
+        const i32 e2 = err << 1;
+        if (e2 >= delta.y) {
+            err += delta.y;
+            x0 += sx;
+        }
+        if (e2 <= delta.x) {
+            err += delta.x;
+            y0 += sy;
+        }
     }
 }
 

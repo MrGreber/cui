@@ -23,6 +23,7 @@ panel_t* Panel(new)(void* parent, style_group_t* group, const bounding_box* box)
 
     panel_t* panel = buffer.ptr;
     panel->header.dirty = 2;
+    panel->header.dirty_matrix = 1;
     panel->header.box.x = box->x + parent_header->box.x;
     panel->header.box.y = box->y + parent_header->box.y;
     panel->header.box.width = box->width;
@@ -69,15 +70,16 @@ void Panel(update)(panel_t* panel) {
 
     const frame_t* frame = get_root(panel);
 
-    const mat4 scale = m4_scale((f32)panel->header.box.width, (f32)panel->header.box.height, 1.0f);
-    const mat4 position = m4_transl((f32)panel->header.box.x, (f32)panel->header.box.y, 0.0f);
-    const mat4 size = m4_transl((f32)panel->header.box.width * 0.5f, (f32)panel->header.box.height * 0.5f, 0.0f);
-    const mat4 inv_size = m4_transl(-(f32)panel->header.box.width * 0.5f, -(f32)panel->header.box.height * 0.5f, 0.0f);
+    if (panel->header.dirty_matrix) {
+        const mat4 scale = m4_scale((f32)panel->header.box.width, (f32)panel->header.box.height, 1.0f);
+        const mat4 position = m4_transl((f32)panel->header.box.x, (f32)panel->header.box.y, 0.0f);
+        const mat4 size = m4_transl((f32)panel->header.box.width * 0.5f, (f32)panel->header.box.height * 0.5f, 0.0f);
+        const mat4 inv_size = m4_transl(-(f32)panel->header.box.width * 0.5f, -(f32)panel->header.box.height * 0.5f, 0.0f);
 
-    panel->model = m4_mul(&position, &size);
-    panel->model = m4_mul(&panel->model, &inv_size);
-    panel->model = m4_mul(&panel->model, &scale);
-
+        panel->model = m4_mul(&position, &size);
+        panel->model = m4_mul(&panel->model, &inv_size);
+        panel->model = m4_mul(&panel->model, &scale);
+    }
     Sprite(bind)(frame, panel->sprite);
     Shader(set_mat4)(panel->sprite->shader, "projection", true, frame->cache.projection.e);
     Shader(set_mat4)(panel->sprite->shader, "model", true, panel->model.e);

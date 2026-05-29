@@ -14,8 +14,8 @@ typedef struct panel {
     comp_header_t header;
     style_group_t styles;
 
-    sprite_t* sprite;
     mat4 model;
+    sprite_t* sprite;
 } panel_t;
 
 #define Panel(func) __panel_##func
