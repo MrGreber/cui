@@ -101,7 +101,7 @@ void test(void) {
 
 ## 🖼️ Preview
 
-![CUI Preview](docs/preview.png)
+![CUI Preview](https://github.com/MrGreber/cui/blob/main/example.JPG)
 
 ## ⚙️ Getting Started
 
