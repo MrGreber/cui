@@ -1,10 +1,11 @@
 #include <caption.h>
 #include <memio.h>
-#include <event_system.h>
+#include <component_system.h>
 #include <frame.h>
 #include <math-utils.h>
 #include <shader/ops.h>
 #include <geometry/ops.h>
+#include <events.h>
 
 #include <glad.h>
 #include <glfw3.h>
@@ -32,28 +33,24 @@ static void private(mouse_callback)(const mouse_cb_param* param) {
 
         caption->prev.x = param->x;
         caption->prev.y = param->y;
+        caption->header.dirty = 2;
+        caption->header.dirty_matrix = 1;
 
-        caption->header.dirty |= 1;
+        comp_header_t* parent_header = get_header(caption->header.parent);
+        Frame(push_dirty)(frame, &parent_header->box);
 
-        comp_header_t* parent_header = get_header(caption->parent);
         parent_header->box.x += dx;
         parent_header->box.y += dy;
         parent_header->content_box.x += dx;
         parent_header->content_box.y += dy;
-        parent_header->dirty |= 1;
+        parent_header->dirty = 2;
+        parent_header->dirty_matrix = 1;
     }
     if (param->button == GLFW_MOUSE_BUTTON_LEFT && param->action == GLFW_RELEASE) {
         caption->header.drag = false;
         frame->captured.instance = NULL;
         frame->captured.tag = 0;
     }
-}
-static void private(resize_callback)(const resize_cb_param* param) {
-    caption_t* caption = param->instance;
-    caption->header.dirty |= 1;
-    // comp_header_t* header = get_header(caption->parent);
-    // header->box.width += param->width;
-    // header->box.height += param->height;
 }
 
 #define CAPTION_HEIGHT 30
@@ -67,7 +64,8 @@ caption_t* Caption(new)(void* parent) {
     const comp_header_t* parent_header = get_header(parent);
 
     caption_t* caption = buffer.ptr;
-    caption->header.dirty |= 1;
+    caption->header.dirty = 2;
+    caption->header.dirty_matrix = 1;
 
     caption->header.box.x = parent_header->box.x;
     caption->header.box.y = parent_header->box.y;
@@ -79,14 +77,15 @@ caption_t* Caption(new)(void* parent) {
     caption->header.content_box.width = parent_header->box.width;
     caption->header.content_box.height = CAPTION_HEIGHT;
 
-    caption->parent = parent;
+    caption->header.parent = parent;
     frame_t* frame = get_root(parent);
     caption->sprite = Sprite(new)(frame, RECT_SHADER);
     if (!caption->sprite) goto cleanup;
     if (!Sprite(set_texture)(caption->sprite, parent_header->box.width, CAPTION_HEIGHT, &(style_t){.background = {.type = BG_COLOR, .color = RED}})) goto cleanup;
 
     caption->header.mouse = (callback)private(mouse_callback);
-    caption->header.resize = (callback)private(resize_callback);
+    caption->header.update = (callback)Caption(update);
+    caption->header.free = (callback)Caption(del);
     Component(push_node)(parent_header->components, caption, CAPTION_COMPONENT);
 
     return caption;
@@ -106,10 +105,10 @@ void Caption(bind)(const caption_t* caption) {
     Sprite(bind)(get_root(caption), caption->sprite);
 }
 void Caption(update)(caption_t* caption) {
-    if (!caption) return;
-    const frame_t* frame = get_root(caption);
+    if (!caption || !caption->header.dirty) return;
 
-    if (caption->header.dirty & 1) {
+    const frame_t* frame = get_root(caption);
+    if (caption->header.dirty_matrix) {
         const mat4 scale = m4_scale((f32)caption->header.box.width, (f32)caption->header.box.height, 1.0f);
         const mat4 position = m4_transl((f32)caption->header.box.x, (f32)caption->header.box.y, 0.0f);
         const mat4 size = m4_transl((f32)caption->header.box.width * 0.5f, (f32)caption->header.box.height * 0.5f, 0.0f);
@@ -118,10 +117,12 @@ void Caption(update)(caption_t* caption) {
         caption->model = m4_mul(&position, &size);
         caption->model = m4_mul(&caption->model, &inv_size);
         caption->model = m4_mul(&caption->model, &scale);
-        caption->header.dirty ^= 1;
     }
     Sprite(bind)(frame, caption->sprite);
     Shader(set_mat4)(caption->sprite->shader, "projection", true, frame->cache.projection.e);
     Shader(set_mat4)(caption->sprite->shader, "model", true, caption->model.e);
+
     Mesh(draw)(caption->sprite->mesh);
+    caption->header.dirty--;
+
 }

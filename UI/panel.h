@@ -3,7 +3,6 @@
 #ifndef PANEL_H
 #define PANEL_H
 #include <sprite.h>
-#include <caption.h>
 
 #define EMBEDDED_POPUP U64(0x1)
 #define WINDOW_POPUP (EMBEDDED_POPUP << 1)
@@ -15,11 +14,8 @@ typedef struct panel {
     comp_header_t header;
     style_group_t styles;
 
-    void* parent;
-    sprite_t* sprite;
-    caption_t* caption;
-
     mat4 model;
+    sprite_t* sprite;
 } panel_t;
 
 #define Panel(func) __panel_##func

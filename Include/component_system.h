@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef EVENT_H
-#define EVENT_H
+#ifndef COMPONENT_SYSTEM_H
+#define COMPONENT_SYSTEM_H
 #include <defines.h>
 #include <utils.h>
 
@@ -16,14 +16,16 @@ typedef enum background_type {
 } bg_type_t;
 
 typedef struct bounding_box {
-    i32 x, y;
-    u32 width, height;
+    i16 x, y;
+    u16 width, height;
 } bounding_box;
 
+/**
+ * @brief To use gradient metadata add in the style struct the count of colors in the gradient
+ */
 struct gradient_metadata {
     color_t* colors;
     f32* positions;
-    u8 count;
 };
 typedef struct linear_gradient {
     struct gradient_metadata metadata;
@@ -38,10 +40,6 @@ typedef struct radial_gradient {
 
 typedef struct style {
     struct {
-        u64 init: 1;
-        u64 mode: 63;
-    };
-    struct {
         union {
             color_t color;
             linear_grad_t* linear_gradient;
@@ -54,12 +52,17 @@ typedef struct style {
     } background;
     struct {
         color_t color;
-        u32 thickness;
-        u32 radius;
+        i16 thickness;
+        i16 radius;
     } border;
+    // struct {
+    //     i16 left, right, top, bottom;
+    // } padding;
     struct {
-        u32 left, right, top, bottom;
-    } padding;
+        u64 modes: 47;
+        u64 count: 16;
+        u64 init: 1;
+    };
 } style_t;
 
 typedef struct style_group {
@@ -85,67 +88,28 @@ typedef enum component_tag {
     __COMPONENT_TAG_COUNT__
 } comp_tag;
 
-typedef enum event_tag {
-    __MOUSE_EVENT__,
-    __SCROLL_EVENT__,
-    __KEYBOARD_EVENT__,
-    __RESIZE_EVENT__
-} event_tag;
-
-typedef struct mouse_callback_parameter {
-    void* instance;
-    f64 x;
-    f64 y;
-    i32 button;
-    i32 action;
-    i32 mods;
-} mouse_cb_param;
-
-typedef struct keyboard_callback_parameter {
-    void* instance;
-    i32 key;
-    i32 scancode;
-    i32 action;
-    i32 modes;
-} keyboard_cb_param;
-
-typedef struct scroll_callback_parameter {
-    void* instance;
-    f64 delta;
-} scroll_cb_param;
-
-typedef struct resize_callback_parameter {
-    void* instance;
-    i32 width;
-    i32 height;
-} resize_cb_param;
-
-typedef struct event {
-    union {
-        scroll_cb_param scroll;
-        mouse_cb_param mouse;
-        keyboard_cb_param keyboard;
-        resize_cb_param resize;
-    } param;
-
-    event_tag tag;
-} event_t;
+typedef struct component_node comp_node_t;
 
 typedef struct component_header {
     bounding_box box;
     bounding_box content_box;
 
-    callback keyboard;
+    callback free;
+    callback tick;
     callback mouse;
     callback scroll;
     callback resize;
-    void* components;
+    callback update;
+    callback keyboard;
+    comp_node_t* components;
+    void* parent;
     struct {
-        u8 dirty: 1;
         u8 focus: 1;
         u8 drag:  1;
         u8 hide:  1;
-        u8 flags: 4;
+        u8 dirty_matrix: 1;
+        u8 dirty: 2;
+        u8 flags: 2;
     };
 } comp_header_t;
 
@@ -156,25 +120,32 @@ typedef struct component {
 
 typedef struct component_node {
     struct component_node* root;
-
-    comp_t component;
-
-    u64 capacity;
-    u64 count;
     struct component_node** nodes;
+
+    union {
+        comp_t component;
+        struct {
+            void* instance;
+            comp_tag tag;
+            u16 capacity;
+            u16 count;
+        };
+    };
 } comp_node_t;
 
 
 __forceinline bool is_bounded(const bounding_box* box, const i32 x, const i32 y) {
-    return
-        (x >= box->x && x < box->x + box->width) &&
-        (y >= box->y && y < box->y + box->height);
+    return (x >= box->x && x < box->x + box->width) && (y >= box->y && y < box->y + box->height);
 }
+__forceinline bool is_intersected(const bounding_box* a, const bounding_box* b) {
+    return (a->x < b->x + b->width && b->x < a->x + a->width) && (a->y < b->y + b->height && b->y < a->y + a->height);
+}
+
 __forceinline comp_header_t* get_header(void* comp) {
     return (comp_header_t*)comp;
 }
 __forceinline style_group_t* get_styles(void* comp) {
-    return (style_group_t*)((byte*)comp + sizeof(style_group_t));
+    return (style_group_t*)((byte*)comp + sizeof(comp_header_t));
 }
 __forceinline void* get_root(const void* comp) {
     comp_node_t* root = ((comp_node_t*)((comp_header_t*)comp)->components)->root;
@@ -186,8 +157,6 @@ __forceinline void* get_root(const void* comp) {
 comp_node_t* Component(new_node)(void* data, const comp_tag tag);
 void Component(del_node)(comp_node_t* root);
 bool Component(push_node)(comp_node_t* root, void* val, const comp_tag tag);
-void Component(print_node)(comp_node_t* root, u64 indent);
-
-void dispatch_event(const comp_node_t* node, event_t* event);
-
-#endif //EVENT_H
+void Component(print_node)(comp_node_t* root, const u64 indent);
+void Component(update)(const comp_node_t* node);
+#endif // COMPONENT_SYSTEM_H

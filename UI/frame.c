@@ -1,6 +1,6 @@
 #include <frame.h>
 #include <camera.h>
-#include <event_system.h>
+#include <component_system.h>
 #include <error.h>
 #include <memio.h>
 #include <shader/ops.h>
@@ -13,7 +13,7 @@
 #include <stdio.h>
 
 
-static bool __init_glfw(void) {
+static bool private(init_glfw)(void) {
     static bool flag = false;
     if (!flag) {
         if (!glfwInit()) {
@@ -32,7 +32,7 @@ static bool __init_glfw(void) {
     }
     return true;
 }
-static bool __init_glad(void) {
+static bool private(init_glad)(void) {
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         logError(ERR_GLFW, "Failed to initialize GLAD function.");
         return false;
@@ -53,6 +53,34 @@ extern void __mouse_movement_callback(GLFWwindow* window, const f64 mouse_x, con
 extern void __mouse_button_callback(GLFWwindow* window, const i32 button, const i32 action, const i32 mods);
 extern void __scroll_callback(GLFWwindow* window, const f64 x, const f64 scroll_y);
 
+static void private(restore_callback)(GLFWwindow* window, const i32 flag) {
+    if (flag) return;
+    frame_t* frame = glfwGetWindowUserPointer(window);
+    frame->header.dirty = 2;
+}
+
+static void private(tick)(frame_t* frame) {
+    _Thread_local static char caption[64] = { 0 };
+    _Thread_local static u32 frame_count = 0;
+    _Thread_local static f64 acc = 0.0;
+    Stopwatch(update)(&frame->stopwatch);
+    acc += frame->stopwatch.delta;
+    frame_count++;
+
+    if (frame->clear[0].width) {
+        Frame(clear)(frame, &frame->clear[0]);
+        frame->clear[0] = frame->clear[1];
+        frame->clear[1] = (bounding_box){ 0 };
+    }
+
+    if (acc >= 1.0f) {
+        const f64 fps = (f64)frame_count / acc;
+        sprintf_s(caption, sizeof(caption), "%s-FPS: %.2f", frame->title, fps);
+        glfwSetWindowTitle(frame->ctx, caption);
+        acc = 0.0;
+        frame_count = 0;
+    }
+}
 
 frame_t* Frame(new)(const color_t bg, const u32 width, const u32 height, const char* title) {
     buf_t buffer = {
@@ -63,7 +91,7 @@ frame_t* Frame(new)(const color_t bg, const u32 width, const u32 height, const c
 
     frame_t* frame = buffer.ptr;
 
-    if (!__init_glfw()) goto cleanup;
+    if (!private(init_glfw)()) goto cleanup;
     frame->ctx = glfwCreateWindow(width, height, title, 0, 0);
     if (!frame->ctx) {
         logError(ERR_GLFW, "Failed to create frame window.");
@@ -77,20 +105,24 @@ frame_t* Frame(new)(const color_t bg, const u32 width, const u32 height, const c
 
     glfwMakeContextCurrent(frame->ctx);
     glfwSetFramebufferSizeCallback(frame->ctx, __resize_callback);
+    glfwSetWindowIconifyCallback(frame->ctx, private(restore_callback));
     glfwSetKeyCallback(frame->ctx, __keyboard_callback);
     glfwSetCursorPosCallback(frame->ctx, __mouse_movement_callback);
     glfwSetMouseButtonCallback(frame->ctx, __mouse_button_callback);
     glfwSetScrollCallback(frame->ctx, __scroll_callback);
     glfwSetWindowUserPointer(frame->ctx, frame);
 
-    if (!__init_glad()) goto cleanup;
+    if (!private(init_glad)()) goto cleanup;
 
     frame->header.box.width = width;
     frame->header.box.height = height;
 
     frame->header.content_box.width = width;
     frame->header.content_box.height = height;
-    frame->header.dirty = 1;
+    frame->header.dirty = 2;
+    frame->header.update = (callback)Frame(update);
+    frame->header.tick = (callback)private(tick);
+    frame->header.free = (callback)Frame(del);
 
     frame->bg = bg;
     frame->title = (char*)title;
@@ -103,6 +135,14 @@ frame_t* Frame(new)(const color_t bg, const u32 width, const u32 height, const c
         goto cleanup;
     }
     frame->cache.projection = m4_ortho(0.0f, (f32)frame->header.box.width, (f32)frame->header.box.height, 0.0f, -1.0f, 1.0f);
+
+    glClearColor(
+        u8tof32(bg.r),
+        u8tof32(bg.g),
+        u8tof32(bg.b),
+        u8tof32(bg.a)
+    );
+    glClear(GL_COLOR_BUFFER_BIT);
     return frame;
 cleanup:
     if (frame->header.components) Component(del_node)(frame->header.components);
@@ -115,7 +155,6 @@ void Frame(del)(frame_t* frame) {
     if (!frame) return;
     Shader(del_cache)(frame);
     Mesh(del_cache)(frame);
-    if (frame->header.components) Component(del_node)(frame->header.components);
     Buffer(del)(&(buf_t){.size = sizeof(frame_t), .tag = MEMTAG_FRAME, .ptr = frame});
     glfwTerminate();
 }
@@ -123,36 +162,13 @@ void Frame(del)(frame_t* frame) {
 void Frame(update)(frame_t* frame) {
     if (!frame) return;
 
-    static char caption[64] = { 0 };
-    static u32 frame_count = 0;
-    static f64 acc = 0.0;
-    Stopwatch(update)(&frame->stopwatch);
-    acc += frame->stopwatch.delta;
-    frame_count++;
-
-    if (acc >= 1.0f) {
-        const f64 fps = (f64)frame_count / acc;
-        sprintf_s(caption, sizeof(caption), "%s-FPS: %.2f", frame->title, fps);
-        acc = 0.0;
-        frame_count = 0;
-    }
-    glfwSetWindowTitle(frame->ctx, caption);
     if (frame->header.dirty) {
-        const color_t bg = frame->bg;
-        glViewport(0, 0, frame->header.box.width, frame->header.box.height);
-        // clears the window to a color
-        glClearColor(
-            u8tof32(bg.r),
-            u8tof32(bg.g),
-            u8tof32(bg.b),
-            u8tof32(bg.a)
-        );
-        glClear(GL_COLOR_BUFFER_BIT);
+        Frame(clear)(frame, &frame->header.box);
+        frame->header.dirty--;
     }
 }
 void Frame(set_position)(frame_t* frame, const u16 x, const u16 y) {
     if (!frame) return;
-
     glfwSetWindowPos(frame->ctx, x, y);
 }
 
@@ -167,4 +183,18 @@ void Frame(set_flag)(frame_t* frame, const u8 field) {
             break;
         }
     }
+}
+
+void Frame(clear)(const frame_t* frame, const bounding_box* box) {
+    const color_t bg = frame->bg;
+    glEnable(GL_SCISSOR_TEST);
+    glScissor(box->x, frame->header.box.height - box->y - box->height, box->width, box->height);
+    glClearColor(
+        u8tof32(bg.r),
+        u8tof32(bg.g),
+        u8tof32(bg.b),
+        u8tof32(bg.a)
+    );
+    glClear(GL_COLOR_BUFFER_BIT);
+    glDisable(GL_SCISSOR_TEST);
 }

@@ -1,127 +1,13 @@
-#include <event_system.h>
-#include <memio.h>
 #include <frame.h>
-#include <stdio.h>
+#include <events.h>
 
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <glfw3.h>
 #include <glfw3native.h>
 
-_Thread_local static GLFWcursor* __cursors[__COMPONENT_TAG_COUNT__] = { 0 };
-#define __get_comp_cursor(tag) __cursors[tag]
+extern _Thread_local GLFWcursor* __cursors[__COMPONENT_TAG_COUNT__];
 
-comp_node_t* Component(new_node)(void* data, const comp_tag tag) {
-    buf_t buffer = {
-        .size = sizeof(comp_node_t),
-        .tag = MEMTAG_COMPONENT_NODE
-    };
-    if (!Buffer(new)(&buffer, true)) return NULL;
-
-    comp_node_t* tree = buffer.ptr;
-    tree->component.instance = data;
-    tree->component.tag = tag;
-
-    tree->capacity = 4;
-    buffer = (buf_t){
-        .size = 4 * sizeof(comp_node_t*),
-        .tag = MEMTAG_POINTER
-    };
-    if (!Buffer(new)(&buffer, true)) goto cleanup;
-    tree->nodes = buffer.ptr;
-
-    if (tag == FRAME_COMPONENT && !__cursors[0]) {
-        __cursors[0] = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
-        __cursors[1] = __cursors[0];
-        __cursors[2] = __cursors[0];
-        __cursors[3] = glfwCreateStandardCursor(GLFW_HAND_CURSOR);
-        __cursors[4] = glfwCreateStandardCursor(GLFW_IBEAM_CURSOR);
-        __cursors[5] = load_cursor(__DIR__"\\Resources\\oval.png", 8, 8, 4, 4);
-        glfwSetCursor(((frame_t*)data)->ctx, __cursors[0]);
-    }
-
-    return tree;
-cleanup:
-    Buffer(del)(&(buf_t){.size = sizeof(comp_node_t), .tag = MEMTAG_COMPONENT_NODE, .ptr = tree});
-    return NULL;
-}
-void Component(del_node)(comp_node_t* root) {
-    if (!root) return;
-    for (u64 i = 0; i < root->count; i++) Component(del_node)(root->nodes[i]);
-    Buffer(del)(&(buf_t){.size = root->capacity * sizeof(comp_node_t*), .tag = MEMTAG_POINTER, .ptr = root->nodes});
-    Buffer(del)(&(buf_t){.size = sizeof(comp_node_t), .tag = MEMTAG_COMPONENT_NODE, .ptr = root});
-
-    for (u16 i = 2; i < __COMPONENT_TAG_COUNT__; i++) {
-        if (__cursors[i]) {
-            glfwDestroyCursor(__cursors[i]);
-            __cursors[i] = NULL;
-        }
-    }
-}
-static bool private(resize_tree)(comp_node_t* root) {
-    const u64 new_cap = root->capacity << 1;
-
-    buf_t buffer = {
-        .size = root->capacity * sizeof(comp_node_t*),
-        .tag = MEMTAG_POINTER,
-        .ptr = root->nodes
-    };
-    if (!Buffer(renew)(&buffer, new_cap)) return false;
-
-    root->capacity = new_cap;
-    return true;
-}
-bool Component(push_node)(comp_node_t* root, void* val, const comp_tag tag) {
-    if (!root) return false;
-
-    comp_node_t* node = Component(new_node)(val, tag);
-    if (!node) return false;
-
-    if (root->count == root->capacity && !private(resize_tree)(root)) goto cleanup;
-    root->nodes[root->count++] = node;
-
-    node->root = root->root ? root->root : root;
-    comp_header_t* header = get_header(val);
-    header->components = node;
-
-    return true;
-cleanup:
-    Component(del_node)(node);
-    return false;
-}
-
-const static char* __components_strings__[] = {
-    [FRAME_COMPONENT]   = "frame",
-    [PANEL_COMPONENT]   = "panel",
-    [CAPTION_COMPONENT] = "caption",
-    [BUTTON_COMPONENT]  = "button",
-    [EDIT_COMPONENT]    = "edit",
-    [CANVAS_COMPONENT]  = "canvas"
-};
-
-void Component(print_node)(comp_node_t* root, u64 indent) {
-    if (!root) return;
-
-    if (indent) {
-        for (u64 i = 0; i < indent - 1; i++) {
-            if (root->count > 0) putchar('|');
-            putchar('\t');
-        }
-    }
-
-    if (root->component.tag == FRAME_COMPONENT) printf("%s[%p]\n", __components_strings__[root->component.tag], root->component.instance);
-    else printf("|__%s[%p]\n", __components_strings__[root->component.tag], root->component.instance);
-
-    for (u64 i = 0; i < root->count; i++) {
-        comp_node_t* node = root->nodes[i];
-        for (u64 j = 0; j < indent; j++) {
-            if (root->count > 0) putchar('|');
-            putchar('\t');
-        }
-        Component(print_node)(node, indent + 1);
-
-    }
-}
-void dispatch_event(const comp_node_t* node, event_t* event) {
+static void private(dispatch_event)(const comp_node_t* node, event_t* event) {
     if (!node) return;
     if (get_header(node->component.instance)->hide) return;
 
@@ -133,7 +19,7 @@ void dispatch_event(const comp_node_t* node, event_t* event) {
         frame->hovered.tag  = FRAME_COMPONENT;
     }
 
-    switch (event->tag) {
+    switch (event->type) {
         case __MOUSE_EVENT__: {
             mouse_cb_param* param = &event->param.mouse;
 
@@ -153,11 +39,10 @@ void dispatch_event(const comp_node_t* node, event_t* event) {
                  const comp_header_t* header = get_header(node->nodes[i]->component.instance);
 
                  if (is_bounded(&header->box, param->x, param->y)) {
-                     dispatch_event(node->nodes[i], event);
+                     private(dispatch_event)(node->nodes[i], event);
                      flag = true;
                      break;
                  }
-
              }
              if (!flag) {
                  frame->hovered.instance = node->component.instance;
@@ -170,7 +55,7 @@ void dispatch_event(const comp_node_t* node, event_t* event) {
                  }
 
                  // toggles between different cursors for each component
-                 GLFWcursor* desired = __get_comp_cursor(node->component.tag);
+                 GLFWcursor* desired = __cursors[node->component.tag];
                  if (frame->cursor != desired) {
                      glfwSetCursor(frame->ctx, desired);
                      frame->cursor = desired;
@@ -207,7 +92,7 @@ void dispatch_event(const comp_node_t* node, event_t* event) {
         case __RESIZE_EVENT__: {
             resize_cb_param* param = &event->param.resize;
             const comp_header_t* header = get_header(node->component.instance);
-            for (u64 i = 0; i < node->count; i++) dispatch_event(node->nodes[i], event);
+            for (u64 i = 0; i < node->count; i++) private(dispatch_event)(node->nodes[i], event);
 
             if (header && header->resize) {
                 param->instance = node->component.instance;
@@ -216,4 +101,70 @@ void dispatch_event(const comp_node_t* node, event_t* event) {
             break;
         }
     }
+}
+void __resize_callback(GLFWwindow* window, const i32 width, const i32 height) {
+    if (width <= 0 || height <= 0) return;
+    glViewport(0, 0, width, height);
+
+    frame_t* frame = glfwGetWindowUserPointer(window);
+    if (frame->header.box.width == width && frame->header.box.height == height) return;
+
+    i32 delta_width = width - frame->header.box.width;
+    i32 delta_height = height - frame->header.box.height;
+
+    frame->header.box.width = (u32)width;
+    frame->header.box.height = (u32)height;
+
+    frame->cache.projection = m4_ortho(0.0f, (f32)frame->header.box.width, (f32)frame->header.box.height, 0.0f, -1.0f, 1.0f);
+    event_t event = {
+        .param.resize = {.height = delta_height, .width = delta_width},
+        .type = __RESIZE_EVENT__
+    };
+    const comp_node_t* root = frame->header.components;
+    frame->header.dirty = 1;
+    private(dispatch_event)(root, &event);
+}
+void __keyboard_callback(GLFWwindow* window, const i32 key, const i32 sc, const i32 action, const i32 modes) {
+    static bool wireframe_mode = false;
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) glfwSetWindowShouldClose(window, true);
+    if (key == GLFW_KEY_F1 && action == GLFW_PRESS) {
+        wireframe_mode = !wireframe_mode;
+        glPolygonMode(GL_FRONT_AND_BACK, wireframe_mode ? GL_LINE : GL_FILL);
+    }
+    const frame_t* frame = glfwGetWindowUserPointer(window);
+    event_t event = {
+        .param.keyboard = {.key = key, .scancode = sc, .action = action, .modes = modes},
+        .type = __KEYBOARD_EVENT__
+    };
+    const comp_node_t* root = frame->header.components;
+    private(dispatch_event)(root, &event);
+}
+void __mouse_movement_callback(GLFWwindow* window, const f64 mouse_x, const f64 mouse_y) {
+    event_t event = {
+        .param.mouse = {.x = (i32)mouse_x, .y = (i32)mouse_y, .action = -1, .button = -1},
+        .type = __MOUSE_EVENT__
+    };
+    const frame_t* frame = glfwGetWindowUserPointer(window);
+    const comp_node_t* root = frame->header.components;
+    private(dispatch_event)(root, &event);
+}
+void __mouse_button_callback(GLFWwindow* window, const i32 button, const i32 action, const i32 mods) {
+    f64 mouse_x = 0.0, mouse_y = 0.0;
+    glfwGetCursorPos(window, &mouse_x, &mouse_y);
+    event_t event = {
+        .param.mouse = {.x = mouse_x, .y = mouse_y, .button = button, .action = action, .mods = mods},
+        .type = __MOUSE_EVENT__
+    };
+    const frame_t* frame = glfwGetWindowUserPointer(window);
+    const comp_node_t* root = frame->header.components;
+    private(dispatch_event)(root, &event);
+}
+void __scroll_callback(GLFWwindow* window, const f64 x, const f64 scroll_y) {
+    event_t event = {
+        .param.scroll = {.delta = scroll_y},
+        .type = __SCROLL_EVENT__
+    };
+    const frame_t* frame = glfwGetWindowUserPointer(window);
+    const comp_node_t* root = frame->header.components;
+    private(dispatch_event)(root, &event);
 }

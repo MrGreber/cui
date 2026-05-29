@@ -1,9 +1,10 @@
 #include <canvas.h>
 #include <memio.h>
-#include <event_system.h>
+#include <component_system.h>
 #include <frame.h>
 #include <shader/ops.h>
 #include <geometry/ops.h>
+#include <events.h>
 
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <glad.h>
@@ -23,6 +24,7 @@ static void private(camera_handler)(canvas_t* canvas) {
     const frame_t* frame = get_root(canvas);
     const f32 delta = (f32)frame->stopwatch.delta;
     camera_t* camera = &canvas->camera;
+    comp_header_t* parent_header = get_header(canvas->header.parent);
 #ifndef SPEED
 #define SPEED 200.0f
     if (!camera->keys) return;
@@ -31,40 +33,39 @@ static void private(camera_handler)(canvas_t* canvas) {
     if (camera->keys & CAM_KEY_A) camera->position.x -= SPEED * delta;
     if (camera->keys & CAM_KEY_D) camera->position.x += SPEED * delta;
     if (camera->keys & CAM_KEY_Q) {
-        camera->roll -= SPEED * delta;
-        if (camera->roll <= 0.0f) camera->roll += 360.0f;
+        camera->roll -= Camera(to_angle16)(SPEED * delta);
     }
     if (camera->keys & CAM_KEY_E) {
-        camera->roll += SPEED * delta;
-        if (camera->roll >= 360.0f) camera->roll -= 360.0f;
+        camera->roll += Camera(to_angle16)(SPEED * delta);
     }
     if (camera->keys & CAM_KEY_R) Camera(reset)(camera);
-    canvas->header.dirty |= 1;
+    parent_header->dirty = 2;
+    canvas->header.dirty_matrix = 1;
 #undef SPEED
 #else
 #error For some reason your dumbass decided to define a global macro named SPEED, what the fuck if you try to compiler me again I will send assassins after your ass
 #endif
 }
-
 static void private(mouse_callback)(const mouse_cb_param* param) {
     canvas_t* canvas = param->instance;
     const frame_t* frame = get_root(canvas);
+    bounding_box* content_box = &canvas->header.content_box;
 
     if (glfwGetMouseButton(frame->ctx, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
         vec4 mpos = {param->x, param->y, 0.0f, 1.0f};
         mpos = mv4_mul(&canvas->inv_model, &mpos);
 
-        if (canvas->prev.x != -1 && canvas->prev.y != -1) Texture(draw_line)(canvas->sprite->tex, canvas->brush.color, canvas->prev.x, canvas->prev.y, mpos.x, mpos.y);
-        else Texture(set_pixel)(canvas->sprite->tex, canvas->brush.color, mpos.x, mpos.y);
+        if (content_box->x != -1 && content_box->y != -1) Texture(draw_line)(canvas->sprite->tex, canvas->brush.color[canvas->brush.idx], content_box->x, content_box->y, mpos.x, mpos.y);
+        else Texture(set_pixel)(canvas->sprite->tex, canvas->brush.color[canvas->brush.idx], mpos.x, mpos.y);
 
-        canvas->prev.x = mpos.x;
-        canvas->prev.y = mpos.y;
+        content_box->x = mpos.x;
+        content_box->y = mpos.y;
+        canvas->header.dirty = 2;
     }
-    else canvas->prev.x = canvas->prev.y = -1;
+    else content_box->x = content_box->y = -1;
 }
 static void private(keyboard_callback)(const keyboard_cb_param* param) {
     canvas_t* canvas = param->instance;
-    //const frame_t* frame = get_root(canvas);
     camera_t* camera = &canvas->camera;
 
     u16 bit = 0;
@@ -77,10 +78,13 @@ static void private(keyboard_callback)(const keyboard_cb_param* param) {
         case GLFW_KEY_E: bit = CAM_KEY_E; break;
         case GLFW_KEY_R: bit = CAM_KEY_R; break;
         case GLFW_KEY_LEFT_ALT: {
+            if (param->action == GLFW_PRESS) canvas->brush.idx ^= 1;
             break;
         }
         case GLFW_KEY_SPACE:
             if (param->action == GLFW_PRESS) Texture(flush)(canvas->sprite->tex, WHITE);
+            canvas->header.dirty = 2;
+            canvas->header.dirty_matrix = 1;
             return;
         default: return;
     }
@@ -91,8 +95,8 @@ static void private(keyboard_callback)(const keyboard_cb_param* param) {
 static void private(scroll_callback)(const scroll_cb_param* param) {
     canvas_t* canvas = param->instance;
     const frame_t* frame = get_root(canvas);
-    const comp_header_t* parent_header = (comp_header_t*)canvas->parent;
     camera_t* camera = &canvas->camera;
+    comp_header_t* parent_header = get_header(canvas->header.parent);
 
 #ifndef ZOOM_SPEED
 #define ZOOM_SPEED 0.15f
@@ -115,15 +119,17 @@ static void private(scroll_callback)(const scroll_cb_param* param) {
     camera->position.y = offset_y + actual_factor * (camera->position.y - offset_y);
     camera->zoom = clamped;
 
-    canvas->header.dirty |= 1;
-}
-static void private(resize_callback)(const resize_cb_param* param) {
-    canvas_t* canvas = param->instance;
-    canvas->header.dirty |= 1;
+    parent_header->dirty = 2;
+    canvas->header.dirty_matrix = 1;
 }
 
+static void private(tick)(canvas_t* canvas) {
+    const frame_t* frame = get_root(canvas);
+    if (frame->focused.instance == canvas && canvas->camera.keys) private(camera_handler)(canvas);
+    else canvas->camera.keys = 0;
+}
 
-canvas_t* Canvas(new)(void* parent, const u32 width, const u32 height) {
+canvas_t* Canvas(new)(void* parent, const u16 width, const u16 height) {
     buf_t buffer = {
         .size = sizeof(canvas_t),
         .tag = MEMTAG_CANVAS
@@ -133,18 +139,19 @@ canvas_t* Canvas(new)(void* parent, const u32 width, const u32 height) {
     const comp_header_t* parent_header = get_header(parent);
 
     canvas_t* canvas = buffer.ptr;
-    canvas->header.dirty = 1;
-    canvas->dim.width = width;
-    canvas->dim.height = height;
+    canvas->header.dirty = 2;
+    canvas->header.dirty_matrix = 1;
+    canvas->header.content_box.width = width;
+    canvas->header.content_box.height = height;
+    canvas->header.content_box.x = -1;
+    canvas->header.content_box.y = -1;
 
     canvas->header.box.x = parent_header->content_box.x;
     canvas->header.box.y = parent_header->content_box.y;
     canvas->header.box.width = parent_header->content_box.width;
     canvas->header.box.height = parent_header->content_box.height;
 
-    canvas->parent = parent;
-    canvas->prev.x = -1;
-    canvas->prev.y = -1;
+    canvas->header.parent = parent;
 
     canvas->sprite = Sprite(new)(get_root(parent), RECT_SHADER);
     if (!canvas->sprite) goto cleanup;
@@ -153,8 +160,10 @@ canvas_t* Canvas(new)(void* parent, const u32 width, const u32 height) {
     canvas->camera = Camera(new)();
     canvas->header.mouse = (callback)private(mouse_callback);
     canvas->header.keyboard = (callback)private(keyboard_callback);
-    canvas->header.resize = (callback)private(resize_callback);
     canvas->header.scroll = (callback)private(scroll_callback);
+    canvas->header.update = (callback)Canvas(update);
+    canvas->header.tick = (callback)private(tick);
+    canvas->header.free = (callback)Canvas(del);
     Component(push_node)(parent_header->components, canvas, CANVAS_COMPONENT);
     return canvas;
 cleanup:
@@ -171,26 +180,24 @@ void Canvas(bind)(canvas_t* canvas) {
     if (!canvas) return;
     Sprite(bind)(get_root(canvas), canvas->sprite);
 }
-void Canvas(set_brush)(canvas_t* canvas, const color_t color, const f32 size) {
+void Canvas(set_brush)(canvas_t* canvas, const u8 brush_index, const color_t color, const u16 size) {
     if (!canvas) return;
-    canvas->brush.color = color;
+    canvas->brush.color[brush_index] = color;
     canvas->brush.size = size;
 }
 
 void Canvas(update)(canvas_t* canvas) {
-    if (!canvas) return;
+    if (!canvas || !canvas->header.dirty) return;
+
     const frame_t* frame = get_root(canvas);
-    const comp_header_t* parent_header = (comp_header_t*)canvas->parent;
-
-    if (frame->focused.instance == canvas && canvas->camera.keys) private(camera_handler)(canvas);
-    else canvas->camera.keys = 0;
-    if (canvas->header.dirty & 1) {
-        const mat4 rotation = m4_rotateZ(rad(canvas->camera.roll));
+    comp_header_t* parent_header = get_header(canvas->header.parent);
+    if (canvas->header.dirty_matrix) {
+        const mat4 rotation = m4_rotateZ(rad(Camera(from_angle16)(canvas->camera.roll)));
         const mat4 position = m4_transl(canvas->camera.position.x + parent_header->content_box.x, canvas->camera.position.y + parent_header->content_box.y, 0.0f);
-        const mat4 size = m4_transl(canvas->camera.zoom * (f32)canvas->dim.width * 0.5f, canvas->camera.zoom * (f32)canvas->dim.height * 0.5f, 0.0f);
-        const mat4 inv_size = m4_transl(-canvas->camera.zoom * (f32)canvas->dim.width * 0.5f, -canvas->camera.zoom * (f32)canvas->dim.height * 0.5f, 0.0f);
+        const mat4 size = m4_transl(canvas->camera.zoom * (f32)canvas->header.content_box.width * 0.5f, canvas->camera.zoom * (f32)canvas->header.content_box.height * 0.5f, 0.0f);
+        const mat4 inv_size = m4_transl(-canvas->camera.zoom * (f32)canvas->header.content_box.width * 0.5f, -canvas->camera.zoom * (f32)canvas->header.content_box.height * 0.5f, 0.0f);
 
-        const mat4 scale = m4_scale(canvas->camera.zoom * (f32)canvas->dim.width, canvas->camera.zoom * (f32)canvas->dim.height, 1.0f);
+        const mat4 scale = m4_scale(canvas->camera.zoom * (f32)canvas->header.content_box.width, canvas->camera.zoom * (f32)canvas->header.content_box.height, 1.0f);
         const mat4 inv_scale = m4_scale(canvas->camera.zoom, canvas->camera.zoom, 1.0f);
         canvas->model = m4_mul(&position, &size);
         canvas->model = m4_mul(&canvas->model, &rotation);
@@ -201,9 +208,8 @@ void Canvas(update)(canvas_t* canvas) {
 
         canvas->inv_model = m4_inverse(&canvas->inv_model);
         canvas->inv_model = m4_transp(&canvas->inv_model);
-        canvas->header.dirty ^= 1;
+        canvas->header.dirty_matrix = 0;
     }
-
     Sprite(bind)(frame, canvas->sprite);
     Shader(set_mat4)(canvas->sprite->shader, "projection", true, frame->cache.projection.e);
     Shader(set_mat4)(canvas->sprite->shader, "model", true, canvas->model.e);
@@ -220,5 +226,5 @@ void Canvas(update)(canvas_t* canvas) {
     canvas->header.box.y = parent_header->content_box.y;
     canvas->header.box.width = parent_header->content_box.width;
     canvas->header.box.height = parent_header->content_box.height;
+    canvas->header.dirty--;
 }
-

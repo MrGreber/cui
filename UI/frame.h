@@ -4,7 +4,7 @@
 #define FRAME_H
 #include <defines.h>
 #include <utils.h>
-#include <event_system.h>
+#include <component_system.h>
 #include <stopwatch.h>
 #include <shader/types.h>
 #include <geometry/types.h>
@@ -42,6 +42,8 @@ typedef struct frame {
     comp_t hovered;
     comp_t captured;
     struct frame_cache cache;
+
+    bounding_box clear[2];
 } frame_t;
 
 #define Frame(func) __frame_##func
@@ -50,7 +52,15 @@ void Frame(del)(frame_t* frame);
 
 void Frame(update)(frame_t* frame);
 
+__forceinline void Frame(push_dirty)(frame_t* frame, const bounding_box* box) {
+    if (frame->clear[0].width == 0)
+        frame->clear[0] = *box;
+    if (frame->clear[1].width == 0)
+        frame->clear[1] = *box;
+}
+
 void Frame(set_position)(frame_t* frame, const u16 x, const u16 y);
 #define FRAME_HIDE 1
 void Frame(set_flag)(frame_t* frame, const u8 field);
+void Frame(clear)(const frame_t* frame, const bounding_box* box);
 #endif // FRAME_H

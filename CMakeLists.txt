@@ -48,12 +48,6 @@ find_package(OpenGL REQUIRED)
 
 include(CheckCCompilerFlag)
 
-check_c_compiler_flag("-mavx2" COMPILER_SUPPORTS_AVX2)
-if(COMPILER_SUPPORTS_AVX2)
-    message(STATUS "Enabling AVX/AVX2 SIMD instructions")
-    target_compile_options(cui PRIVATE -mavx2 -mfma -msse4.2)
-endif()
-
 if(MSVC)
     set(GLFW_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/External/Library/glfw3.lib")
 else()

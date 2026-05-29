@@ -20,6 +20,6 @@ sprite_t* Sprite(new)(frame_t* frame, const shader_tag_t tag);
 void Sprite(del)(sprite_t* sprite);
 void Sprite(bind)(const frame_t* frame, const sprite_t* sprite);
 void Sprite(unbind)(void);
-bool Sprite(set_texture)(sprite_t* sprite, const u32 width, const u32 height, style_t* style);
+bool Sprite(set_texture)(sprite_t* sprite, const u16 width, const u16 height, style_t* style);
 
 #endif // OBJECT_H

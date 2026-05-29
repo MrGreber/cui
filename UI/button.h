@@ -10,13 +10,11 @@ typedef void (*button_callback)(void* vp_button);
 typedef struct button {
     comp_header_t header;
     style_group_t styles;
+    mat4 model;
 
-    void* parent;
     sprite_t* sprite;
-
     void* user_data;
     button_callback on_click;
-    mat4 model;
 } button_t;
 
 #define Button(func) __button_##func

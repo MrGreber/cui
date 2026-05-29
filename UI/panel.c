@@ -1,6 +1,6 @@
 #include <panel.h>
 #include <memio.h>
-#include <event_system.h>
+#include <component_system.h>
 #include <frame.h>
 #include <math-utils.h>
 #include <shader/ops.h>
@@ -10,19 +10,6 @@
 #include <memory.h>
 #include <glad.h>
 #include <glfw3.h>
-
-static void private(mouse_callback)(const mouse_cb_param* param) {
-    panel_t* panel = param->instance;
-
-}
-static void private(resize_callback)(const resize_cb_param* param) {
-    panel_t* panel = param->instance;
-    panel->header.dirty |= 1;
-    // comp_header_t* header = get_header(panel->parent);
-    //
-    // header->box.width += param->width;
-    // header->box.height += param->height;
-}
 
 #define CAPTION_HEIGHT 30
 panel_t* Panel(new)(void* parent, style_group_t* group, const bounding_box* box) {
@@ -35,19 +22,20 @@ panel_t* Panel(new)(void* parent, style_group_t* group, const bounding_box* box)
     const comp_header_t* parent_header = get_header(parent);
 
     panel_t* panel = buffer.ptr;
-    panel->header.dirty = 1;
+    panel->header.dirty = 2;
+    panel->header.dirty_matrix = 1;
     panel->header.box.x = box->x + parent_header->box.x;
     panel->header.box.y = box->y + parent_header->box.y;
     panel->header.box.width = box->width;
     panel->header.box.height = box->height;
 
-    const i32 caption_height = (group->normal.mode & CAPTION) ? CAPTION_HEIGHT : 0;
+    const i32 caption_height = (group->normal.modes & CAPTION) ? CAPTION_HEIGHT : 0;
     panel->header.content_box.x = box->x + parent_header->box.x;
     panel->header.content_box.y = box->y + parent_header->box.y + caption_height;
     panel->header.content_box.width = box->width;
     panel->header.content_box.height = box->height - caption_height;
 
-    panel->parent = parent;
+    panel->header.parent = parent;
     if (group->normal.init) memcpy(&panel->styles.normal, &group->normal, sizeof(style_t));
     if (group->hover.init) memcpy(&panel->styles.hover, &group->hover, sizeof(style_t));
 
@@ -56,11 +44,11 @@ panel_t* Panel(new)(void* parent, style_group_t* group, const bounding_box* box)
     if (!panel->sprite) goto cleanup;
     if (!Sprite(set_texture)(panel->sprite, box->width, box->height, &group->normal)) goto cleanup;
 
-    //panel->header.mouse = (callback)private(mouse_callback);
-    panel->header.resize = (callback)private(resize_callback);
+    panel->header.update = (callback)Panel(update);
+    panel->header.free = (callback)Panel(del);
     Component(push_node)(parent_header->components, panel, PANEL_COMPONENT);
-    panel->caption = Caption(new)(panel);
 
+    if (group->normal.modes & CAPTION) Caption(new)(panel);
     return panel;
 cleanup:
     if (panel->sprite) Sprite(del)(panel->sprite);
@@ -69,7 +57,6 @@ cleanup:
 }
 void Panel(del)(panel_t* panel) {
     if (!panel) return;
-    if (panel->caption) Caption(del)(panel->caption);
     if (panel->sprite) Sprite(del)(panel->sprite);
     Buffer(del)(&(buf_t){.size = sizeof(panel_t), .tag = MEMTAG_PANEL, .ptr = panel});
 }
@@ -79,10 +66,11 @@ void Panel(bind)(const panel_t* panel) {
 }
 
 void Panel(update)(panel_t* panel) {
-    if (!panel || panel->header.hide) return;
+    if (!panel || panel->header.hide || !panel->header.dirty) return;
+
     const frame_t* frame = get_root(panel);
 
-    if (panel->header.dirty & 1) {
+    if (panel->header.dirty_matrix) {
         const mat4 scale = m4_scale((f32)panel->header.box.width, (f32)panel->header.box.height, 1.0f);
         const mat4 position = m4_transl((f32)panel->header.box.x, (f32)panel->header.box.y, 0.0f);
         const mat4 size = m4_transl((f32)panel->header.box.width * 0.5f, (f32)panel->header.box.height * 0.5f, 0.0f);
@@ -91,7 +79,6 @@ void Panel(update)(panel_t* panel) {
         panel->model = m4_mul(&position, &size);
         panel->model = m4_mul(&panel->model, &inv_size);
         panel->model = m4_mul(&panel->model, &scale);
-        panel->header.dirty ^= 1;
     }
     Sprite(bind)(frame, panel->sprite);
     Shader(set_mat4)(panel->sprite->shader, "projection", true, frame->cache.projection.e);
@@ -108,8 +95,7 @@ void Panel(update)(panel_t* panel) {
     Shader(set_vec4)(panel->sprite->shader, "mask", color.e);
 
     Mesh(draw)(panel->sprite->mesh);
-
-    Caption(update)(panel->caption);
+    panel->header.dirty--;
 }
 
 void Panel(set_flag)(panel_t* panel, const u8 field) {

@@ -1,6 +1,6 @@
 #include <font.h>
 #include <memio.h>
-#include <event_system.h>
+#include <component_system.h>
 #include <math-utils.h>
 #include <shader/ops.h>
 #include <error.h>

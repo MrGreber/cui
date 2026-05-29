@@ -15,7 +15,7 @@ static u64 private(static_length)(char_t* data) {
     return (u64)data - start;
 }
 static bool private(resize_string)(str_t* src) {
-    if (src->capacity == UINT64_MAX) {
+    if (src->capacity >= INT64_MAX) {
         logError(ERR_HEAP_REALLOC, "vars reached max size %d.", UINT16_MAX);
         return false;
     }

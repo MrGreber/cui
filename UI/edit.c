@@ -1,11 +1,12 @@
 #include <edit.h>
 #include <memio.h>
-#include <event_system.h>
+#include <component_system.h>
 #include <math-utils.h>
 #include <frame.h>
 #include <error.h>
 #include <shader/ops.h>
 #include <geometry/ops.h>
+#include <events.h>
 
 #include <string.h>
 #include <glad.h>
@@ -106,9 +107,10 @@ static void private(build_mesh)(edit_t* edit, f32 start_x, f32 start_y) {
     }
     private(push_glyph)(edit, caret.glyph, caret.pos.x - (f32)caret.glyph->offset.x, caret.pos.y);
 
-    Mesh(bind)(get_root(edit->parent), edit->mesh);
+    Mesh(bind)(get_root(edit->header.parent), edit->mesh);
     Font(bind)(edit->font);
     Mesh(upload)(edit->mesh, edit->mesh->vertices.count, 0);
+    edit->header.dirty = 2;
 }
 static void private(set_caret_position)(edit_t* edit, const f64 mouse_x, const f64 mouse_y) {
     const str_t* buffer = edit->text.buffer;
@@ -149,14 +151,15 @@ static void private(set_caret_position)(edit_t* edit, const f64 mouse_x, const f
     }
     private(push_glyph)(edit, caret_glyph, pen.x - (f32)caret_glyph->offset.x, pen.y);
 
-    Mesh(bind)(get_root(edit->parent), edit->mesh);
+    Mesh(bind)(get_root(edit->header.parent), edit->mesh);
     Font(bind)(edit->font);
     Mesh(upload)(edit->mesh, QUAD, edit->mesh->vertices.count - QUAD);
+    edit->header.dirty = 2;
 }
 
 static void private(mouse_callback)(const mouse_cb_param* param) {
     edit_t* edit = param->instance;
-    const frame_t* frame = get_root(edit);
+
 
     if (param->action == GLFW_PRESS) {
         private(set_caret_position)(edit, param->x, param->y);
@@ -232,9 +235,7 @@ rebuild_text_mesh:
 }
 static void private(read_keyboard_callback)(const keyboard_cb_param* param) {
     edit_t* edit = param->instance;
-    frame_t* frame = get_root(edit);
 
-    bounding_box* box = &edit->header.box;
     if (param->action == GLFW_PRESS || param->action == GLFW_REPEAT) {
         switch (param->key) {
             case GLFW_KEY_LEFT_CONTROL:
@@ -276,13 +277,6 @@ static void private(read_keyboard_callback)(const keyboard_cb_param* param) {
         }
     }
 }
-static void private(resize_callback)(const resize_cb_param* param) {
-    edit_t* edit = param->instance;
-    edit->header.dirty |= 1;
-    // comp_header_t* header = get_header(edit->parent);
-    // edit->header.box.width += param->width;
-    // edit->header.box.height += param->height;
-}
 
 void Edit(set_text)(edit_t* edit, char_t* text, const u64 length) {
     if (!String(set)(edit->text.buffer, text, length)) {
@@ -302,14 +296,14 @@ edit_t* Edit(new)(void* parent, const style_group_t* group, const bounding_box* 
     const comp_header_t* parent_header = get_header(parent);
 
     edit_t* edit = buffer.ptr;
-    edit->header.dirty = 1;
-
+    edit->header.dirty = 2;
+    edit->header.dirty_matrix = 1;
     edit->header.box.x = box->x + parent_header->content_box.x;
     edit->header.box.y = box->y + parent_header->content_box.y;
     edit->header.box.width = box->width;
     edit->header.box.height = box->height;
 
-    edit->parent = parent;
+    edit->header.parent = parent;
     if (group->normal.init) memcpy(&edit->styles.normal, &group->normal, sizeof(style_t));
     if (group->hover.init) memcpy(&edit->styles.hover, &group->hover, sizeof(style_t));
 
@@ -338,9 +332,10 @@ edit_t* Edit(new)(void* parent, const style_group_t* group, const bounding_box* 
     if (!edit->text.buffer) goto cleanup;
 
     edit->header.mouse = (callback)private(mouse_callback);
-    if (group->normal.mode) edit->header.keyboard = (callback)private(write_keyboard_callback);
+    if (group->normal.modes) edit->header.keyboard = (callback)private(write_keyboard_callback);
     else edit->header.keyboard = (callback)private(read_keyboard_callback);
-    edit->header.resize = (callback)private(resize_callback);
+    edit->header.update = (callback)Edit(update);
+    edit->header.free = (callback)Edit(del);
     Component(push_node)(parent_header->components, edit, EDIT_COMPONENT);
     return edit;
 cleanup:
@@ -364,24 +359,24 @@ void Edit(bind)(const edit_t* edit) {
 
 #define CLOCK_TIME 0.02
 void Edit(update)(edit_t* edit) {
-    if (!edit) return;
+    if (!edit || !edit->header.dirty) return;
+
     const frame_t* frame = get_root(edit);
-    const font_t* font = edit->font;
     const style_t* style = &edit->styles.normal;
     const vec4 border_color = Color(to_vec4)(style->border.color);
     const vec2 dim = {(f32)edit->header.box.width, (f32)edit->header.box.height};
 
-    if (edit->header.dirty & 1) {
+    if (edit->header.dirty_matrix) {
         const mat4 scale = m4_scale((f32)edit->header.box.width, (f32)edit->header.box.height, 1.0f);
-        const mat4 position = m4_transl((f32)edit->header.box.x, (f32)edit->header.box.y, 0.0f);
-        const mat4 size = m4_transl((f32)edit->header.box.width * 0.5f, (f32)edit->header.box.height * 0.5f, 0.0f);
+        mat4 position = m4_transl((f32)edit->header.box.x, (f32)edit->header.box.y, 0.0f);
+        mat4 size = m4_transl((f32)edit->header.box.width * 0.5f, (f32)edit->header.box.height * 0.5f, 0.0f);
         const mat4 inv_size = m4_transl(-(f32)edit->header.box.width * 0.5f, -(f32)edit->header.box.height * 0.5f, 0.0f);
 
         edit->model = m4_mul(&position, &size);
         edit->model = m4_mul(&edit->model, &inv_size);
         edit->model = m4_mul(&edit->model, &scale);
-        edit->header.dirty ^= 1;
     }
+
     Sprite(bind)(frame, edit->sprite);
     Shader(set_mat4)(edit->sprite->shader, "projection", true, frame->cache.projection.e);
     Shader(set_mat4)(edit->sprite->shader, "model", true, edit->model.e);
@@ -434,20 +429,25 @@ void Edit(update)(edit_t* edit) {
     // }
 
     // draw the text mesh
+    const font_t* font = edit->font;
+
     const mat4 position = m4_transl((f32)edit->header.box.x + style->border.thickness, (f32)edit->header.box.y + style->border.thickness, 0.0f);
     const mat4 size = m4_scale(1.0f, 1.0f, 1.0f);
     const mat4 model = m4_mul(&position, &size);
-    glEnable(GL_SCISSOR_TEST);
-    glScissor(
-        edit->header.box.x , frame->header.box.height - edit->header.box.y - edit->header.box.height + style->border.thickness,
-        edit->header.box.width - style->border.thickness, edit->header.box.height - style->border.thickness
-    );
+
     Mesh(bind)(frame, edit->mesh);
     Font(bind)(edit->font);
     Shader(set_mat4)(edit->font->shader, "projection", true, frame->cache.projection.e);
     Shader(set_mat4)(edit->font->shader, "model", true, model.e);
     Shader(set_vec4)(edit->font->shader, "font.bg", Color(to_vec4)(font->bg).e);
     Shader(set_vec4)(edit->font->shader, "font.fg", Color(to_vec4)(font->fg).e);
+
+    glEnable(GL_SCISSOR_TEST);
+    glScissor(
+        edit->header.box.x , frame->header.box.height - edit->header.box.y - edit->header.box.height + style->border.thickness,
+        edit->header.box.width - style->border.thickness, edit->header.box.height - style->border.thickness
+    );
     Mesh(sub_draw)(edit->mesh, (frame->focused.instance == edit ? edit->mesh->vertices.count : edit->mesh->vertices.count - QUAD), 0);
     glDisable(GL_SCISSOR_TEST);
+    edit->header.dirty--;
 }

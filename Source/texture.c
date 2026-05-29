@@ -86,16 +86,42 @@ void Texture(set_pixel)(const texture_t* tex, const color_t color, const i32 x, 
 }
 void Texture(draw_line)(const texture_t* tex, const color_t color, i32 x0, i32 y0, const i32 x1, const i32 y1) {
     Texture(bind)(tex);
-    const i32 dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
-    const i32 dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
-    i32 err = dx + dy;
 
-    for (;;) {
+    union p64 {
+        struct {
+            i32 x, y;
+        };
+        u64 packed;
+    };
+
+    union p64 delta = {
+        .x = x1 - x0,
+        .y = y1 - y0
+    };
+    const i32 sx = ((0 < delta.x) << 1) - 1;
+    const i32 sy = ((0 < delta.y) << 1) - 1;
+
+    // some bitwise magic to preform absolute value operation on two integers
+    const union p64 mask = {.packed = ((delta.packed >> 31) & 0x100000001ull) * 0xffffffffull};
+    delta.x += mask.x;
+    delta.y += mask.y;
+    delta.packed = delta.packed ^ mask.packed;
+    delta.y = -delta.y;
+
+    i32 err = delta.x + delta.y;
+
+    while (true) {
         glTexSubImage2D(GL_TEXTURE_2D, 0, x0, y0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, &color);
         if (x0 == x1 && y0 == y1) break;
-        const i32 e2 = 2 * err;
-        if (e2 >= dy) { err += dy; x0 += sx; }
-        if (e2 <= dx) { err += dx; y0 += sy; }
+        const i32 e2 = err << 1;
+        if (e2 >= delta.y) {
+            err += delta.y;
+            x0 += sx;
+        }
+        if (e2 <= delta.x) {
+            err += delta.x;
+            y0 += sy;
+        }
     }
 }
 
@@ -146,7 +172,7 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
                 logError(ERR_INVALID_PARAM, "Address %p box.\n", NULL);
                 return false;
             }
-            const u64 size = box->width * box->height * sizeof(color_t);
+            const u64 size = (u64)box->width * (u64)box->height * sizeof(color_t);
             buf_t buffer = { .size = size, .tag = MEMTAG_COLOR };
             if (!Buffer(new)(&buffer, false)) goto cleanup;
 
@@ -210,10 +236,9 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
             for (; y < box->height; y++) {
                 u32 x = 0;
                 const u32 offset = y * box->width;
-                const u32 end = box->width & ~7u;
                 const __m256i vy64 = _mm256_set1_epi32(y >> 6);
                 __m256i vx = vinc;
-                for (; x + 8 <= end; x += 8) {
+                for (; x + 8 <= box->width; x += 8) {
                     const __m256i vx64 = _mm256_srli_epi32(vx, 6);
                     const __m256i vindices = _mm256_and_si256(_mm256_add_epi32(vx64, vy64), v1);
                     const __m256i vpalette = _mm256_i32gather_epi32((i32*)palette, vindices, sizeof(u32));
@@ -263,12 +288,12 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
                 logError(ERR_INVALID_PARAM, "Address %p box.\n", NULL);
                 return false;
             }
-            const u64 size = box->width * box->height * sizeof(color_t);
+            const u64 size = (u64)box->width * (u64)box->height * sizeof(color_t);
             buf_t buffer = { .size = size, .tag = MEMTAG_COLOR };
             if (!Buffer(new)(&buffer, false)) goto cleanup;
 #ifndef SIMD
             const struct gradient_metadata* meta = &style->background.linear_gradient->metadata;
-            const u8 n = meta->count;
+            const u8 n = style->count;
 
             vec4 palette[n];
             f32 positions[n];
@@ -301,7 +326,7 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
             }
 #else
             const struct gradient_metadata* meta = &style->background.linear_gradient->metadata;
-            const u8 n = meta->count;
+            const u8 n = style->count;
 
             vec4 palette[n];
             f32 positions[n];
@@ -343,7 +368,7 @@ bool Texture(generate)(texture_t** out, const bounding_box* box, const style_t* 
                 logError(ERR_INVALID_PARAM, "Address %p box.\n", NULL);
                 return false;
             }
-            const u64 size = box->width * box->height * sizeof(color_t);
+            const u64 size = (u64)box->width * (u64)box->height * sizeof(color_t);
             buf_t buffer = { .size = size, .tag = MEMTAG_COLOR };
             if (!Buffer(new)(&buffer, false)) goto cleanup;
             color_t* pixels = buffer.ptr;

@@ -6,14 +6,12 @@
 
 typedef struct caption {
     comp_header_t header;
+    mat4 model;
 
-    void* parent;
     sprite_t* sprite;
     struct {
         i32 x, y;
     } prev;
-
-    mat4 model;
 } caption_t;
 
 #define Caption(func) __caption_##func
