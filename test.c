@@ -6,7 +6,6 @@
 #include <edit.h>
 #include <button.h>
 #include <canvas.h>
-#include <component_system.h>
 
 #define WIDTH 800
 #define HEIGHT 800
