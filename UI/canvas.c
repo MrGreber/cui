@@ -49,6 +49,7 @@ static void private(camera_handler)(canvas_t* canvas) {
 static void private(mouse_callback)(const mouse_cb_param* param) {
     canvas_t* canvas = param->instance;
     const frame_t* frame = get_root(canvas);
+    comp_header_t* parent_header = get_header(canvas->header.parent);
     bounding_box* content_box = &canvas->header.content_box;
 
     if (glfwGetMouseButton(frame->ctx, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
@@ -60,7 +61,10 @@ static void private(mouse_callback)(const mouse_cb_param* param) {
 
         content_box->x = mpos.x;
         content_box->y = mpos.y;
-        canvas->header.dirty = 2;
+
+        const bool dirty = canvas->brush.color[canvas->brush.idx].hex == TRANSP.hex;
+        canvas->header.dirty = !dirty << 1;
+        parent_header->dirty = dirty << 1;
     }
     else content_box->x = content_box->y = -1;
 }

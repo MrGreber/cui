@@ -88,9 +88,7 @@ void Texture(draw_line)(const texture_t* tex, const color_t color, i32 x0, i32 y
     Texture(bind)(tex);
 
     union p64 {
-        struct {
-            i32 x, y;
-        };
+        struct { i32 x, y; };
         u64 packed;
     };
 

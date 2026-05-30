@@ -15,31 +15,7 @@ typedef union color {
     u32 hex;
 } color_t;
 
-typedef struct frame frame_t;
-typedef struct bounding_box bounding_box;
-
 #define Color(func) __color_##func
-__forceinline color_t Color(hsv_to_rgb)(const f32 h, const f32 s, const f32 v) {
-    const f32 c = v * s;
-    const f32 x = c * (1.0f - fabsf(fmodf(h / 60.0f, 2.0f) - 1.0f));
-    const f32 m = v - c;
-
-    f32 r, g, b;
-    if (h < 60)  { r = c; g = x; b = 0; }
-    else if (h < 120) { r = x; g = c; b = 0; }
-    else if (h < 180) { r = 0; g = c; b = x; }
-    else if (h < 240) { r = 0; g = x; b = c; }
-    else if (h < 300) { r = x; g = 0; b = c; }
-    else { r = c; g = 0; b = x; }
-
-    color_t color;
-    color.r = (u8)((r + m) * 255.0f);
-    color.g = (u8)((g + m) * 255.0f);
-    color.b = (u8)((b + m) * 255.0f);
-    color.a = 255;
-    return color;
-}
-
 /** Convert a byte (0-255) to a float (0.0-1.0) */
 #define u8tof32(b) (((f32)b) * 0.0039215686274509803921568627451f) // same as dividing by 255
 
