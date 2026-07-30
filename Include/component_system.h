@@ -90,10 +90,7 @@ typedef enum component_tag {
 
 typedef struct component_node comp_node_t;
 
-typedef struct component_header {
-    bounding_box box;
-    bounding_box content_box;
-
+typedef struct component_vtable {
     callback free;
     callback tick;
     callback mouse;
@@ -101,6 +98,14 @@ typedef struct component_header {
     callback resize;
     callback update;
     callback keyboard;
+} comp_vtable_t;
+
+typedef struct component_header {
+    bounding_box box;
+    bounding_box content_box;
+
+    comp_vtable_t* vtable;
+
     comp_node_t* components;
     void* parent;
     struct {

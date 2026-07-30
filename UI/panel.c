@@ -11,6 +11,11 @@
 #include <glad.h>
 #include <glfw3.h>
 
+static comp_vtable_t vtable = {
+    .update = (callback)Panel(update),
+    .free = (callback)Panel(del)
+};
+
 #define CAPTION_HEIGHT 30
 panel_t* Panel(new)(void* parent, style_group_t* group, const bounding_box* box) {
     buf_t buffer = {
@@ -44,8 +49,7 @@ panel_t* Panel(new)(void* parent, style_group_t* group, const bounding_box* box)
     if (!panel->sprite) goto cleanup;
     if (!Sprite(set_texture)(panel->sprite, box->width, box->height, &group->normal)) goto cleanup;
 
-    panel->header.update = (callback)Panel(update);
-    panel->header.free = (callback)Panel(del);
+    panel->header.vtable = &vtable;
     Component(push_node)(parent_header->components, panel, PANEL_COMPONENT);
 
     if (group->normal.modes & CAPTION) Caption(new)(panel);

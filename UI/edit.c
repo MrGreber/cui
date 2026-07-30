@@ -278,6 +278,20 @@ static void private(read_keyboard_callback)(const keyboard_cb_param* param) {
     }
 }
 
+static comp_vtable_t vtable_read = {
+    .mouse = (callback)private(mouse_callback),
+    .keyboard = (callback)private(read_keyboard_callback),
+    .update = (callback)Edit(update),
+    .free = (callback)Edit(del)
+};
+
+static comp_vtable_t vtable_write = {
+    .mouse = (callback)private(mouse_callback),
+    .keyboard = (callback)private(write_keyboard_callback),
+    .update = (callback)Edit(update),
+    .free = (callback)Edit(del)
+};
+
 void Edit(set_text)(edit_t* edit, char_t* text, const u64 length) {
     if (!String(set)(edit->text.buffer, text, length)) {
         logWarn(ERR_STRING, "Failed to set edit, text.");
@@ -331,11 +345,7 @@ edit_t* Edit(new)(void* parent, const style_group_t* group, const bounding_box* 
     edit->text.buffer = String(new)("", 0);
     if (!edit->text.buffer) goto cleanup;
 
-    edit->header.mouse = (callback)private(mouse_callback);
-    if (group->normal.modes) edit->header.keyboard = (callback)private(write_keyboard_callback);
-    else edit->header.keyboard = (callback)private(read_keyboard_callback);
-    edit->header.update = (callback)Edit(update);
-    edit->header.free = (callback)Edit(del);
+    edit->header.vtable = group->normal.modes ? &vtable_write : &vtable_read;
     Component(push_node)(parent_header->components, edit, EDIT_COMPONENT);
     return edit;
 cleanup:

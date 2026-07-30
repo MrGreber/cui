@@ -56,7 +56,7 @@ void Component(del_node)(comp_node_t* root) {
     for (u16 i = 0; i < root->count; i++) Component(del_node)(root->nodes[i]);
 
     comp_header_t* header = get_header(root->component.instance);
-    header->free(root->component.instance);
+    header->vtable->free(root->component.instance);
 
     Buffer(del)(&(buf_t){.size = root->capacity * sizeof(comp_node_t*), .tag = MEMTAG_POINTER, .ptr = root->nodes});
     Buffer(del)(&(buf_t){.size = sizeof(comp_node_t), .tag = MEMTAG_COMPONENT_NODE, .ptr = root});
@@ -143,11 +143,11 @@ void Component(update)(const comp_node_t* node) {
     if (!node) return;
 
     const comp_header_t* header = get_header(node->component.instance);
-    if (header->tick) header->tick(node->component.instance);
+    if (header->vtable->tick) header->vtable->tick(node->component.instance);
     if (header->dirty) {
         Component(poll)(node);
 
-        header->update(node->component.instance);
+        header->vtable->update(node->component.instance);
 
         for (u16 i = 0; i < node->count; i++) {
             comp_header_t* child_header = get_header(node->nodes[i]->component.instance);

@@ -133,6 +133,16 @@ static void private(tick)(canvas_t* canvas) {
     else canvas->camera.keys = 0;
 }
 
+static comp_vtable_t vtable = {
+    .mouse = (callback)private(mouse_callback),
+    .keyboard = (callback)private(keyboard_callback),
+    .scroll = (callback)private(scroll_callback),
+    .update = (callback)Canvas(update),
+    .tick = (callback)private(tick),
+    .free = (callback)Canvas(del)
+};
+
+
 canvas_t* Canvas(new)(void* parent, const u16 width, const u16 height) {
     buf_t buffer = {
         .size = sizeof(canvas_t),
@@ -162,12 +172,8 @@ canvas_t* Canvas(new)(void* parent, const u16 width, const u16 height) {
     if (!Sprite(set_texture)(canvas->sprite, width, height, &(style_t){.background = {.type = BG_COLOR, .color = WHITE}})) goto cleanup;
 
     canvas->camera = Camera(new)();
-    canvas->header.mouse = (callback)private(mouse_callback);
-    canvas->header.keyboard = (callback)private(keyboard_callback);
-    canvas->header.scroll = (callback)private(scroll_callback);
-    canvas->header.update = (callback)Canvas(update);
-    canvas->header.tick = (callback)private(tick);
-    canvas->header.free = (callback)Canvas(del);
+    
+    canvas->header.vtable = &vtable;
     Component(push_node)(parent_header->components, canvas, CANVAS_COMPONENT);
     return canvas;
 cleanup:

@@ -22,6 +22,12 @@ static void private(mouse_callback)(const mouse_cb_param* param) {
     if (button->styles.hover.init) button->header.dirty = 2;
 }
 
+static comp_vtable_t vtable = {
+    .free = (callback)Button(del),
+    .mouse = (callback)private(mouse_callback),
+    .update = (callback)Button(update),
+};
+
 button_t* Button(new)(void* parent, style_group_t* group, const bounding_box* box) {
     buf_t buffer = {
         .size = sizeof(button_t),
@@ -47,9 +53,7 @@ button_t* Button(new)(void* parent, style_group_t* group, const bounding_box* bo
     if (!button->sprite) goto cleanup;
     if (!Sprite(set_texture)(button->sprite, box->width, box->height, &group->normal)) goto cleanup;
 
-    button->header.mouse = (callback)private(mouse_callback);
-    button->header.update = (callback)Button(update);
-    button->header.free = (callback)Button(del);
+    button->header.vtable = &vtable;
     Component(push_node)(parent_header->components, button, BUTTON_COMPONENT);
     return button;
 cleanup:

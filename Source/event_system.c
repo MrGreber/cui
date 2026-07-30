@@ -27,7 +27,7 @@ static void private(dispatch_event)(const comp_node_t* node, event_t* event) {
                 const comp_header_t* header = get_header(frame->captured.instance);
 
                 param->instance = frame->captured.instance;
-                if (header && header->mouse) ((callback)header->mouse)(param);
+                if (header && header->vtable->mouse) ((callback)header->vtable->mouse)(param);
                 return;
             }
 
@@ -61,9 +61,9 @@ static void private(dispatch_event)(const comp_node_t* node, event_t* event) {
                      frame->cursor = desired;
                  }
 
-                 if (!header || !header->mouse) return;
+                 if (!header || !header->vtable->mouse) return;
                  param->instance = node->component.instance;
-                 ((callback)header->mouse)(param);
+                 ((callback)header->vtable->mouse)(param);
             }
             break;
         }
@@ -75,7 +75,7 @@ static void private(dispatch_event)(const comp_node_t* node, event_t* event) {
             const comp_header_t* header = get_header(focused->instance);
 
             param->instance = focused->instance;
-            if (header->scroll) ((callback)header->scroll)(param);
+            if (header->vtable->scroll) ((callback)header->vtable->scroll)(param);
             break;
         }
         case __KEYBOARD_EVENT__: {
@@ -86,7 +86,7 @@ static void private(dispatch_event)(const comp_node_t* node, event_t* event) {
             const comp_header_t* header = get_header(focused->instance);
 
             param->instance = focused->instance;
-            if (header->keyboard) ((callback)header->keyboard)(param);
+            if (header->vtable->keyboard) ((callback)header->vtable->keyboard)(param);
             break;
         }
         case __RESIZE_EVENT__: {
@@ -94,9 +94,9 @@ static void private(dispatch_event)(const comp_node_t* node, event_t* event) {
             const comp_header_t* header = get_header(node->component.instance);
             for (u64 i = 0; i < node->count; i++) private(dispatch_event)(node->nodes[i], event);
 
-            if (header && header->resize) {
+            if (header && header->vtable->resize) {
                 param->instance = node->component.instance;
-                ((callback)header->resize)(param);
+                ((callback)header->vtable->resize)(param);
             }
             break;
         }

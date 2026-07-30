@@ -2,6 +2,7 @@
 
 #ifndef APP_H
 #define APP_H
+#include <defines.h>
 
 typedef struct frame frame_t;
 

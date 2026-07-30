@@ -53,6 +53,13 @@ static void private(mouse_callback)(const mouse_cb_param* param) {
     }
 }
 
+static comp_vtable_t vtable = {
+    .mouse = (callback)private(mouse_callback),
+    .update = (callback)Caption(update),
+    .free = (callback)Caption(del)
+};
+
+
 #define CAPTION_HEIGHT 30
 caption_t* Caption(new)(void* parent) {
     buf_t buffer = {
@@ -83,9 +90,7 @@ caption_t* Caption(new)(void* parent) {
     if (!caption->sprite) goto cleanup;
     if (!Sprite(set_texture)(caption->sprite, parent_header->box.width, CAPTION_HEIGHT, &(style_t){.background = {.type = BG_COLOR, .color = RED}})) goto cleanup;
 
-    caption->header.mouse = (callback)private(mouse_callback);
-    caption->header.update = (callback)Caption(update);
-    caption->header.free = (callback)Caption(del);
+    caption->header.vtable = &vtable;
     Component(push_node)(parent_header->components, caption, CAPTION_COMPONENT);
 
     return caption;

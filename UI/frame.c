@@ -82,6 +82,12 @@ static void private(tick)(frame_t* frame) {
     }
 }
 
+static comp_vtable_t vtable = {
+    .update = (callback)Frame(update),
+    .tick = (callback)private(tick),
+    .free = (callback)Frame(del)
+};
+
 frame_t* Frame(new)(const color_t bg, const u32 width, const u32 height, const char* title) {
     buf_t buffer = {
         .size = sizeof(frame_t),
@@ -120,9 +126,8 @@ frame_t* Frame(new)(const color_t bg, const u32 width, const u32 height, const c
     frame->header.content_box.width = width;
     frame->header.content_box.height = height;
     frame->header.dirty = 2;
-    frame->header.update = (callback)Frame(update);
-    frame->header.tick = (callback)private(tick);
-    frame->header.free = (callback)Frame(del);
+    
+    frame->header.vtable = &vtable;
 
     frame->bg = bg;
     frame->title = (char*)title;

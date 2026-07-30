@@ -32,7 +32,7 @@ void App(start)(app_t* app) {
         if (app->loop) app->loop((void*)app);
         Component(update)(app->frame->header.components);
         glfwSwapBuffers(app->frame->ctx);
-        glfwWaitEventsTimeout(1.0 / 240.0);
+        glfwPollEvents();
     }
 }
 
