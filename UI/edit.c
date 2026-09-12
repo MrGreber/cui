@@ -21,7 +21,8 @@ static void private(push_glyph)(edit_t* edit, const glyph_t* g, const f32 pen_x,
     const f32 x1 = x0 + g->dim.width;
     const f32 y1 = y0 + g->dim.height;
 
-    //printf("Quad: <x=%f, y=%f\n", x0, y0);
+    printf("Quad: <x0=%f, y0=%f, x1=%f, y1=%f>, \n", x0, y0, x1, y1);
+
     const f32 quad[24] = {
         x0, y1, g->x0, g->y1,
         x1, y0, g->x1, g->y0,
@@ -36,7 +37,8 @@ static void private(push_glyph)(edit_t* edit, const glyph_t* g, const f32 pen_x,
         .is_vertices = true
     });
 }
-static void private(build_mesh)(edit_t* edit, f32 start_x, f32 start_y) {
+static void private(build_mesh)(edit_t* edit) {
+    f32 start_x = 0.0f, start_y = 0.0f;
     const str_t* buffer = edit->text.buffer;
 
     struct {
@@ -47,20 +49,22 @@ static void private(build_mesh)(edit_t* edit, f32 start_x, f32 start_y) {
     };
 
     u64 start_index = 0;
-    if (edit->text.index > 0) {
+    if (edit->text.index > 1) {
+        printf("index=%d\n", edit->text.index);
         // todo: fix the optimization has for some reason it keeps on increasing or decreasing the start y position of the text mesh
-        start_index = edit->text.index - 1;
+        start_index = edit->text.index - 2;
 
         f32* vertex = edit->mesh->vertices.data + (start_index * QUAD + 2) * edit->mesh->alignment;
         char_t c = edit->text.buffer->data[start_index];
 
         glyph_t* start_glyph = &edit->font->glyphs[edit->font->amap(c)];
-        start_x += vertex[0] - start_glyph->offset.x;
-        start_y += vertex[1] - start_glyph->offset.y;
-        // printf("%c\n", c);
-        // printf("offset: <x=%u, y=%u>\n", start_glyph->offset.x, start_glyph->offset.y);
-        // printf("vertex: <x=%f, y=%f>\n", vertex[0], vertex[1]);
-        // printf("start: <x=%f, y=%f>\n", start_x, start_y);
+
+        start_x = vertex[0] - start_glyph->offset.x;
+        start_y = vertex[1] - start_glyph->offset.y;
+        printf("%c\n", c);
+        printf("offset: <x=%u, y=%u>\n", start_glyph->offset.x, start_glyph->offset.y);
+        printf("vertex: <x=%f, y=%f>\n", vertex[0], vertex[1]);
+        printf("start: <x=%f, y=%f>\n", start_x, start_y);
     }
     edit->mesh->vertices.count = start_index * QUAD;
 
@@ -97,7 +101,7 @@ static void private(build_mesh)(edit_t* edit, f32 start_x, f32 start_y) {
 
         const u64 index = edit->font->amap(c);
         const glyph_t* g = &edit->font->glyphs[index];
-
+        printf("pushing '%c'\n", c);
         private(push_glyph)(edit, g, pen.x, pen.y);
         pen.x += g->x_advance;
 
@@ -173,16 +177,16 @@ static void private(write_keyboard_callback)(const keyboard_cb_param* param) {
     if (param->action == GLFW_PRESS || param->action == GLFW_REPEAT) {
         switch (param->key) {
             case GLFW_KEY_ENTER: {
-                String(insertC)(edit->text.buffer, edit->text.index++, _C_'\n');
+                String(insert_char)(edit->text.buffer, edit->text.index++, _C_'\n');
                 goto rebuild_text_mesh;
             }
             case GLFW_KEY_TAB: {
-                String(insertC)(edit->text.buffer, edit->text.index++, _C_'\t');
+                String(insert_char)(edit->text.buffer, edit->text.index++, _C_'\t');
                 goto rebuild_text_mesh;
             }
             default: {
                 const char_t key = edit->font->kmap(param->key, param->modes == GLFW_MOD_SHIFT);
-                String(insertC)(edit->text.buffer, edit->text.index++, key);
+                String(insert_char)(edit->text.buffer, edit->text.index++, key);
                 goto rebuild_text_mesh;
             }
             case GLFW_KEY_LEFT_CONTROL:
@@ -191,11 +195,11 @@ static void private(write_keyboard_callback)(const keyboard_cb_param* param) {
             case GLFW_KEY_LEFT_SHIFT:
             case GLFW_KEY_RIGHT_SHIFT: return;
             case GLFW_KEY_HOME: {
-                edit->text.index = String(rfindC)(edit->text.buffer, edit->text.index, '\n');
+                edit->text.index = String(rfind_char)(edit->text.buffer, edit->text.index, '\n');
                 goto rebuild_text_mesh;
             }
             case GLFW_KEY_END: {
-                edit->text.index = String(findC)(edit->text.buffer, edit->text.index, '\n');
+                edit->text.index = String(find_char)(edit->text.buffer, edit->text.index, '\n');
                 goto rebuild_text_mesh;
             }
             case GLFW_KEY_LEFT: {
@@ -219,7 +223,7 @@ static void private(write_keyboard_callback)(const keyboard_cb_param* param) {
             }
             case GLFW_KEY_BACKSPACE: {
                 if (edit->text.index) {
-                    String(popC)(edit->text.buffer, --edit->text.index);
+                    String(pop_char)(edit->text.buffer, --edit->text.index);
                     goto rebuild_text_mesh;
                 }
                 break;
@@ -229,9 +233,7 @@ static void private(write_keyboard_callback)(const keyboard_cb_param* param) {
     return;
 
 rebuild_text_mesh:
-    if (edit->font) {
-        private(build_mesh)(edit, 0.0, 0.0);
-    }
+    if (edit->font) private(build_mesh)(edit);
 }
 static void private(read_keyboard_callback)(const keyboard_cb_param* param) {
     edit_t* edit = param->instance;
@@ -244,26 +246,26 @@ static void private(read_keyboard_callback)(const keyboard_cb_param* param) {
             case GLFW_KEY_LEFT_SHIFT:
             case GLFW_KEY_RIGHT_SHIFT: return;
             case GLFW_KEY_HOME: {
-                edit->text.index = String(rfindC)(edit->text.buffer, edit->text.index, '\n');
-                private(build_mesh)(edit, 0.0, 0.0);
+                edit->text.index = String(rfind_char)(edit->text.buffer, edit->text.index, '\n');
+                private(build_mesh)(edit);
                 break;
             }
             case GLFW_KEY_END: {
-                edit->text.index = String(findC)(edit->text.buffer, edit->text.index, '\n');
-                private(build_mesh)(edit, 0.0, 0.0);
+                edit->text.index = String(find_char)(edit->text.buffer, edit->text.index, '\n');
+                private(build_mesh)(edit);
                 break;
             }
             case GLFW_KEY_LEFT: {
                 if (edit->text.index) {
                     edit->text.index--;
-                    private(build_mesh)(edit, 0.0, 0.0);
+                    private(build_mesh)(edit);
                 }
                 break;
             }
             case GLFW_KEY_RIGHT: {
                 if (edit->text.index < edit->text.buffer->length) {
                     edit->text.index++;
-                    private(build_mesh)(edit, 0.0, 0.0);
+                    private(build_mesh)(edit);
                 }
                 break;
             }
@@ -297,7 +299,7 @@ void Edit(set_text)(edit_t* edit, char_t* text, const u64 length) {
         logWarn(ERR_STRING, "Failed to set edit, text.");
         return;
     }
-    private(build_mesh)(edit, 0.0, 0.0);
+    private(build_mesh)(edit);
 }
 
 edit_t* Edit(new)(void* parent, const style_group_t* group, const bounding_box* box) {

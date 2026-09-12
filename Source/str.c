@@ -86,7 +86,7 @@ bool String(set)(str_t* dst, char_t* src, const u64 length) {
     return true;
 }
 
-bool String(popC)(str_t* src, const u64 index) {
+bool String(pop_char)(str_t* src, const u64 index) {
     if (!src || index >= src->length) return false;
 
     char_t* ptr = src->data;
@@ -119,7 +119,7 @@ cleanup:
     logError(ERR_HEAP_REALLOC, "Failed to resize string buffer.");
     return false;
 }
-bool String(insertC)(str_t* src, const u64 index, const char_t c) {
+bool String(insert_char)(str_t* src, const u64 index, const char_t c) {
     if (!src || index > src->length) return false;
     if (src->capacity <= src->length && !private(resize_string)(src)) goto cleanup;
 
@@ -144,13 +144,13 @@ bool String(concat)(str_t* dst, str_t* src) {
 
     return true;
 }
-u64 String(findC)(str_t* src, const u64 start, const char_t c) {
+u64 String(find_char)(str_t* src, const u64 start, const char_t c) {
     if (!src) return 0;
     u64 i = start;
     for (; src->data[i] != c && i < src->length; i++) {}
     return i;
 }
-u64 String(rfindC)(str_t* src, const u64 start, const char_t c) {
+u64 String(rfind_char)(str_t* src, const u64 start, const char_t c) {
     if (!src) return 0;
     u64 i = start;
     for (; src->data[i] != c && (i64)i > 0; i--);
