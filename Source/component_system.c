@@ -144,20 +144,20 @@ void Component(update)(const comp_node_t* node) {
 
     const comp_header_t* header = get_header(node->component.instance);
     if (header->vtable->tick) header->vtable->tick(node->component.instance);
-    if (header->dirty) {
-        Component(poll)(node);
+    // if (header->dirty) {
+    // Component(poll)(node);
 
-        header->vtable->update(node->component.instance);
+    header->vtable->update(node->component.instance);
 
-        for (u16 i = 0; i < node->count; i++) {
-            comp_header_t* child_header = get_header(node->nodes[i]->component.instance);
-            child_header->dirty = 1;
-            Component(update)(node->nodes[i]);
-        }
+    for (u16 i = 0; i < node->count; i++) {
+        comp_header_t* child_header = get_header(node->nodes[i]->component.instance);
+        child_header->dirty = 2; // 1;
+        Component(update)(node->nodes[i]);
     }
-    else {
-        for (u16 i = 0; i < node->count; i++) {
-            Component(update)(node->nodes[i]);
-        }
-    }
+    // }
+    // else {
+    //     for (u16 i = 0; i < node->count; i++) {
+    //         Component(update)(node->nodes[i]);
+    //     }
+    // }
 }
