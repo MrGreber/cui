@@ -109,12 +109,13 @@ typedef struct component_header {
     comp_node_t* components;
     void* parent;
     struct {
-        u8 focus: 1;
-        u8 drag:  1;
-        u8 hide:  1;
-        u8 dirty_matrix: 1;
-        u8 dirty: 2;
-        u8 flags: 2;
+        u64 focus: 1;
+        u64 drag:  1;
+        u64 hide:  1;
+        u64 dirty_matrix: 1;
+        u64 dirty: 2;
+        u64 flags: 2;
+        u64 reserved : 56; // NOTE: In use of the edit component for the current row
     };
 } comp_header_t;
 

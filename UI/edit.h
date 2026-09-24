@@ -23,6 +23,7 @@ typedef struct edit {
 } edit_t;
 
 #define Edit(func) __edit_##func
+#define current_line header.reserved
 edit_t* Edit(new)(void* parent, const style_group_t* group, const bounding_box* box);
 void Edit(del)(edit_t* edit);
 void Edit(bind)(const edit_t* edit);

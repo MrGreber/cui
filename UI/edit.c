@@ -21,7 +21,7 @@ static void private(push_glyph)(edit_t* edit, const glyph_t* g, const f32 pen_x,
     const f32 x1 = x0 + g->dim.width;
     const f32 y1 = y0 + g->dim.height;
 
-    printf("Quad: <x0=%f, y0=%f, x1=%f, y1=%f>, \n", x0, y0, x1, y1);
+    // printf("Quad: <x0=%f, y0=%f, x1=%f, y1=%f>, \n", x0, y0, x1, y1);
 
     const f32 quad[24] = {
         x0, y1, g->x0, g->y1,
@@ -37,42 +37,51 @@ static void private(push_glyph)(edit_t* edit, const glyph_t* g, const f32 pen_x,
         .is_vertices = true
     });
 }
-static void private(build_mesh)(edit_t* edit) {
-    f32 start_x = 0.0f, start_y = 0.0f;
-    const str_t* buffer = edit->text.buffer;
+static void private(build_mesh)(edit_t* edit, const f32 start_x, const f32 start_y) {
+    f32 x = 0.0f, y = 0.0f;
+    str_t* buffer = edit->text.buffer;
+    atlas_map amap = edit->font->amap;
+    glyph_t* glyphs = edit->font->glyphs;
 
     struct {
         vec2 pos;
         glyph_t* glyph;
     } caret = {
-        .glyph = &edit->font->glyphs[edit->font->amap('|')]
+        .glyph = &glyphs[amap('|')]
     };
-
+    
+    // printf("-------------------------\n");
     u64 start_index = 0;
+    edit->mesh->vertices.count = 0;
     if (edit->text.index > 1) {
-        printf("index=%d\n", edit->text.index);
-        // todo: fix the optimization has for some reason it keeps on increasing or decreasing the start y position of the text mesh
         start_index = edit->text.index - 2;
-
-        f32* vertex = edit->mesh->vertices.data + (start_index * QUAD + 2) * edit->mesh->alignment;
         char_t c = edit->text.buffer->data[start_index];
-
-        glyph_t* start_glyph = &edit->font->glyphs[edit->font->amap(c)];
-
-        start_x = vertex[0] - start_glyph->offset.x;
-        start_y = vertex[1] - start_glyph->offset.y;
-        printf("%c\n", c);
-        printf("offset: <x=%u, y=%u>\n", start_glyph->offset.x, start_glyph->offset.y);
-        printf("vertex: <x=%f, y=%f>\n", vertex[0], vertex[1]);
-        printf("start: <x=%f, y=%f>\n", start_x, start_y);
+        // printf("index=%llu\n", start_index);
+        // printf("char: '%c'\n", c);
+        
+        u64 adj = (c == '\n');
+        start_index = (start_index - adj) * (start_index > adj);
+        if (adj) c = edit->text.buffer->data[start_index];
+        
+        glyph_t* start_glyph = &glyphs[amap(c)];
+        u64 quad_offset = QUAD * (start_index - edit->current_line + adj) * (start_index + adj > edit->current_line);
+        
+        f32* vertex = edit->mesh->vertices.data + (quad_offset + 2) * edit->mesh->alignment;
+        x = vertex[0] - start_glyph->offset.x;
+        y = vertex[1] - start_glyph->offset.y;
+        
+        edit->mesh->vertices.count = quad_offset;
+        // printf("line: %llu\n", edit->current_line);
+        // printf("offset: <x=%u, y=%u>\n", start_glyph->offset.x, start_glyph->offset.y);
+        // printf("vertex: <x=%f, y=%f>\n", vertex[0], vertex[1]);
+        // printf("start: <x=%f, y=%f>\n", start_x, start_y);
     }
-    edit->mesh->vertices.count = start_index * QUAD;
 
     vec2 pen = {
-        start_x,
-        start_y
+        x + start_x,
+        y + start_y
     };
-    const f32 space_x = edit->font->glyphs[edit->font->amap(' ')].x_advance;
+    const f32 space_x = glyphs[amap(' ')].x_advance;
     for (u64 i = start_index; i < buffer->length; i++) {
         const char c = buffer->data[i];
 
@@ -99,9 +108,8 @@ static void private(build_mesh)(edit_t* edit) {
             continue;
         }
 
-        const u64 index = edit->font->amap(c);
-        const glyph_t* g = &edit->font->glyphs[index];
-        printf("pushing '%c'\n", c);
+        // printf("pushing '%c'\n", c);
+        const glyph_t* g = &glyphs[amap(c)];
         private(push_glyph)(edit, g, pen.x, pen.y);
         pen.x += g->x_advance;
 
@@ -116,24 +124,30 @@ static void private(build_mesh)(edit_t* edit) {
     Mesh(upload)(edit->mesh, edit->mesh->vertices.count, 0);
     edit->header.dirty = 2;
 }
+
 static void private(set_caret_position)(edit_t* edit, const f64 mouse_x, const f64 mouse_y) {
     const str_t* buffer = edit->text.buffer;
+    atlas_map amap = edit->font->amap;
+    glyph_t* glyphs = edit->font->glyphs;
+    edit->current_line = 0;
 
-    const glyph_t* caret_glyph = &edit->font->glyphs[edit->font->amap('|')];
-    if (edit->mesh->vertices.count >= QUAD) edit->mesh->vertices.count -= QUAD;
+    const glyph_t* caret_glyph = &glyphs[amap('|')];
+    if (edit->mesh->vertices.count >= QUAD) 
+        edit->mesh->vertices.count -= QUAD;
 
     vec2 pen = { 0 };
-    const f32 space_x = edit->font->glyphs[edit->font->amap(' ')].x_advance;
-
+    const f32 space_x = glyphs[amap(' ')].x_advance;
+    
     for (u64 i = 0; i < buffer->length; i++) {
         const char c = buffer->data[i];
-        const bool flag = (mouse_y >= pen.y && mouse_y < pen.y + edit->font->line_height);
+        const bool bounded = (mouse_y >= pen.y && mouse_y < pen.y + edit->font->line_height);
 
-        if (c == '\n') {
-            if (!flag) {
+        if (c == '\n') {        
+            if (!bounded) {
                 pen.x = 0.0f;
                 pen.y += edit->font->line_height;
                 edit->text.index = i + 1;
+                edit->current_line++;
             }
             else break;
             continue;
@@ -143,9 +157,9 @@ static void private(set_caret_position)(edit_t* edit, const f64 mouse_x, const f
         switch (c) {
             case ' ': advance = space_x; break;
             case '\t': advance = 4.0f * space_x; break;
-            default: advance = edit->font->glyphs[edit->font->amap(c)].x_advance; break;
+            default: advance = glyphs[amap(c)].x_advance; break;
         }
-        if (!flag) continue;
+        if (!bounded) continue;
 
         if (pen.x + advance < mouse_x) {
             pen.x += advance;
@@ -164,7 +178,6 @@ static void private(set_caret_position)(edit_t* edit, const f64 mouse_x, const f
 static void private(mouse_callback)(const mouse_cb_param* param) {
     edit_t* edit = param->instance;
 
-
     if (param->action == GLFW_PRESS) {
         private(set_caret_position)(edit, param->x, param->y);
     }
@@ -178,7 +191,9 @@ static void private(write_keyboard_callback)(const keyboard_cb_param* param) {
         switch (param->key) {
             case GLFW_KEY_ENTER: {
                 String(insert_char)(edit->text.buffer, edit->text.index++, _C_'\n');
-                goto rebuild_text_mesh;
+                if (edit->font) private(build_mesh)(edit, 0, 0);
+                edit->current_line++;
+                break;
             }
             case GLFW_KEY_TAB: {
                 String(insert_char)(edit->text.buffer, edit->text.index++, _C_'\t');
@@ -203,6 +218,7 @@ static void private(write_keyboard_callback)(const keyboard_cb_param* param) {
                 goto rebuild_text_mesh;
             }
             case GLFW_KEY_LEFT: {
+                // TODO: remove from current line tracker
                 if (edit->text.index) {
                     edit->text.index--;
                     goto rebuild_text_mesh;
@@ -210,6 +226,7 @@ static void private(write_keyboard_callback)(const keyboard_cb_param* param) {
                 break;
             }
             case GLFW_KEY_RIGHT: {
+                // TODO: add from current line tracker
                 if (edit->text.index < edit->text.buffer->length) {
                     edit->text.index++;
                     goto rebuild_text_mesh;
@@ -217,13 +234,18 @@ static void private(write_keyboard_callback)(const keyboard_cb_param* param) {
                 break;
             }
             case GLFW_KEY_UP: {
+                // edit->current_line--;
+                goto rebuild_text_mesh;
             }
             case GLFW_KEY_DOWN: {
+                // edit->current_line++;
                 goto rebuild_text_mesh;
             }
             case GLFW_KEY_BACKSPACE: {
                 if (edit->text.index) {
-                    String(pop_char)(edit->text.buffer, --edit->text.index);
+                    // if (edit->text.buffer->data[--edit->text.index] == '\n') 
+                    //     edit->current_line--; 
+                    String(pop_char)(edit->text.buffer, edit->text.index);
                     goto rebuild_text_mesh;
                 }
                 break;
@@ -233,7 +255,7 @@ static void private(write_keyboard_callback)(const keyboard_cb_param* param) {
     return;
 
 rebuild_text_mesh:
-    if (edit->font) private(build_mesh)(edit);
+    if (edit->font) private(build_mesh)(edit, 0, 0);
 }
 static void private(read_keyboard_callback)(const keyboard_cb_param* param) {
     edit_t* edit = param->instance;
@@ -247,25 +269,25 @@ static void private(read_keyboard_callback)(const keyboard_cb_param* param) {
             case GLFW_KEY_RIGHT_SHIFT: return;
             case GLFW_KEY_HOME: {
                 edit->text.index = String(rfind_char)(edit->text.buffer, edit->text.index, '\n');
-                private(build_mesh)(edit);
+                private(build_mesh)(edit, 0, 0);
                 break;
             }
             case GLFW_KEY_END: {
                 edit->text.index = String(find_char)(edit->text.buffer, edit->text.index, '\n');
-                private(build_mesh)(edit);
+                private(build_mesh)(edit, 0, 0);
                 break;
             }
             case GLFW_KEY_LEFT: {
                 if (edit->text.index) {
                     edit->text.index--;
-                    private(build_mesh)(edit);
+                    private(build_mesh)(edit, 0, 0);
                 }
                 break;
             }
             case GLFW_KEY_RIGHT: {
                 if (edit->text.index < edit->text.buffer->length) {
                     edit->text.index++;
-                    private(build_mesh)(edit);
+                    private(build_mesh)(edit, 0, 0);
                 }
                 break;
             }
@@ -299,7 +321,7 @@ void Edit(set_text)(edit_t* edit, char_t* text, const u64 length) {
         logWarn(ERR_STRING, "Failed to set edit, text.");
         return;
     }
-    private(build_mesh)(edit);
+    private(build_mesh)(edit, 0, 0);
 }
 
 edit_t* Edit(new)(void* parent, const style_group_t* group, const bounding_box* box) {
