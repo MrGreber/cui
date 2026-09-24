@@ -112,7 +112,7 @@ static void private(build_mesh)(edit_t* edit, const f32 start_x, const f32 start
         const glyph_t* g = &glyphs[amap(c)];
         private(push_glyph)(edit, g, pen.x, pen.y);
         pen.x += g->x_advance;
-
+        
         if (edit->text.index == i + 1) {
             caret.pos = pen;
         }
