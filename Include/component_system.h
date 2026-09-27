@@ -115,7 +115,8 @@ typedef struct component_header {
         u64 dirty_matrix: 1;
         u64 dirty: 2;
         u64 flags: 2;
-        u64 reserved : 56; // NOTE: In use of the edit component for the current row
+        u64 r1 : 32; // NOTE: In use of the edit component for the current row
+        u64 r2 : 24; // NOTE: Invisible char count for edit component
     };
 } comp_header_t;
 

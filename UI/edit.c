@@ -245,7 +245,7 @@ static void private(write_keyboard_callback)(const keyboard_cb_param* param) {
                 if (edit->text.index) {
                     // if (edit->text.buffer->data[--edit->text.index] == '\n') 
                     //     edit->current_line--; 
-                    String(pop_char)(edit->text.buffer, edit->text.index);
+                    String(pop_char)(edit->text.buffer, --edit->text.index);
                     goto rebuild_text_mesh;
                 }
                 break;
